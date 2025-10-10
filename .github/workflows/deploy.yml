@@ -26,16 +26,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Build project
+        run: yarn build
         env:
-          VITE_SUPABASE_URL: https://agesdprmugyybtqrvqks.supabase.co
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZXNkcHJtdWd5eWJ0cXJ2cWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDY0OTIsImV4cCI6MjA3MDcyMjQ5Mn0.bfo_xb818yMd7-u6cJhDoJrqmDwcGY1nBDJIesFSfWk
-        run: npm run build
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
