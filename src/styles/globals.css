@@ -1,0 +1,711 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  background-color: #000000;
+  color: #00ff41;
+  overflow-x: hidden;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ff41;
+  border-radius: 4px;
+  border: 1px solid #1a4d3a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00cc33;
+}
+
+::-webkit-scrollbar-corner {
+  background: #1a1a1a;
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff41 #1a1a1a;
+}
+
+/* 选择文本样式 */
+::selection {
+  background-color: #00ff41;
+  color: #000000;
+}
+
+::-moz-selection {
+  background-color: #00ff41;
+  color: #000000;
+}
+
+/* 输入框自动填充样式 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #000000 inset !important;
+  -webkit-text-fill-color: #00ff41 !important;
+  caret-color: #00ff41 !important;
+}
+
+/* 表单元素样式 */
+input,
+select,
+textarea {
+  font-family: 'Courier New', monospace;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #00ff41;
+}
+
+/* 按钮样式 */
+button {
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 链接样式 */
+a {
+  color: #00ff41;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #00cc33;
+  text-decoration: underline;
+}
+
+/* 表格样式 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #1a4d3a;
+}
+
+th {
+  background-color: #1a4d3a;
+  color: #00ff41;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+tr:hover {
+  background-color: rgba(0, 255, 65, 0.05);
+}
+
+/* 加载动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41;
+  }
+  50% {
+    text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+  }
+}
+
+/* 工具类 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* 朋克风格边框 */
+.punk-border {
+  border: 2px solid #00ff41;
+  border-radius: 0;
+  position: relative;
+}
+
+.punk-border::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 1px solid #1a4d3a;
+  border-radius: 0;
+  z-index: -1;
+}
+
+/* 朋克风格按钮 */
+.punk-button {
+  background: linear-gradient(45deg, #00ff41, #00cc33);
+  color: #000000;
+  border: none;
+  padding: 12px 24px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.punk-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.punk-button:hover::before {
+  left: 100%;
+}
+
+.punk-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 255, 65, 0.3);
+}
+
+.punk-button:active {
+  transform: translateY(0);
+}
+
+/* 朋克风格输入框 */
+.punk-input {
+  background: #000000;
+  border: 2px solid #00ff41;
+  color: #00ff41;
+  padding: 12px 16px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+}
+
+.punk-input:focus {
+  border-color: #00cc33;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.punk-input::placeholder {
+  color: #1a4d3a;
+  opacity: 1;
+}
+
+/* 朋克风格卡片 */
+.punk-card {
+  background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+  border: 2px solid #00ff41;
+  position: relative;
+  overflow: hidden;
+}
+
+.punk-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00ff41, #00cc33, #00ff41);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* 朋克风格标题 */
+.punk-title {
+  color: #00ff41;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+  position: relative;
+  display: inline-block;
+}
+
+.punk-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #00ff41, transparent);
+}
+
+/* 朋克风格状态指示器 */
+.status-active {
+  color: #00ff41;
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid #00ff41;
+}
+
+.status-inactive {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid #ff4444;
+}
+
+.status-pending {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid #ffaa00;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .punk-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  .punk-input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .punk-button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+  
+  .punk-input {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  th, td {
+    padding: 6px;
+    font-size: 11px;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .punk-border,
+  .punk-card {
+    border: 1px solid black !important;
+  }
+  
+  .punk-button {
+    background: white !important;
+    border: 1px solid black !important;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  :root {
+    --green-primary: #00ff00;
+    --green-secondary: #00cc00;
+    --green-dark: #004400;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  /* 已经是深色主题，保持现有样式 */
+}
+
+/* 浅色模式支持（如果需要） */
+@media (prefers-color-scheme: light) {
+  /* 保持朋克风格的深色主题 */
+}
+
+/* 焦点可见性 */
+.focus-visible:focus {
+  outline: 2px solid #00ff41;
+  outline-offset: 2px;
+}
+
+/* 错误状态 */
+.error {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.error:focus {
+  box-shadow: 0 0 0 2px #ff4444;
+}
+
+/* 成功状态 */
+.success {
+  color: #00ff41;
+  border-color: #00ff41;
+}
+
+.success:focus {
+  box-shadow: 0 0 0 2px #00ff41;
+}
+
+/* 警告状态 */
+.warning {
+  color: #ffaa00;
+  border-color: #ffaa00;
+}
+
+.warning:focus {
+  box-shadow: 0 0 0 2px #ffaa00;
+}
+
+/* 加载状态 */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid transparent;
+  border-top: 2px solid #00ff41;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 工具提示 */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 120px;
+  background-color: #000000;
+  color: #00ff41;
+  text-align: center;
+  border: 1px solid #00ff41;
+  border-radius: 4px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.tooltip .tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #00ff41 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 模态框遮罩 */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+/* 数据表格增强 */
+.data-table {
+  border: 2px solid #00ff41;
+  background: #0a0a0a;
+}
+
+.data-table th {
+  background: linear-gradient(135deg, #1a4d3a, #0f3d2a);
+  border-bottom: 2px solid #00ff41;
+}
+
+.data-table tr:nth-child(even) {
+  background: rgba(0, 255, 65, 0.02);
+}
+
+.data-table tr:hover {
+  background: rgba(0, 255, 65, 0.08);
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* 表单组增强 */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #00ff41;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.875rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #000000;
+  border: 2px solid #1a4d3a;
+  color: #00ff41;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #00ff41;
+  box-shadow: 0 0 0 3px rgba(0, 255, 65, 0.1);
+  background: rgba(0, 255, 65, 0.02);
+}
+
+/* 导航增强 */
+.nav-link {
+  color: #00ff41;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.nav-link:hover {
+  border-color: #00ff41;
+  background: rgba(0, 255, 65, 0.1);
+  transform: translateY(-1px);
+}
+
+.nav-link.active {
+  background: #00ff41;
+  color: #000000;
+}
+
+/* 徽章样式 */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.badge-primary {
+  background: #00ff41;
+  color: #000000;
+}
+
+.badge-secondary {
+  background: #1a4d3a;
+  color: #00ff41;
+  border: 1px solid #00ff41;
+}
+
+.badge-danger {
+  background: #ff4444;
+  color: #ffffff;
+}
+
+.badge-warning {
+  background: #ffaa00;
+  color: #000000;
+}
+
+.badge-success {
+  background: #00ff41;
+  color: #000000;
+}
+
+/* 进度条 */
+.progress {
+  width: 100%;
+  height: 8px;
+  background: #1a1a1a;
+  border: 1px solid #00ff41;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff41, #00cc33);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: progress-shine 2s infinite;
+}
+
+@keyframes progress-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 分页器 */
+.pagination {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.pagination-item {
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #00ff41;
+  color: #00ff41;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.pagination-item:hover {
+  background: #00ff41;
+  color: #000000;
+}
+
+.pagination-item.active {
+  background: #00ff41;
+  color: #000000;
+}
+
+.pagination-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-item.disabled:hover {
+  background: #1a1a1a;
+  color: #00ff41;
+}
