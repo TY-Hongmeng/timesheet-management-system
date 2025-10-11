@@ -28,14 +28,34 @@ jobs:
           node-version: '22'
           cache: 'yarn'
 
+      - name: Clear yarn cache
+        run: yarn cache clean
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --network-timeout 300000
+
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "Yarn version: $(yarn --version)"
+          echo "Environment variables check:"
+          echo "VITE_SUPABASE_URL is set: ${{ secrets.VITE_SUPABASE_URL != '' }}"
+          echo "VITE_SUPABASE_ANON_KEY is set: ${{ secrets.VITE_SUPABASE_ANON_KEY != '' }}"
+
+      - name: Type check
+        run: yarn check
 
       - name: Build project
         run: yarn build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Verify build output
+        run: |
+          echo "Build completed. Checking output..."
+          ls -la dist/
+          echo "dist/index.html exists: $(test -f dist/index.html && echo 'yes' || echo 'no')"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
