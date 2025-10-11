@@ -37,18 +37,18 @@ jobs:
         run: |
           echo "Node version: $(node --version)"
           echo "Yarn version: $(yarn --version)"
-          echo "Environment variables check:"
-          echo "VITE_SUPABASE_URL is set: ${{ secrets.VITE_SUPABASE_URL != '' }}"
-          echo "VITE_SUPABASE_ANON_KEY is set: ${{ secrets.VITE_SUPABASE_ANON_KEY != '' }}"
+          echo "Environment files check:"
+          echo ".env.production exists: $(test -f .env.production && echo 'yes' || echo 'no')"
+          if [ -f .env.production ]; then
+            echo "VITE_SUPABASE_URL in .env.production: $(grep VITE_SUPABASE_URL .env.production | cut -d'=' -f2 | head -c 50)..."
+            echo "VITE_SUPABASE_ANON_KEY in .env.production: $(grep VITE_SUPABASE_ANON_KEY .env.production | cut -d'=' -f2 | head -c 50)..."
+          fi
 
       - name: Type check
         run: yarn check
 
       - name: Build project
         run: yarn build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Verify build output
         run: |

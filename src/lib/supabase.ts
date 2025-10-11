@@ -3,18 +3,26 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
-// 调试信息
-console.log('Supabase配置:', {
+// 详细调试信息
+console.log('Supabase配置详情:', {
   url: import.meta.env.VITE_SUPABASE_URL ? '已配置' : '未配置',
+  urlValue: import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.substring(0, 50) + '...' : '未设置',
   key: import.meta.env.VITE_SUPABASE_ANON_KEY ? '已配置' : '未配置',
-  env: import.meta.env.MODE
+  keyValue: import.meta.env.VITE_SUPABASE_ANON_KEY ? import.meta.env.VITE_SUPABASE_ANON_KEY.substring(0, 50) + '...' : '未设置',
+  env: import.meta.env.MODE,
+  isDev: import.meta.env.DEV,
+  isProd: import.meta.env.PROD
 })
 
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Supabase配置缺失，使用占位符值:', {
+  console.error('❌ Supabase配置缺失！正在使用占位符值，这将导致连接失败:', {
     VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '未设置',
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '已设置' : '未设置'
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '已设置' : '未设置',
+    actualUrl: supabaseUrl,
+    actualKey: supabaseAnonKey.substring(0, 20) + '...'
   })
+} else {
+  console.log('✅ Supabase配置正常，连接到:', supabaseUrl)
 }
 
 // 创建带有重试机制的Supabase客户端
