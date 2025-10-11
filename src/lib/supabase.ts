@@ -1,19 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
 // 调试信息
 console.log('Supabase配置:', {
-  url: supabaseUrl ? '已配置' : '未配置',
-  key: supabaseAnonKey ? '已配置' : '未配置',
+  url: import.meta.env.VITE_SUPABASE_URL ? '已配置' : '未配置',
+  key: import.meta.env.VITE_SUPABASE_ANON_KEY ? '已配置' : '未配置',
   env: import.meta.env.MODE
 })
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase配置缺失:', {
-    VITE_SUPABASE_URL: supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? '已设置' : '未设置'
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Supabase配置缺失，使用占位符值:', {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '未设置',
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '已设置' : '未设置'
   })
 }
 
