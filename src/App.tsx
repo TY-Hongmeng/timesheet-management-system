@@ -28,7 +28,7 @@ import History from '@/pages/History'
 function App() {
   return (
     <AuthProvider>
-      <Router basename="/timesheet-management-system-new">
+      <Router basename="/timesheet-management-system">
         <Toaster position="top-right" richColors />
         <Routes>
           {/* Public Routes */}
