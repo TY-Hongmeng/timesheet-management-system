@@ -79,6 +79,8 @@ interface TimesheetItem {
   };
   quantity: number;
   unit: string;
+  unit_price: number;
+  amount: number;
 }
 
 interface ApprovalHistory {
@@ -140,6 +142,39 @@ const SupervisorApproval: React.FC = () => {
   // 审核模态框状态管理
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // 自动保存并审核确认对话框状态管理
+  const [showSaveAndApproveModal, setSaveAndApproveModal] = useState(false);
+  const [pendingApprovalData, setPendingApprovalData] = useState<{
+    type: 'single' | 'grouped';
+    record?: TimesheetRecord;
+    groupedRecord?: GroupedTimesheetRecord;
+    comment?: string;
+  } | null>(null);
+
+  // 未保存修改提示对话框状态管理
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [unsavedChangesInfo, setUnsavedChangesInfo] = useState<{
+    itemId: string;
+    itemName: string;
+    userName: string;
+    workDate: string;
+    originalQuantity: number;
+    newQuantity: number;
+    unit: string;
+    pendingApprovalData: {
+      type: 'single' | 'grouped' | 'batch' | 'edit_switch';
+      record?: TimesheetRecord;
+      groupedRecord?: GroupedTimesheetRecord;
+      selectedRecords?: string[];
+      comment?: string;
+      // 编辑切换时的新目标项目信息
+      newEditTarget?: {
+        item: TimesheetItem;
+        groupedRecord: GroupedTimesheetRecord;
+      };
+    };
+  } | null>(null);
 
   useEffect(() => {
     fetchPendingRecords();
@@ -178,6 +213,29 @@ const SupervisorApproval: React.FC = () => {
     if (selectedRecords.size === 0) {
       toast.error('请先选择要审核的记录');
       return;
+    }
+    
+    // 检查是否有未保存的修改
+    if (editingItem) {
+      const editingInfo = getCurrentEditingItemInfo();
+      if (editingInfo) {
+        // 显示详细的未保存修改对话框
+        setUnsavedChangesInfo({
+          itemId: editingItem,
+          itemName: editingInfo.itemName,
+          userName: editingInfo.userName,
+          workDate: editingInfo.workDate,
+          originalQuantity: originalQuantity,
+          newQuantity: editQuantity,
+          unit: editingInfo.item.unit || '件',
+          pendingApprovalData: {
+            type: 'batch',
+            selectedRecords: Array.from(selectedRecords)
+          }
+        });
+        setShowUnsavedChangesModal(true);
+        return; // 停止执行批量审核
+      }
     }
     
     setSubmitting(true);
@@ -340,7 +398,7 @@ const SupervisorApproval: React.FC = () => {
           supervisor:supervisor_id(id, name),
           section_chief:section_chief_id(id, name),
           user:user_id(id, name, phone),
-          timesheet_record_items(*)
+          timesheet_record_items(*, processes(unit_price))
         `)
         .eq('status', 'pending');
       
@@ -407,6 +465,8 @@ const SupervisorApproval: React.FC = () => {
             (record.section_chief || null),
           items: recordItems.map(item => {
             const process = processesMap.get(item.process_id);
+            const unitPrice = item.processes?.unit_price || 0;
+            const amount = item.quantity * unitPrice;
             return {
               id: item.id,
               timesheet_record_id: item.timesheet_record_id,
@@ -414,7 +474,9 @@ const SupervisorApproval: React.FC = () => {
               product: { name: process?.product_name || '未知产品', code: '' },
               process: { name: process?.product_process || '未知工序' },
               quantity: item.quantity,
-              unit: item.unit || '件'
+              unit: item.unit || '件',
+              unit_price: unitPrice,
+              amount: amount
             };
           })
         };
@@ -472,6 +534,30 @@ const SupervisorApproval: React.FC = () => {
   const handleApproval = async () => {
     if (!selectedRecord || !user) return;
 
+    // 检查是否有未保存的修改
+    if (editingItem) {
+      const editingInfo = getCurrentEditingItemInfo();
+      if (editingInfo) {
+        // 显示详细的未保存修改对话框
+        setUnsavedChangesInfo({
+          itemId: editingItem,
+          itemName: editingInfo.itemName,
+          userName: editingInfo.userName,
+          workDate: editingInfo.workDate,
+          originalQuantity: originalQuantity,
+          newQuantity: editQuantity,
+          unit: editingInfo.item.unit || '件',
+          pendingApprovalData: {
+            type: 'single',
+            record: selectedRecord,
+            comment: comments
+          }
+        });
+        setShowUnsavedChangesModal(true);
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
 
@@ -506,6 +592,30 @@ const SupervisorApproval: React.FC = () => {
 
   // 处理合并记录的审核
   const handleGroupedApproval = async (groupedRecord: GroupedTimesheetRecord, comment?: string) => {
+    // 检查是否有未保存的修改
+    if (editingItem) {
+      const editingInfo = getCurrentEditingItemInfo();
+      if (editingInfo) {
+        // 显示详细的未保存修改对话框
+        setUnsavedChangesInfo({
+          itemId: editingItem,
+          itemName: editingInfo.itemName,
+          userName: editingInfo.userName,
+          workDate: editingInfo.workDate,
+          originalQuantity: originalQuantity,
+          newQuantity: editQuantity,
+          unit: editingInfo.item.unit || '件',
+          pendingApprovalData: {
+            type: 'grouped',
+            groupedRecord: groupedRecord,
+            comment: comment
+          }
+        });
+        setShowUnsavedChangesModal(true);
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       
@@ -545,6 +655,41 @@ const SupervisorApproval: React.FC = () => {
 
   // 开始编辑数量
   const startEditQuantity = (item: TimesheetItem) => {
+    // 检查是否有未保存的修改
+    if (editingItem && editQuantity !== originalQuantity) {
+      // 获取当前正在编辑的项目信息
+      const currentEditingInfo = getCurrentEditingItemInfo();
+      if (currentEditingInfo) {
+        // 找到新目标项目所属的分组记录
+        const targetGroupedRecord = groupedRecords.find(record => 
+          record.allItems.some(i => i.id === item.id)
+        );
+        
+        if (targetGroupedRecord) {
+          // 显示未保存修改对话框
+          setUnsavedChangesInfo({
+            itemId: editingItem,
+            itemName: currentEditingInfo.itemName,
+            userName: currentEditingInfo.userName,
+            workDate: currentEditingInfo.workDate,
+            originalQuantity: originalQuantity,
+            newQuantity: editQuantity,
+            unit: currentEditingInfo.item.unit,
+            pendingApprovalData: {
+              type: 'edit_switch',
+              newEditTarget: {
+                item: item,
+                groupedRecord: targetGroupedRecord
+              }
+            }
+          });
+          setShowUnsavedChangesModal(true);
+          return; // 停止执行，等待用户选择
+        }
+      }
+    }
+    
+    // 没有未保存修改或无法获取信息，直接开始编辑
     setEditingItem(item.id);
     setEditQuantity(item.quantity);
     setOriginalQuantity(item.quantity);
@@ -592,13 +737,32 @@ const SupervisorApproval: React.FC = () => {
     if (!quantityModalInfo) return;
 
     try {
-      const { error } = await supabase
-        .from('timesheet_record_items')
-        .update({ 
-          quantity: quantityModalInfo.newQuantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', quantityModalInfo.itemId);
+      // 查找对应的项目信息以获取单价
+      let item = null;
+      for (const groupedRecord of groupedRecords) {
+        const foundItem = groupedRecord.allItems.find(i => i.id === quantityModalInfo.itemId);
+        if (foundItem) {
+          item = foundItem;
+          break;
+        }
+      }
+
+      if (!item) {
+        toast.error('找不到对应的工时项目');
+        return;
+      }
+
+      const unitPrice = item.unit_price || 0;
+      const newAmount = quantityModalInfo.newQuantity * unitPrice;
+
+      // 使用数据库函数更新，它会自动记录修改历史
+      const { error } = await supabase.rpc('update_timesheet_item_with_user', {
+        item_id: quantityModalInfo.itemId,
+        new_quantity: quantityModalInfo.newQuantity,
+        new_amount: newAmount,
+        modifier_id: user?.id || null,
+        modifier_name: user?.name || '未知用户'
+      });
 
       if (error) throw error;
 
@@ -625,6 +789,349 @@ const SupervisorApproval: React.FC = () => {
   const cancelEdit = () => {
     setEditingItem(null);
     setEditQuantity(0);
+  };
+
+  // 获取当前正在编辑的项目信息
+  const getCurrentEditingItemInfo = () => {
+    if (!editingItem) return null;
+    
+    // 在所有分组记录中查找正在编辑的项目
+    for (const groupedRecord of groupedRecords) {
+      const item = groupedRecord.allItems.find(item => item.id === editingItem);
+      if (item) {
+        return {
+          item,
+          groupedRecord,
+          itemName: `${item.work_type?.name || '未知类型'} | ${item.product?.name || '未知产品'} | ${item.process?.name || '未知工序'}`,
+          userName: groupedRecord.user?.name || '未知用户',
+          workDate: groupedRecord.work_date
+        };
+      }
+    }
+    return null;
+  };
+
+  // 自动保存并审核
+  const confirmSaveAndApprove = async () => {
+    if (!pendingApprovalData || !quantityModalInfo) return;
+
+    try {
+      setSubmitting(true);
+      
+      // 先保存数量修改
+      const { error: saveError } = await supabase
+        .from('timesheet_record_items')
+        .update({ 
+          quantity: editQuantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingItem);
+
+      if (saveError) {
+        console.error('保存数量修改失败:', saveError);
+        toast.error('保存数量修改失败，请重试');
+        return;
+      }
+
+      // 清除编辑状态
+      setEditingItem(null);
+      setEditQuantity(0);
+      setOriginalQuantity(0);
+      setShowQuantityModal(false);
+      setQuantityModalInfo(null);
+
+      // 然后执行审核
+      if (pendingApprovalData.type === 'single' && pendingApprovalData.record) {
+        // 单个记录审核
+        const updateSuccess = await updateRecordStatus([pendingApprovalData.record.id], 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecord = {
+          timesheet_record_id: pendingApprovalData.record.id,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingApprovalData.comment || '',
+          created_at: new Date().toISOString()
+        };
+        
+        const historySuccess = await insertApprovalHistory([historyRecord]);
+        if (!historySuccess) return;
+
+        setShowApprovalModal(false);
+        setSelectedRecord(null);
+        setComments('');
+      } else if (pendingApprovalData.type === 'grouped' && pendingApprovalData.groupedRecord) {
+        // 批量记录审核
+        const recordIds = pendingApprovalData.groupedRecord.originalRecords.map(record => record.id);
+        
+        const updateSuccess = await updateRecordStatus(recordIds, 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecords = recordIds.map(recordId => ({
+          timesheet_record_id: recordId,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingApprovalData.comment || null,
+          created_at: new Date().toISOString()
+        }));
+
+        const historySuccess = await insertApprovalHistory(historyRecords);
+        if (!historySuccess) return;
+
+        setSelectedRecords(new Set());
+      } else if (pendingData.type === 'batch' && pendingData.selectedRecords) {
+        // 批量审核
+        const selectedGroupedRecords = groupedRecords.filter(record => 
+          pendingData.selectedRecords!.includes(record.groupKey)
+        );
+        
+        for (const groupedRecord of selectedGroupedRecords) {
+          const recordIds = groupedRecord.originalRecords.map(record => record.id);
+          
+          const updateSuccess = await updateRecordStatus(recordIds, 'approved');
+          if (!updateSuccess) return;
+
+          const historyRecords = recordIds.map(recordId => ({
+            timesheet_record_id: recordId,
+            approver_id: user?.id,
+            approver_type: 'supervisor',
+            action: 'approved',
+            comment: '',
+            created_at: new Date().toISOString()
+          }));
+
+          const historySuccess = await insertApprovalHistory(historyRecords);
+          if (!historySuccess) return;
+        }
+        
+        setSelectedRecords(new Set());
+        navigate('/');
+      }
+
+      toast.success('保存并审核成功');
+      fetchPendingRecords();
+      
+    } catch (error) {
+      console.error('保存并审核失败:', error);
+      toast.error('保存并审核失败，请重试');
+    } finally {
+      setSubmitting(false);
+      setSaveAndApproveModal(false);
+      setPendingApprovalData(null);
+    }
+  };
+
+  // 取消自动保存并审核
+  const cancelSaveAndApprove = () => {
+    setSaveAndApproveModal(false);
+    setPendingApprovalData(null);
+  };
+
+  // 处理未保存修改对话框 - 保存并继续审核
+  const handleSaveAndContinueApproval = async () => {
+    if (!unsavedChangesInfo) return;
+
+    try {
+      setSubmitting(true);
+      
+      // 先保存数量修改
+      const { error: saveError } = await supabase
+        .from('timesheet_record_items')
+        .update({ 
+          quantity: unsavedChangesInfo.newQuantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', unsavedChangesInfo.itemId);
+
+      if (saveError) {
+        console.error('保存数量修改失败:', saveError);
+        toast.error('保存数量修改失败，请重试');
+        return;
+      }
+
+      // 清除编辑状态
+      setEditingItem(null);
+      setEditQuantity(0);
+      setOriginalQuantity(0);
+
+      // 关闭未保存修改对话框
+      setShowUnsavedChangesModal(false);
+      
+      // 然后执行审核
+      const pendingData = unsavedChangesInfo.pendingApprovalData;
+      if (pendingData.type === 'single' && pendingData.record) {
+        // 单个记录审核
+        const updateSuccess = await updateRecordStatus([pendingData.record.id], 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecord = {
+          timesheet_record_id: pendingData.record.id,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingData.comment || '',
+          created_at: new Date().toISOString()
+        };
+        
+        const historySuccess = await insertApprovalHistory([historyRecord]);
+        if (!historySuccess) return;
+
+        setShowApprovalModal(false);
+        setSelectedRecord(null);
+        setComments('');
+      } else if (pendingData.type === 'grouped' && pendingData.groupedRecord) {
+        // 批量记录审核
+        const recordIds = pendingData.groupedRecord.originalRecords.map(record => record.id);
+        
+        const updateSuccess = await updateRecordStatus(recordIds, 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecords = recordIds.map(recordId => ({
+          timesheet_record_id: recordId,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingData.comment || null,
+          created_at: new Date().toISOString()
+        }));
+
+        const historySuccess = await insertApprovalHistory(historyRecords);
+        if (!historySuccess) return;
+
+        setSelectedRecords(new Set());
+      }
+
+      toast.success('保存并审核成功');
+      fetchPendingRecords();
+      
+    } catch (error) {
+      console.error('保存并审核失败:', error);
+      toast.error('保存并审核失败，请重试');
+    } finally {
+      setSubmitting(false);
+      setUnsavedChangesInfo(null);
+    }
+  };
+
+  // 处理未保存修改对话框 - 取消修改并继续审核
+  const handleCancelAndContinueApproval = async () => {
+    if (!unsavedChangesInfo) return;
+
+    try {
+      setSubmitting(true);
+      
+      // 恢复原数量，取消编辑状态
+      setEditingItem(null);
+      setEditQuantity(0);
+      setOriginalQuantity(0);
+
+      // 关闭未保存修改对话框
+      setShowUnsavedChangesModal(false);
+      
+      // 然后执行审核
+      const pendingData = unsavedChangesInfo.pendingApprovalData;
+      if (pendingData.type === 'single' && pendingData.record) {
+        // 单个记录审核
+        const updateSuccess = await updateRecordStatus([pendingData.record.id], 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecord = {
+          timesheet_record_id: pendingData.record.id,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingData.comment || '',
+          created_at: new Date().toISOString()
+        };
+        
+        const historySuccess = await insertApprovalHistory([historyRecord]);
+        if (!historySuccess) return;
+
+        setShowApprovalModal(false);
+        setSelectedRecord(null);
+        setComments('');
+      } else if (pendingData.type === 'grouped' && pendingData.groupedRecord) {
+        // 批量记录审核
+        const recordIds = pendingData.groupedRecord.originalRecords.map(record => record.id);
+        
+        const updateSuccess = await updateRecordStatus(recordIds, 'approved');
+        if (!updateSuccess) return;
+
+        const historyRecords = recordIds.map(recordId => ({
+          timesheet_record_id: recordId,
+          approver_id: user?.id,
+          approver_type: 'supervisor',
+          action: 'approved',
+          comment: pendingData.comment || null,
+          created_at: new Date().toISOString()
+        }));
+
+        const historySuccess = await insertApprovalHistory(historyRecords);
+        if (!historySuccess) return;
+
+        setSelectedRecords(new Set());
+      } else if (pendingData.type === 'batch' && pendingData.selectedRecords) {
+        // 批量审核
+        const selectedGroupedRecords = groupedRecords.filter(record => 
+          pendingData.selectedRecords!.includes(record.groupKey)
+        );
+        
+        for (const groupedRecord of selectedGroupedRecords) {
+          const recordIds = groupedRecord.originalRecords.map(record => record.id);
+          
+          const updateSuccess = await updateRecordStatus(recordIds, 'approved');
+          if (!updateSuccess) return;
+
+          const historyRecords = recordIds.map(recordId => ({
+            timesheet_record_id: recordId,
+            approver_id: user?.id,
+            approver_type: 'supervisor',
+            action: 'approved',
+            comment: '',
+            created_at: new Date().toISOString()
+          }));
+
+          const historySuccess = await insertApprovalHistory(historyRecords);
+          if (!historySuccess) return;
+        }
+        
+        setSelectedRecords(new Set());
+        navigate('/');
+      } else if (pendingData.type === 'edit_switch' && pendingData.newEditTarget) {
+        // 编辑切换场景：取消当前修改并开始编辑新项目
+        const { item, groupedRecord } = pendingData.newEditTarget;
+        
+        // 开始编辑新项目
+        setEditingItem(item.id);
+        setEditQuantity(item.quantity);
+        setOriginalQuantity(item.quantity);
+        
+        toast.success('已取消修改，现在可以编辑新项目');
+        
+        // 清理状态并返回，不需要执行审核
+        setUnsavedChangesInfo(null);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.success('审核成功');
+      fetchPendingRecords();
+      
+    } catch (error) {
+      console.error('审核失败:', error);
+      toast.error('审核失败，请重试');
+    } finally {
+      setSubmitting(false);
+      setUnsavedChangesInfo(null);
+    }
+  };
+
+  // 关闭未保存修改对话框
+  const closeUnsavedChangesModal = () => {
+    setShowUnsavedChangesModal(false);
+    setUnsavedChangesInfo(null);
   };
 
   // 删除记录项
@@ -1140,6 +1647,172 @@ const SupervisorApproval: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 自动保存并审核确认对话框 */}
+      {showSaveAndApproveModal && pendingApprovalData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-green-400 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-yellow-900 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-100">检测到未保存的修改</h3>
+                <p className="text-sm text-gray-400">您有数量修改尚未保存</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-300 mb-3">
+                您修改了数量但尚未保存。是否要自动保存修改并继续审核？
+              </p>
+              <div className="bg-gray-700 border border-gray-600 p-3 rounded-lg">
+                <div className="text-sm">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-400">原数量:</span>
+                    <span className="font-medium text-gray-200">{originalQuantity}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">新数量:</span>
+                    <span className="font-medium text-green-400">{editQuantity}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-yellow-400 text-sm mt-3 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                选择"保存并审核"将自动保存修改然后继续审核流程
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelSaveAndApprove}
+                className="px-4 py-2 text-gray-300 hover:text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmSaveAndApprove}
+                disabled={submitting}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    处理中...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    保存并审核
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 未保存修改详细对话框 */}
+      {showUnsavedChangesModal && unsavedChangesInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-green-400 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-orange-900 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-100">检测到未保存的修改</h3>
+                <p className="text-sm text-gray-400">您有数量修改尚未保存</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-300 mb-3">
+                您修改了数量但尚未保存。请选择如何处理这个未保存的修改：
+              </p>
+              <div className="bg-gray-700 border border-gray-600 p-3 rounded-lg">
+                <h4 className="font-medium text-gray-200 mb-3">未保存的修改项目：</h4>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">项目：</span>
+                    <span className="font-medium text-gray-200">{unsavedChangesInfo.itemName}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">用户：</span>
+                    <span className="font-medium text-gray-200">{unsavedChangesInfo.userName}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">日期：</span>
+                    <span className="font-medium text-gray-200">{unsavedChangesInfo.workDate}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-600">
+                    <span className="text-gray-400">数量变更：</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-300">{unsavedChangesInfo.originalQuantity}</span>
+                      <span className="text-orange-400">→</span>
+                      <span className="font-medium text-orange-400">{unsavedChangesInfo.newQuantity}</span>
+                      <span className="text-gray-400 text-xs">{unsavedChangesInfo.unit}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-orange-400 text-sm mt-3 flex items-center gap-1">
+                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                 </svg>
+                 选择"保存修改"将自动保存修改然后继续审核流程
+               </p>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closeUnsavedChangesModal}
+                className="px-4 py-2 text-gray-300 hover:text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                返回
+              </button>
+              <button
+                onClick={handleSaveAndContinueApproval}
+                disabled={submitting}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    处理中...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                     </svg>
+                     保存修改
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -34,11 +34,16 @@ interface TimesheetRecord {
   id: string;
   user_id: string;
   work_date: string;
+  shift_type: '白班' | '夜班'; // 添加班次类型字段
   status: 'pending' | 'approved' | 'section_chief_approved';
   created_at: string;
   updated_at: string;
   supervisor_approved_at?: string;
   section_chief_approved_at?: string;
+  supervisor_id?: string;
+  section_chief_id?: string;
+  supervisor_name?: string;
+  section_chief_name?: string;
   user: {
     id: string;
     name: string;
@@ -68,6 +73,26 @@ interface TimesheetItem {
     production_category: string;
     production_line: string;
     unit_price: number;
+  };
+  modification_history?: ModificationHistory[];
+  record?: TimesheetRecord;
+}
+
+interface ModificationHistory {
+  id: string;
+  modifier_id: string;
+  modifier_name: string;
+  old_quantity: number;
+  new_quantity: number;
+  old_amount: number;
+  new_amount: number;
+  modification_reason?: string;
+  created_at: string;
+  modifier?: {
+    name: string;
+    role: {
+      name: string;
+    };
   };
 }
 
@@ -192,7 +217,10 @@ const Reports: React.FC = () => {
   }, [records, filters]);
 
   const checkReportsPermission = async () => {
+    console.log('=== checkReportsPermission 被调用 ===');
+    console.log('user:', user);
     if (!user) {
+      console.log('用户不存在，返回');
       return;
     }
     
@@ -224,6 +252,7 @@ const Reports: React.FC = () => {
 
   // 获取报表数据
   const fetchReportData = async () => {
+    console.log('=== fetchReportData 被调用 ===');
     try {
       setLoading(true);
       
@@ -330,9 +359,41 @@ const Reports: React.FC = () => {
 
       if (approvalError) throw approvalError;
 
+      // 获取修改历史
+      const itemIds = itemsData?.map(item => item.id) || [];
+      const { data: modificationData, error: modificationError } = await supabase
+        .from('timesheet_item_modification_history')
+        .select(`
+          *,
+          modifier_name,
+          modifier:modifier_id(
+            name,
+            role:role_id(name)
+          )
+        `)
+        .in('timesheet_record_item_id', itemIds)
+        .order('created_at', { ascending: false });
+
+      if (modificationError) throw modificationError;
+
+      // 调试修改历史数据
+      console.log('=== 修改历史查询结果 ===');
+      console.log('modificationData:', modificationData);
+      console.log('modificationData length:', modificationData?.length || 0);
+      if (modificationData && modificationData.length > 0) {
+        console.log('第一条修改历史:', modificationData[0]);
+      }
+      console.log('========================');
+
       // 组合数据并计算金额
       const recordsWithItems = recordsData?.map(record => {
-        const items = itemsData?.filter(item => item.timesheet_record_id === record.id) || [];
+        const items = itemsData?.filter(item => item.timesheet_record_id === record.id).map(item => {
+          const modifications = modificationData?.filter(mod => mod.timesheet_record_item_id === item.id) || [];
+          return {
+            ...item,
+            modification_history: modifications
+          };
+        }) || [];
         const approvals = approvalData?.filter(approval => approval.timesheet_record_id === record.id) || [];
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
         
@@ -602,14 +663,17 @@ const Reports: React.FC = () => {
       const item = record?.items.find(i => i.id === pendingEdit.itemId);
       const unitPrice = item?.unit_price || 0;
       const newAmount = pendingEdit.newQuantity * unitPrice;
+      const oldQuantity = item?.quantity || 0;
+      const oldAmount = item?.amount || 0;
       
-      const { error } = await supabase
-        .from('timesheet_record_items')
-        .update({ 
-          quantity: pendingEdit.newQuantity,
-          amount: newAmount
-        })
-        .eq('id', pendingEdit.itemId);
+      // 只使用数据库函数更新，它会自动记录修改历史，避免重复插入
+      const { error } = await supabase.rpc('update_timesheet_item_with_user', {
+        item_id: pendingEdit.itemId,
+        new_quantity: pendingEdit.newQuantity,
+        new_amount: newAmount,
+        modifier_id: user?.id || null,
+        modifier_name: user?.name || '未知用户'
+      });
 
       if (error) {
         throw error;
@@ -760,6 +824,111 @@ const Reports: React.FC = () => {
     const productName = item.processes?.product_name || '未知产品';
     const processName = item.processes?.product_process || '未知工序';
     return `${workType} - ${productName} - ${processName}`;
+  };
+
+  // 格式化修改历史（用于Excel导出）
+  const formatModificationHistoryText = (item: TimesheetItem & { record?: TimesheetRecord }) => {
+    if (!item.modification_history || item.modification_history.length === 0) {
+      return '暂无修改记录';
+    }
+
+    return item.modification_history.map(mod => {
+      const date = new Date(mod.created_at).toLocaleDateString('zh-CN');
+      let modifierName = '未知用户';
+      
+      // 简化逻辑：直接使用现有字段
+      if (mod.modifier?.name) {
+        modifierName = mod.modifier.name;
+      } else if (mod.modifier_name) {
+        modifierName = mod.modifier_name;
+      } else if (item.record && mod.modifier_id) {
+        // 直接匹配ID并使用冗余字段
+        if (mod.modifier_id === item.record.supervisor_id && item.record.supervisor_name) {
+          modifierName = item.record.supervisor_name;
+        } else if (mod.modifier_id === item.record.section_chief_id && item.record.section_chief_name) {
+          modifierName = item.record.section_chief_name;
+        }
+      } else if (item.record && !mod.modifier_id) {
+        // 如果没有 modifier_id，直接使用班长姓名（因为通常是班长在审核时修改）
+        if (item.record.supervisor_name) {
+          modifierName = item.record.supervisor_name;
+        } else if (item.record.section_chief_name) {
+          modifierName = item.record.section_chief_name;
+        }
+      }
+      
+      return `${modifierName} ${date} ${mod.old_quantity}→${mod.new_quantity}`;
+    }).join('; ');
+  };
+
+  // 格式化修改历史（用于界面显示）
+  const formatModificationHistory = (item: TimesheetItem & { record?: TimesheetRecord }) => {
+    if (!item.modification_history || item.modification_history.length === 0) {
+      return <span className="text-gray-400">暂无修改记录</span>;
+    }
+
+    // 去重处理
+    const uniqueHistory = item.modification_history.filter((mod, index, arr) => {
+      return index === arr.findIndex(m => 
+        m.created_at === mod.created_at && 
+        m.old_quantity === mod.old_quantity && 
+        m.new_quantity === mod.new_quantity &&
+        m.modifier_id === mod.modifier_id
+      );
+    });
+
+    const historyTexts = uniqueHistory.map(mod => {
+      // 格式化日期（只要日期，不要时间）
+      const date = new Date(mod.created_at).toLocaleDateString('zh-CN');
+      let modifierName = '未知用户';
+      
+
+      
+      // 简化逻辑：直接使用现有字段
+      if (mod.modifier?.name) {
+        modifierName = mod.modifier.name;
+      } else if (mod.modifier_name) {
+        modifierName = mod.modifier_name;
+      } else if (item.record && mod.modifier_id) {
+        // 直接匹配ID并使用冗余字段
+        if (mod.modifier_id === item.record.supervisor_id && item.record.supervisor_name) {
+          modifierName = item.record.supervisor_name;
+
+        } else if (mod.modifier_id === item.record.section_chief_id && item.record.section_chief_name) {
+          modifierName = item.record.section_chief_name;
+
+        }
+      } else if (item.record && !mod.modifier_id) {
+        // 如果没有 modifier_id，直接使用班长姓名（因为通常是班长在审核时修改）
+        if (item.record.supervisor_name) {
+          modifierName = item.record.supervisor_name;
+        } else if (item.record.section_chief_name) {
+          modifierName = item.record.section_chief_name;
+        }
+      }
+      
+      // 格式：姓名 日期 原数量→新数量
+      const result = `${modifierName} ${date} ${mod.old_quantity}→${mod.new_quantity}`;
+
+      return result;
+    });
+
+    return (
+      <span className="text-xs text-gray-300">
+        {historyTexts.join('; ')}
+      </span>
+    );
+  };
+
+  // 获取角色的中文显示
+  const getRoleDisplay = (roleName: string) => {
+    // 直接使用角色名称，因为数据库中存储的就是中文角色名
+    if (roleName) {
+      return roleName;
+    }
+    
+    // 如果没有角色名称，返回默认值
+    return '用户';
   };
   
   // 每人每天工时金额统计
@@ -1428,6 +1597,7 @@ const Reports: React.FC = () => {
                           return {
                             '工作日期': formatDate(record.work_date),
                             '员工姓名': record.user?.name || '未知',
+                            '班次': record.shift_type || '白班',
                             '生产线': item.processes?.production_line || '未知',
                             '生产类别': item.processes?.production_category || '未知',
                             '产品名称': item.processes?.product_name || '未知',
@@ -1438,6 +1608,7 @@ const Reports: React.FC = () => {
                             '状态': getStatusText(record.status),
                             '班长': supervisorApproval ? supervisorApproval.name : (record.supervisor?.name || '未分配'),
                             '段长': sectionChiefApproval ? sectionChiefApproval.name : (record.section_chief?.name || '未分配'),
+                            '修改历史': formatModificationHistoryText({ ...item, record }),
                             '创建时间': formatDateTime(record.created_at)
                           };
                         })
@@ -1598,10 +1769,11 @@ const Reports: React.FC = () => {
                       // 添加详细记录工作表
                       const detailWorksheet = XLSX.utils.json_to_sheet(detailData);
                       
-                      // 设置详细记录列宽（调整列顺序：生产线移到生产类别前面）
+                      // 设置详细记录列宽（添加班次列和修改历史列）
                       const detailColWidths = [
                         { wch: 12 }, // 工作日期
                         { wch: 12 }, // 员工姓名
+                        { wch: 8 },  // 班次
                         { wch: 10 }, // 生产线
                         { wch: 12 }, // 生产类别
                         { wch: 15 }, // 产品名称
@@ -1612,6 +1784,7 @@ const Reports: React.FC = () => {
                         { wch: 12 }, // 状态
                         { wch: 15 }, // 班长
                         { wch: 15 }, // 段长
+                        { wch: 20 }, // 修改历史
                         { wch: 18 }  // 创建时间
                       ];
                       detailWorksheet['!cols'] = detailColWidths;
@@ -1871,6 +2044,7 @@ const Reports: React.FC = () => {
                                       <thead className="bg-gray-700">
                                         <tr>
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">工作日期</th>
+                                          <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">班次</th>
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">日工时金额</th>
                                           {showProjectColumns && (
                                             <>
@@ -1886,6 +2060,7 @@ const Reports: React.FC = () => {
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">状态</th>
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">班长</th>
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">段长</th>
+                                          <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">修改历史</th>
                                           <th className="px-3 py-2 text-left text-green-400 font-mono text-xs">操作</th>
                                         </tr>
                                       </thead>
@@ -1947,6 +2122,12 @@ const Reports: React.FC = () => {
                                                         <Calendar className="w-4 h-4" />
                                                         {formatDate(date)}
                                                       </div>
+                                                    </td>
+                                                    <td 
+                                                      className="px-3 py-2 text-green-400 font-mono text-xs border-r border-gray-500"
+                                                      rowSpan={allItems.length}
+                                                    >
+                                                      {item.record.shift_type || '白班'}
                                                     </td>
                                                     <td 
                                                       className="px-3 py-2 text-green-400 font-mono text-xs font-bold border-r border-gray-500"
@@ -2086,6 +2267,9 @@ const Reports: React.FC = () => {
                                                     }
                                                     return sectionChiefName;
                                                   })()}
+                                                </td>
+                                                <td className="px-3 py-2 text-green-300 font-mono text-xs">
+                                                  {formatModificationHistory(item)}
                                                 </td>
                                                 <td className="px-3 py-2 text-green-300 font-mono text-xs">
                                                   <button

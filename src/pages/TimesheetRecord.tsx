@@ -56,6 +56,7 @@ interface TimesheetRecord {
   production_line_id: number
   supervisor_id: string | null
   section_chief_id: string | null
+  shift_type: '白班' | '夜班' // 添加班次类型字段
   status: 'draft' | 'submitted' | 'approved' | 'rejected'
   items: TimesheetRecordItem[]
 }
@@ -86,6 +87,7 @@ export default function TimesheetRecord() {
     production_line_id: 0,
     supervisor_id: null,
     section_chief_id: null,
+    shift_type: '白班', // 默认为白班
     status: 'draft',
     items: []
   })
@@ -1382,7 +1384,7 @@ export default function TimesheetRecord() {
         work_date: record.record_date, // 数据库字段是work_date
         supervisor_id: record.supervisor_id,
         section_chief_id: record.section_chief_id, // 添加段长ID字段
-        shift_type: '白班', // 默认班次类型
+        shift_type: record.shift_type, // 使用用户选择的班次类型
         status: 'pending' // 数据库中使用pending状态
       }
       
@@ -1634,6 +1636,23 @@ export default function TimesheetRecord() {
                       {sectionLeaders.map(sectionLeader => (
                         <option key={sectionLeader.id} value={sectionLeader.id}>{sectionLeader.name}</option>
                       ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* 第三行：班次选择 */}
+                <div className="grid grid-cols-1 gap-2 sm:gap-4">
+                  <div>
+                    <label className="block text-green-300 text-xs font-medium mb-1">
+                      班次 <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={record.shift_type}
+                      onChange={(e) => handleRecordChange('shift_type', e.target.value as '白班' | '夜班')}
+                      className="w-full px-2 py-1.5 sm:px-3 sm:py-2 bg-gray-800 border border-green-400 text-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-300 text-xs sm:text-sm"
+                    >
+                      <option value="白班">白班</option>
+                      <option value="夜班">夜班</option>
                     </select>
                   </div>
                 </div>
