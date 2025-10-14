@@ -6,6 +6,7 @@ interface TimesheetRecord {
   production_line_id: number | null
   supervisor_id: string | null
   section_chief_id: string | null
+  shift_type: string
 }
 
 interface TimesheetItem {
@@ -71,6 +72,13 @@ export default function TimesheetConfirmDialog({
     return processes.find(process => process.id === id)?.product_process || '未知工序'
   }
 
+  const getShiftTypeName = (shiftType: string) => {
+    // 处理中文班次值
+    if (shiftType === '白班' || shiftType === 'day') return '白班'
+    if (shiftType === '夜班' || shiftType === 'night') return '夜班'
+    return '未知班次'
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-900 border border-green-400 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -99,6 +107,14 @@ export default function TimesheetConfirmDialog({
                   <span className="text-green-300 font-medium">生产线：</span>
                   <span className="text-white">{getProductionLineName(record.production_line_id)}</span>
                 </div>
+              </div>
+              {/* 班次和空白一行 */}
+              <div className="flex justify-between">
+                <div>
+                  <span className="text-green-300 font-medium">班次：</span>
+                  <span className="text-white">{getShiftTypeName(record.shift_type)}</span>
+                </div>
+                <div></div>
               </div>
               {/* 班长和段长一行 */}
               <div className="flex justify-between">

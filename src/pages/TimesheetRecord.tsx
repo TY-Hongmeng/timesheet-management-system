@@ -12,6 +12,7 @@ interface ProductionLine {
   name: string
   description?: string
   is_active: boolean
+  company_id?: string // 添加公司ID字段，用于超级管理员权限处理
 }
 
 interface WorkType {
@@ -432,22 +433,24 @@ export default function TimesheetRecord() {
       console.log('loadProductionLines: 查询到的processes数据:', data)
       
       // 去重生产线名称，因为同一生产线可能有多个工序
-      const uniqueProductionLines = data?.reduce((acc: ProductionLine[], current) => {
-        if (!current.production_line) {
-          console.warn('loadProductionLines: 发现空的production_line字段:', current)
-          return acc
-        }
-        
-        const existing = acc.find(item => item.name === current.production_line)
-        if (!existing) {
-          acc.push({
-            id: parseInt(current.id.slice(-8), 16), // 使用UUID的一部分作为数字ID
-            name: current.production_line,
+      // 为超级管理员保留每个生产线的company_id信息
+      const productionLineMap = new Map<string, { company_id: string, is_active: boolean }>()
+      
+      data?.forEach(current => {
+        if (current.production_line) {
+          productionLineMap.set(current.production_line, {
+            company_id: current.company_id,
             is_active: current.is_active
           })
         }
-        return acc
-      }, []) || []
+      })
+      
+      const uniqueProductionLines: ProductionLine[] = Array.from(productionLineMap.entries()).map(([name, info], index) => ({
+        id: index + 1, // 使用索引作为ID
+        name: name,
+        is_active: info.is_active,
+        company_id: info.company_id // 保留company_id信息
+      }))
       
       setProductionLines(uniqueProductionLines)
       
@@ -473,22 +476,36 @@ export default function TimesheetRecord() {
         return
       }
       
-      // 首先获取当前用户的公司信息
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
+      const isSuper = isSuperAdmin(user.role)
+      let companyId: string
       
-      if (userError) {
-        throw userError
+      if (isSuper) {
+        // 超级管理员使用选择的生产线对应的公司ID
+        if (!selectedProductionLine.company_id) {
+          console.error('loadWorkTypes: 生产线缺少company_id信息')
+          setWorkTypes([])
+          return
+        }
+        companyId = selectedProductionLine.company_id
+      } else {
+        // 普通用户使用自己的公司ID
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+        
+        if (userError) {
+          throw userError
+        }
+        companyId = userData.company_id
       }
       
       // 从processes表获取工时类型数据（production_category字段），根据生产线过滤
       const { data, error } = await supabase
         .from('processes')
         .select('production_category')
-        .eq('company_id', userData.company_id)
+        .eq('company_id', companyId)
         .eq('production_line', selectedProductionLine.name)
         .eq('is_active', true)
         .not('production_category', 'is', null)
@@ -539,25 +556,39 @@ export default function TimesheetRecord() {
       
       console.log('loadProducts: 当前选择的生产线:', selectedProductionLine.name)
       
-      // 首先获取当前用户的公司信息
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
+      const isSuper = isSuperAdmin(user.role)
+      let companyId: string
       
-      if (userError) {
-        console.error('loadProducts: 获取用户公司信息失败:', userError)
-        throw userError
+      if (isSuper) {
+        // 超级管理员使用选择的生产线对应的公司ID
+        if (!selectedProductionLine.company_id) {
+          console.error('loadProducts: 生产线缺少company_id信息')
+          setProducts([])
+          return
+        }
+        companyId = selectedProductionLine.company_id
+        console.log('loadProducts: 超级管理员使用生产线公司ID:', companyId)
+      } else {
+        // 普通用户使用自己的公司ID
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+        
+        if (userError) {
+          console.error('loadProducts: 获取用户公司信息失败:', userError)
+          throw userError
+        }
+        companyId = userData.company_id
+        console.log('loadProducts: 普通用户使用自己的公司ID:', companyId)
       }
       
-      console.log('loadProducts: 用户公司ID:', userData.company_id)
-      
-      // 根据用户所在公司和选择的生产线获取产品数据
+      // 根据公司和选择的生产线获取产品数据
       const { data, error } = await supabase
         .from('processes')
         .select('id, product_name, production_line')
-        .eq('company_id', userData.company_id)
+        .eq('company_id', companyId)
         .eq('production_line', selectedProductionLine.name)
         .eq('is_active', true)
       
@@ -612,25 +643,39 @@ export default function TimesheetRecord() {
       
       console.log('loadProcesses: 当前选择的生产线:', selectedProductionLine.name)
       
-      // 首先获取当前用户的公司信息
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
+      const isSuper = isSuperAdmin(user.role)
+      let companyId: string
       
-      if (userError) {
-        console.error('loadProcesses: 获取用户公司信息失败:', userError)
-        throw userError
+      if (isSuper) {
+        // 超级管理员使用选择的生产线对应的公司ID
+        if (!selectedProductionLine.company_id) {
+          console.error('loadProcesses: 生产线缺少company_id信息')
+          setProcesses([])
+          return
+        }
+        companyId = selectedProductionLine.company_id
+        console.log('loadProcesses: 超级管理员使用生产线公司ID:', companyId)
+      } else {
+        // 普通用户使用自己的公司ID
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+        
+        if (userError) {
+          console.error('loadProcesses: 获取用户公司信息失败:', userError)
+          throw userError
+        }
+        companyId = userData.company_id
+        console.log('loadProcesses: 普通用户使用自己的公司ID:', companyId)
       }
       
-      console.log('loadProcesses: 用户公司ID:', userData.company_id)
-      
-      // 根据用户所在公司和选择的生产线获取工序数据，注意字段名要与数据库表结构一致
+      // 根据公司和选择的生产线获取工序数据，注意字段名要与数据库表结构一致
       const { data, error } = await supabase
         .from('processes')
         .select('id, product_process, product_name, company_id, production_line, production_category, unit_price, is_active')
-        .eq('company_id', userData.company_id)
+        .eq('company_id', companyId)
         .eq('production_line', selectedProductionLine.name)
         .eq('is_active', true)
         .order('product_process')
