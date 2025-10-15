@@ -1,0 +1,21 @@
+{
+  "name": "JT工时管理系统",
+  "short_name": "工时管理",
+  "description": "高效的工时记录和审核管理平台",
+  "start_url": "/timesheet-management-system/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/timesheet-management-system/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "zh-CN",
+  "dir": "ltr"
+}
