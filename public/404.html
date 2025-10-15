@@ -24,15 +24,41 @@
       var pathSegmentsToKeep = 2;
 
       var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      var pathname = l.pathname;
+      
+      // 检查是否已经在正确的基础路径下
+      if (pathname.indexOf('/timesheet-management-system/') === 0) {
+        // 移除基础路径，获取实际的路由路径
+        var routePath = pathname.replace('/timesheet-management-system/', '');
+        
+        // 如果有路由路径，则重定向到带查询参数的形式
+        if (routePath && routePath !== '/') {
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            '/timesheet-management-system/?/' + routePath +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+          );
+        } else {
+          // 如果没有路由路径，直接重定向到主页
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            '/timesheet-management-system/'
+          );
+        }
+      } else {
+        // 如果不在正确的基础路径下，重定向到主页
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          '/timesheet-management-system/'
+        );
+      }
     </script>
   </head>
   <body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <h1>正在重定向...</h1>
+      <p>如果页面没有自动跳转，请<a href="/timesheet-management-system/">点击这里</a>返回主页。</p>
+    </div>
   </body>
 </html>
