@@ -39,12 +39,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // 核心框架库 - 进一步细分
-          if (id.includes('react-dom')) {
-            return 'react-dom';
+          // Excel 处理库 - 最大的库，优先分离
+          if (id.includes('xlsx')) {
+            return 'excel';
           }
-          if (id.includes('react') && !id.includes('react-router')) {
-            return 'react';
+          // React 相关库 - 保持在一起
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
           }
           // 路由库
           if (id.includes('react-router-dom')) {
@@ -54,32 +55,13 @@ export default defineConfig({
           if (id.includes('@supabase/supabase-js')) {
             return 'supabase';
           }
-          // UI 组件库 - 进一步细分
-          if (id.includes('lucide-react')) {
-            return 'icons';
-          }
-          if (id.includes('sonner')) {
-            return 'toast';
-          }
-          // Excel 处理库 - 这是最大的库，需要单独处理
-          if (id.includes('xlsx')) {
-            return 'excel';
+          // UI 组件库
+          if (id.includes('lucide-react') || id.includes('sonner')) {
+            return 'ui-components';
           }
           // 拖拽库
           if (id.includes('@dnd-kit')) {
             return 'dnd';
-          }
-          // 日期处理库
-          if (id.includes('date-fns')) {
-            return 'date-utils';
-          }
-          // 表单处理库
-          if (id.includes('react-hook-form') || id.includes('zod')) {
-            return 'form-utils';
-          }
-          // 工具库
-          if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-            return 'utils';
           }
           // 其他第三方库
           if (id.includes('node_modules')) {
