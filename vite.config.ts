@@ -38,23 +38,69 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
-          ui: ['lucide-react', 'sonner']
+        manualChunks: (id) => {
+          // 核心框架库
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
+          }
+          // 路由库
+          if (id.includes('react-router-dom')) {
+            return 'router';
+          }
+          // Supabase 相关
+          if (id.includes('@supabase/supabase-js')) {
+            return 'supabase';
+          }
+          // UI 组件库
+          if (id.includes('lucide-react') || id.includes('sonner')) {
+            return 'ui-components';
+          }
+          // Excel 处理库
+          if (id.includes('xlsx')) {
+            return 'excel';
+          }
+          // 拖拽库
+          if (id.includes('@dnd-kit')) {
+            return 'dnd';
+          }
+          // 工具库
+          if (id.includes('clsx') || id.includes('tailwind-merge')) {
+            return 'utils';
+          }
+          // 其他第三方库
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
-        assetFileNames: 'assets/[name]-[hash][extname]',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js'
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          const ext = info[info.length - 1];
+          if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo.name)) {
+            return `images/[name]-[hash][extname]`;
+          }
+          if (/\.(css)$/i.test(assetInfo.name)) {
+            return `css/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'js/[name]-[hash].js',
+        entryFileNames: 'js/[name]-[hash].js'
       }
     },
-    chunkSizeWarningLimit: 500,
-    assetsInlineLimit: 2048,
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096,
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info'],
+        passes: 2
+      },
+      mangle: {
+        safari10: true
+      },
+      format: {
+        comments: false
       }
     }
   },
