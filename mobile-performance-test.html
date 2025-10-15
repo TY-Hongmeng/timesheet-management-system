@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端性能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007AFF;
+        }
+        .good { color: #34C759; }
+        .warning { color: #FF9500; }
+        .poor { color: #FF3B30; }
+        .test-btn {
+            width: 100%;
+            padding: 15px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .test-btn:hover {
+            background: #0056CC;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .device-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .device-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .device-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 移动端性能测试</h1>
+        
+        <div class="device-info">
+            <h3>设备信息</h3>
+            <p id="userAgent"></p>
+            <p id="screenSize"></p>
+            <p id="connectionType"></p>
+        </div>
+
+        <button class="test-btn" onclick="runPerformanceTest()">开始性能测试</button>
+        
+        <div id="results" style="display: none;">
+            <h2>性能指标</h2>
+            
+            <div class="metric">
+                <span class="metric-name">首次内容绘制 (FCP)</span>
+                <span class="metric-value" id="fcp">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">最大内容绘制 (LCP)</span>
+                <span class="metric-value" id="lcp">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">首次输入延迟 (FID)</span>
+                <span class="metric-value" id="fid">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">累积布局偏移 (CLS)</span>
+                <span class="metric-value" id="cls">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">页面加载时间</span>
+                <span class="metric-value" id="loadTime">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">DOM 内容加载时间</span>
+                <span class="metric-value" id="domContentLoaded">-</span>
+            </div>
+            
+            <div class="metric">
+                <span class="metric-name">内存使用</span>
+                <span class="metric-value" id="memoryUsage">-</span>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            正在测试性能指标...
+        </div>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #e3f2fd; border-radius: 6px;">
+            <h3 style="margin: 0 0 10px 0; color: #1976d2;">📊 性能评分标准</h3>
+            <p style="margin: 5px 0; color: #666;"><strong>FCP:</strong> &lt;1.8s 优秀, &lt;3s 良好, &gt;3s 需要改进</p>
+            <p style="margin: 5px 0; color: #666;"><strong>LCP:</strong> &lt;2.5s 优秀, &lt;4s 良好, &gt;4s 需要改进</p>
+            <p style="margin: 5px 0; color: #666;"><strong>FID:</strong> &lt;100ms 优秀, &lt;300ms 良好, &gt;300ms 需要改进</p>
+            <p style="margin: 5px 0; color: #666;"><strong>CLS:</strong> &lt;0.1 优秀, &lt;0.25 良好, &gt;0.25 需要改进</p>
+        </div>
+    </div>
+
+    <script>
+        // 显示设备信息
+        function showDeviceInfo() {
+            document.getElementById('userAgent').textContent = `用户代理: ${navigator.userAgent}`;
+            document.getElementById('screenSize').textContent = `屏幕尺寸: ${window.screen.width}x${window.screen.height}`;
+            
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (connection) {
+                document.getElementById('connectionType').textContent = `网络类型: ${connection.effectiveType || 'unknown'}`;
+            } else {
+                document.getElementById('connectionType').textContent = '网络类型: 无法检测';
+            }
+        }
+
+        // 获取性能评级
+        function getPerformanceGrade(metric, value) {
+            const thresholds = {
+                fcp: { good: 1800, warning: 3000 },
+                lcp: { good: 2500, warning: 4000 },
+                fid: { good: 100, warning: 300 },
+                cls: { good: 0.1, warning: 0.25 }
+            };
+            
+            if (!thresholds[metric]) return '';
+            
+            if (value <= thresholds[metric].good) return 'good';
+            if (value <= thresholds[metric].warning) return 'warning';
+            return 'poor';
+        }
+
+        // 运行性能测试
+        function runPerformanceTest() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // 直接测试当前页面的性能
+            setTimeout(() => {
+            
+            iframe.onload = function() {
+                setTimeout(() => {
+                    // 获取性能指标
+                    const navigation = performance.getEntriesByType('navigation')[0];
+                    const paint = performance.getEntriesByType('paint');
+                    
+                    // FCP
+                    const fcp = paint.find(entry => entry.name === 'first-contentful-paint');
+                    if (fcp) {
+                        const fcpValue = Math.round(fcp.startTime);
+                        document.getElementById('fcp').textContent = `${fcpValue}ms`;
+                        document.getElementById('fcp').className = `metric-value ${getPerformanceGrade('fcp', fcpValue)}`;
+                    }
+                    
+                    // 页面加载时间
+                    const loadTime = Math.round(navigation.loadEventEnd - navigation.navigationStart);
+                    document.getElementById('loadTime').textContent = `${loadTime}ms`;
+                    
+                    // DOM 内容加载时间
+                    const domContentLoaded = Math.round(navigation.domContentLoadedEventEnd - navigation.navigationStart);
+                    document.getElementById('domContentLoaded').textContent = `${domContentLoaded}ms`;
+                    
+                    // 内存使用（如果支持）
+                    if (performance.memory) {
+                        const memoryUsage = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+                        document.getElementById('memoryUsage').textContent = `${memoryUsage}MB`;
+                    } else {
+                        document.getElementById('memoryUsage').textContent = '不支持';
+                    }
+                    
+                    // 使用 Web Vitals API（如果可用）
+                    if (window.PerformanceObserver) {
+                        // LCP
+                        new PerformanceObserver((entryList) => {
+                            const entries = entryList.getEntries();
+                            const lastEntry = entries[entries.length - 1];
+                            const lcpValue = Math.round(lastEntry.startTime);
+                            document.getElementById('lcp').textContent = `${lcpValue}ms`;
+                            document.getElementById('lcp').className = `metric-value ${getPerformanceGrade('lcp', lcpValue)}`;
+                        }).observe({entryTypes: ['largest-contentful-paint']});
+                        
+                        // FID
+                        new PerformanceObserver((entryList) => {
+                            const entries = entryList.getEntries();
+                            entries.forEach(entry => {
+                                const fidValue = Math.round(entry.processingStart - entry.startTime);
+                                document.getElementById('fid').textContent = `${fidValue}ms`;
+                                document.getElementById('fid').className = `metric-value ${getPerformanceGrade('fid', fidValue)}`;
+                            });
+                        }).observe({entryTypes: ['first-input']});
+                        
+                        // CLS
+                        new PerformanceObserver((entryList) => {
+                            let clsValue = 0;
+                            entryList.getEntries().forEach(entry => {
+                                if (!entry.hadRecentInput) {
+                                    clsValue += entry.value;
+                                }
+                            });
+                            document.getElementById('cls').textContent = clsValue.toFixed(3);
+                            document.getElementById('cls').className = `metric-value ${getPerformanceGrade('cls', clsValue)}`;
+                        }).observe({entryTypes: ['layout-shift']});
+                    }
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+                }, 1000);
+        }
+
+        // 页面加载时显示设备信息
+        showDeviceInfo();
+    </script>
+</body>
+</html>

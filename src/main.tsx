@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
+import { initMobileOptimization } from "./utils/mobileOptimization";
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -124,6 +125,9 @@ class AppInitializer {
   private renderApp() {
     try {
       this.updateLoaderText('正在启动应用...');
+      
+      // 初始化移动端优化
+      initMobileOptimization();
       
       const container = document.getElementById("root");
       if (!container) {

@@ -36,6 +36,10 @@ export default defineConfig({
     minify: 'terser',
     cssMinify: true,
     sourcemap: false,
+    reportCompressedSize: false, // 禁用压缩大小报告，加快构建
+    modulePreload: {
+      polyfill: false // 禁用 modulePreload polyfill，减少包大小
+    },
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -43,26 +47,40 @@ export default defineConfig({
           if (id.includes('xlsx')) {
             return 'excel';
           }
-          // React 相关库 - 保持在一起
-          if (id.includes('react') || id.includes('react-dom')) {
+          
+          // React 相关库 - 统一打包避免依赖问题
+          if (id.includes('react')) {
             return 'react-vendor';
           }
+          
           // 路由库
           if (id.includes('react-router-dom')) {
             return 'router';
           }
+          
           // Supabase 相关
           if (id.includes('@supabase/supabase-js')) {
             return 'supabase';
           }
-          // UI 组件库
-          if (id.includes('lucide-react') || id.includes('sonner')) {
-            return 'ui-components';
+          
+          // UI 组件库 - 进一步细分
+          if (id.includes('lucide-react')) {
+            return 'icons';
           }
+          if (id.includes('sonner')) {
+            return 'toast';
+          }
+          
           // 拖拽库
           if (id.includes('@dnd-kit')) {
             return 'dnd';
           }
+          
+          // 工具库
+          if (id.includes('clsx') || id.includes('tailwind-merge')) {
+            return 'utils';
+          }
+          
           // 其他第三方库
           if (id.includes('node_modules')) {
             return 'vendor';
@@ -83,8 +101,8 @@ export default defineConfig({
         entryFileNames: 'js/[name]-[hash].js'
       }
     },
-    chunkSizeWarningLimit: 500, // 降低警告阈值，鼓励更小的 chunk
-    assetsInlineLimit: 2048, // 减少内联资源大小，减少初始包大小
+    chunkSizeWarningLimit: 300, // 进一步降低警告阈值，强制更小的 chunk
+    assetsInlineLimit: 1024, // 进一步减少内联资源大小，优化移动端加载
     terserOptions: {
       compress: {
         drop_console: true,

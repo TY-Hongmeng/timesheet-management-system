@@ -5,6 +5,8 @@ import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 import { Toaster } from 'sonner'
 import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
 import NetworkStatus from '@/components/NetworkStatus'
+import MobileLoadingSpinner from '@/components/MobileLoadingSpinner'
+import { MobilePageSkeleton } from '@/components/MobileSkeleton'
 
 // 关键页面直接导入（登录相关）
 import Login from '@/pages/Login'
@@ -204,33 +206,69 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 预加载高频组件
+// 移动端优化的预加载策略
 const preloadComponents = () => {
-  // 在空闲时间预加载高频组件
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-      TimesheetHistory.preload?.()
-    })
+  // 检测是否为移动设备
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768
+  
+  // 检测网络连接类型
+  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+  const isSlowConnection = connection && ['slow-2g', '2g', '3g'].includes(connection.effectiveType)
+  
+  if (isMobile) {
+    // 移动端：更保守的预加载策略
+    if (!isSlowConnection) {
+      // 只在非慢速网络下预加载核心页面
+      setTimeout(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+      }, 3000)
+      
+      // 进一步延迟预加载其他页面
+      setTimeout(() => {
+        TimesheetHistory.preload?.()
+      }, 8000)
+    }
+    // 慢速网络下不预加载，完全按需加载
   } else {
-    // 降级方案
+    // 桌面端：原有的预加载策略
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+        TimesheetHistory.preload?.()
+      })
+    } else {
+      setTimeout(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+        TimesheetHistory.preload?.()
+      }, 2000)
+    }
+    
+    // 延迟预加载管理页面
     setTimeout(() => {
-      Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-      TimesheetHistory.preload?.()
-    }, 2000)
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, 5000)
   }
 }
 
-// 懒加载包装组件
-const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<EnhancedLoadingSpinner />}>
-    <AppErrorBoundary>
-      {children}
-    </AppErrorBoundary>
-  </Suspense>
-)
+// 懒加载包装组件 - 移动端优化
+const LazyWrapper = ({ children }: { children: React.ReactNode }) => {
+  // 检测是否为移动设备
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768
+
+  return (
+    <Suspense fallback={isMobile ? <MobileLoadingSpinner /> : <EnhancedLoadingSpinner />}>
+      <AppErrorBoundary>
+        {children}
+      </AppErrorBoundary>
+    </Suspense>
+  )
+}
 
 
 function App() {

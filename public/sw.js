@@ -1,149 +1,164 @@
-// Service Worker for Timesheet Management System
-const CACHE_NAME = 'timesheet-management-v1';
-const BASE_PATH = '/timesheet-management-system';
+// Service Worker for mobile optimization
+const CACHE_NAME = 'timesheet-v1.2.0'
+const STATIC_CACHE = 'static-v1.2.0'
+const DYNAMIC_CACHE = 'dynamic-v1.2.0'
 
-// 需要缓存的核心资源
-const CORE_ASSETS = [
-  `${BASE_PATH}/`,
-  `${BASE_PATH}/index.html`,
-  `${BASE_PATH}/favicon.svg`,
-  `${BASE_PATH}/manifest.json`
-];
+// 需要缓存的静态资源
+const STATIC_ASSETS = [
+  '/timesheet-management-system/',
+  '/timesheet-management-system/index.html',
+  '/timesheet-management-system/manifest.json'
+]
 
-// 安装事件
-self.addEventListener('install', (event) => {
-  console.log('Service Worker 安装中...');
-  
+// 需要网络优先的资源
+const NETWORK_FIRST = [
+  '/api/',
+  '/timesheet-management-system/js/excel-'
+]
+
+// 缓存优先的资源
+const CACHE_FIRST = [
+  '/timesheet-management-system/js/react-',
+  '/timesheet-management-system/js/vendor-',
+  '/timesheet-management-system/css/',
+  '/timesheet-management-system/images/'
+]
+
+self.addEventListener('install', event => {
+  console.log('Service Worker installing...')
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('缓存核心资源...');
-        return cache.addAll(CORE_ASSETS);
+    caches.open(STATIC_CACHE)
+      .then(cache => {
+        console.log('Caching static assets')
+        return cache.addAll(STATIC_ASSETS)
       })
-      .then(() => {
-        console.log('Service Worker 安装完成');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('Service Worker 安装失败:', error);
-      })
-  );
-});
+      .then(() => self.skipWaiting())
+  )
+})
 
-// 激活事件
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker 激活中...');
-  
+self.addEventListener('activate', event => {
+  console.log('Service Worker activating...')
   event.waitUntil(
     caches.keys()
-      .then((cacheNames) => {
+      .then(cacheNames => {
         return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('删除旧缓存:', cacheName);
-              return caches.delete(cacheName);
+          cacheNames.map(cacheName => {
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+              console.log('Deleting old cache:', cacheName)
+              return caches.delete(cacheName)
             }
           })
-        );
+        )
       })
-      .then(() => {
-        console.log('Service Worker 激活完成');
-        return self.clients.claim();
-      })
-  );
-});
+      .then(() => self.clients.claim())
+  )
+})
 
-// 网络请求拦截
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
+self.addEventListener('fetch', event => {
+  const { request } = event
+  const url = new URL(request.url)
+
+  // 跳过非 GET 请求
+  if (request.method !== 'GET') {
+    return
+  }
+
+  // 跳过 chrome-extension 和其他协议
+  if (!url.protocol.startsWith('http')) {
+    return
+  }
+
+  // API 请求 - 网络优先
+  if (NETWORK_FIRST.some(pattern => request.url.includes(pattern))) {
+    event.respondWith(networkFirst(request))
+    return
+  }
+
+  // 静态资源 - 缓存优先
+  if (CACHE_FIRST.some(pattern => request.url.includes(pattern))) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  // 其他请求 - 网络优先，缓存备用
+  event.respondWith(networkFirst(request))
+})
+
+// 网络优先策略
+async function networkFirst(request) {
+  try {
+    const networkResponse = await fetch(request)
+    
+    // 只缓存成功的响应
+    if (networkResponse.status === 200) {
+      const cache = await caches.open(DYNAMIC_CACHE)
+      cache.put(request, networkResponse.clone())
+    }
+    
+    return networkResponse
+  } catch (error) {
+    console.log('Network failed, trying cache:', request.url)
+    const cachedResponse = await caches.match(request)
+    
+    if (cachedResponse) {
+      return cachedResponse
+    }
+    
+    // 如果是导航请求，返回离线页面
+    if (request.mode === 'navigate') {
+      return caches.match('/timesheet-management-system/index.html')
+    }
+    
+    throw error
+  }
+}
+
+// 缓存优先策略
+async function cacheFirst(request) {
+  const cachedResponse = await caches.match(request)
   
-  // 只处理同源请求
-  if (url.origin !== location.origin) {
-    return;
+  if (cachedResponse) {
+    // 后台更新缓存
+    fetch(request).then(response => {
+      if (response.status === 200) {
+        const cache = caches.open(DYNAMIC_CACHE)
+        cache.then(c => c.put(request, response))
+      }
+    }).catch(() => {
+      // 静默失败
+    })
+    
+    return cachedResponse
   }
   
-  // 对于导航请求，使用网络优先策略
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // 如果网络请求成功，更新缓存
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(request, responseClone);
-              });
-          }
-          return response;
-        })
-        .catch(() => {
-          // 网络失败时，尝试从缓存获取
-          return caches.match(request)
-            .then((cachedResponse) => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              // 如果缓存中也没有，返回离线页面
-              return caches.match(`${BASE_PATH}/index.html`);
-            });
-        })
-    );
-    return;
+  try {
+    const networkResponse = await fetch(request)
+    
+    if (networkResponse.status === 200) {
+      const cache = await caches.open(DYNAMIC_CACHE)
+      cache.put(request, networkResponse.clone())
+    }
+    
+    return networkResponse
+  } catch (error) {
+    console.log('Cache and network both failed for:', request.url)
+    throw error
   }
-  
-  // 对于其他资源，使用缓存优先策略
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // 后台更新缓存
-          fetch(request)
-            .then((response) => {
-              if (response.ok) {
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME)
-                  .then((cache) => {
-                    cache.put(request, responseClone);
-                  });
-              }
-            })
-            .catch(() => {
-              // 忽略后台更新失败
-            });
-          
-          return cachedResponse;
-        }
-        
-        // 缓存中没有，尝试网络请求
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME)
-                .then((cache) => {
-                  cache.put(request, responseClone);
-                });
-            }
-            return response;
-          });
-      })
-  );
-});
+}
 
-// 消息处理
-self.addEventListener('message', (event) => {
+// 清理旧缓存
+self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    self.skipWaiting()
   }
-});
-
-// 错误处理
-self.addEventListener('error', (event) => {
-  console.error('Service Worker 错误:', event.error);
-});
-
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('Service Worker 未处理的 Promise 错误:', event.reason);
-});
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      )
+    }).then(() => {
+      event.ports[0].postMessage({ success: true })
+    })
+  }
+})
