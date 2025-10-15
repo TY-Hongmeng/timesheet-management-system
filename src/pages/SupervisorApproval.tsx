@@ -1289,11 +1289,11 @@ const SupervisorApproval: React.FC = () => {
         {/* 统计信息栏 - 紧凑设计 */}
         <div className="bg-gray-900 border border-green-400 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-green-300 font-mono text-sm bg-gray-800 px-2 py-1 rounded">
+            <span className="text-green-300 font-mono text-base bg-gray-800 px-2 py-1 rounded">
               {groupedRecords.length} 条记录
             </span>
             {selectedRecords.size > 0 && (
-              <span className="text-green-400 font-mono text-sm">
+              <span className="text-green-400 font-mono text-base">
                 已选择 {selectedRecords.size} 条
               </span>
             )}
@@ -1325,7 +1325,7 @@ const SupervisorApproval: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-green-400" />
-                        <span className="text-green-300 font-mono text-sm">{formatDate(groupedRecord.work_date)}</span>
+                        <span className="text-green-300 font-mono text-base">{formatDate(groupedRecord.work_date)}</span>
                       </div>
                     </div>
                     
@@ -1334,7 +1334,7 @@ const SupervisorApproval: React.FC = () => {
 
                   {/* 基本信息 - 移动端优化 */}
                   <div className="grid grid-cols-1 gap-3 mb-4">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-base">
                       <span className="text-gray-400">记录总数:</span>
                       <span className="text-green-300 font-medium">{groupedRecord.allItems.length}</span>
                     </div>
@@ -1346,18 +1346,18 @@ const SupervisorApproval: React.FC = () => {
                       <div key={item.id} className="bg-gray-900 rounded-lg p-2 border border-gray-700">
                         {/* 合并的工时信息 */}
                         <div className="mb-1">
-                          <div className="text-green-200 font-mono text-xs font-medium leading-tight">
+                          <div className="text-green-200 font-mono text-sm font-medium leading-tight">
                             {`${item.work_type?.name || '未知类型'} | ${item.product?.name || '未知产品'} | ${item.process?.name || '未知工序'}`}
                           </div>
                           {item.product?.code && (
-                            <div className="text-green-500 font-mono text-xs mt-1">产品编码: {item.product.code}</div>
+                            <div className="text-green-500 font-mono text-sm mt-1">产品编码: {item.product.code}</div>
                           )}
                         </div>
 
                         {/* 数量和操作 */}
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-400">数量:</span>
+                            <span className="text-sm text-gray-400">数量:</span>
                             {editingItem === item.id ? (
                               <div className="flex items-center gap-1">
                                 <input
@@ -1365,13 +1365,13 @@ const SupervisorApproval: React.FC = () => {
                                   value={editQuantity}
                                   onChange={(e) => setEditQuantity(Number(e.target.value))}
                                   onWheel={(e) => e.preventDefault()}
-                                  className="w-14 px-1 py-0.5 bg-gray-600 border border-green-400 rounded text-green-300 font-mono text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="w-16 px-2 py-1 bg-gray-600 border border-green-400 rounded text-green-300 font-mono text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   min="1"
                                 />
-                                <span className="text-green-300 text-xs">{item.unit}</span>
+                                <span className="text-green-300 text-sm">{item.unit}</span>
                               </div>
                             ) : (
-                              <span className="text-yellow-300 font-medium text-xs">{item.quantity} {item.unit}</span>
+                              <span className="text-yellow-300 font-medium text-sm">{item.quantity} {item.unit}</span>
                             )}
                           </div>
 
@@ -1387,27 +1387,27 @@ const SupervisorApproval: React.FC = () => {
                                       showQuantityConfirmModal(item, groupedRecord);
                                     }
                                   }}
-                                  className="p-0.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs transition-colors"
+                                  className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                   title="确认保存"
                                 >
-                                  <Save className="w-2.5 h-2.5" />
+                                  <Save className="w-5 h-5" />
                                 </button>
                                 <button
                                   onClick={cancelEdit}
-                                  className="p-0.5 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs transition-colors"
+                                  className="p-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-xs transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                   title="取消"
                                 >
-                                  <X className="w-2.5 h-2.5" />
+                                  <X className="w-5 h-5" />
                                 </button>
                               </>
                             ) : (
                               <>
                                 <button
                                   onClick={() => startEditQuantity(item)}
-                                  className="p-0.5 text-blue-400 hover:text-blue-300 transition-colors"
+                                  className="p-2 text-blue-400 hover:text-blue-300 transition-colors rounded-md hover:bg-blue-400/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                   title="编辑数量"
                                 >
-                                  <Edit2 className="w-2.5 h-2.5" />
+                                  <Edit2 className="w-5 h-5" />
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1424,10 +1424,10 @@ const SupervisorApproval: React.FC = () => {
                                     });
                                     setShowDeleteModal(true);
                                   }}
-                                  className="p-0.5 text-red-400 hover:text-red-300 transition-colors"
+                                  className="p-2 text-red-400 hover:text-red-300 transition-colors rounded-md hover:bg-red-400/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                   title="删除"
                                 >
-                                  <Trash2 className="w-2.5 h-2.5" />
+                                  <Trash2 className="w-5 h-5" />
                                 </button>
                               </>
                             )}

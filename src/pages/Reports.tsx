@@ -1350,8 +1350,8 @@ const Reports: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-green-300">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-green-400 px-6 py-4">
-        <div className="max-w-7xl mx-auto">
+      <header className="bg-gray-900 border-b border-green-400 px-2 sm:px-4 lg:px-6 py-4">
+        <div className="w-full">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-green-400 font-mono flex items-center gap-2">
               <BarChart3 className="w-6 h-6" />
@@ -1380,7 +1380,7 @@ const Reports: React.FC = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="w-full px-2 sm:px-4 lg:px-6 py-6">
 
 
         {/* 视图切换和筛选条件 */}
