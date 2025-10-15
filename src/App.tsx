@@ -3,7 +3,8 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 import { Toaster } from 'sonner'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
+import NetworkStatus from '@/components/NetworkStatus'
 
 // 关键页面直接导入（登录相关）
 import Login from '@/pages/Login'
@@ -26,27 +27,190 @@ const RoleEdit = lazy(() => import('@/pages/RoleEdit'))
 const RoleCreate = lazy(() => import('@/pages/RoleCreate'))
 const History = lazy(() => import('@/pages/History'))
 
-// 加载组件
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-  </div>
-)
+// 增强的加载组件
+const EnhancedLoadingSpinner = () => {
+  const [loadingText, setLoadingText] = useState('正在加载...')
+  const [showRetry, setShowRetry] = useState(false)
+  const [isSlowConnection, setIsSlowConnection] = useState(false)
+
+  useEffect(() => {
+    // 检测慢速连接
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+    if (connection) {
+      const slowTypes = ['slow-2g', '2g', '3g']
+      setIsSlowConnection(slowTypes.includes(connection.effectiveType))
+    }
+
+    // 加载超时处理
+    const timer1 = setTimeout(() => {
+      setLoadingText('加载时间较长，请稍候...')
+    }, 3000)
+
+    const timer2 = setTimeout(() => {
+      setLoadingText('网络较慢，正在努力加载...')
+    }, 8000)
+
+    const timer3 = setTimeout(() => {
+      setShowRetry(true)
+      setLoadingText('加载超时，请检查网络连接')
+    }, 15000)
+
+    return () => {
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+      clearTimeout(timer3)
+    }
+  }, [])
+
+  const handleRetry = () => {
+    window.location.reload()
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="text-center">
+        {/* 加载动画 */}
+        <div className="relative mb-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+          {isSlowConnection && (
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">!</span>
+            </div>
+          )}
+        </div>
+
+        {/* 加载文本 */}
+        <p className="text-gray-600 mb-4 text-lg">{loadingText}</p>
+
+        {/* 网络状态提示 */}
+        {isSlowConnection && (
+          <p className="text-orange-600 text-sm mb-4">
+            检测到网络连接较慢，加载可能需要更长时间
+          </p>
+        )}
+
+        {/* 重试按钮 */}
+        {showRetry && (
+          <div className="space-y-3">
+            <button
+              onClick={handleRetry}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              重新加载
+            </button>
+            <p className="text-gray-500 text-sm">
+              如果问题持续存在，请检查网络连接或稍后再试
+            </p>
+          </div>
+        )}
+
+        {/* 加载进度指示 */}
+        <div className="mt-6 w-64 mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 错误边界组件
+interface ErrorBoundaryState {
+  hasError: boolean
+  error?: Error
+  errorInfo?: ErrorInfo
+}
+
+class AppErrorBoundary extends Component<
+  { children: ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('应用错误边界捕获到错误:', error, errorInfo)
+    this.setState({ error, errorInfo })
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+          <div className="max-w-md text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">应用出现错误</h2>
+              <p className="text-gray-600 mb-6">
+                抱歉，应用遇到了一个意外错误。请尝试刷新页面或稍后再试。
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                刷新页面
+              </button>
+              <button
+                onClick={() => this.setState({ hasError: false })}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                重试
+              </button>
+            </div>
+
+            {/* 开发环境下显示错误详情 */}
+            {import.meta.env.DEV && this.state.error && (
+              <details className="mt-6 text-left">
+                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                  查看错误详情
+                </summary>
+                <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-40">
+                  {this.state.error.toString()}
+                  {this.state.errorInfo?.componentStack}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 // 懒加载包装组件
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    {children}
+  <Suspense fallback={<EnhancedLoadingSpinner />}>
+    <AppErrorBoundary>
+      {children}
+    </AppErrorBoundary>
   </Suspense>
 )
 
 
 function App() {
   return (
-    <AuthProvider>
-      <Router basename="/timesheet-management-system">
-        <Toaster position="top-right" richColors />
-        <Routes>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <Router basename="/timesheet-management-system">
+          <NetworkStatus />
+          <Toaster position="top-right" richColors />
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -137,6 +301,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+  </AppErrorBoundary>
   )
 }
 
