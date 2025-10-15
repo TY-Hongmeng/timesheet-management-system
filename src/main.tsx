@@ -7,7 +7,7 @@ import "./styles/globals.css";
 // 网络状态检测和应用初始化
 class AppInitializer {
   private retryCount = 0;
-  private maxRetries = 5;
+  private maxRetries = 3;
   private retryDelay = 2000;
   private connectionCheckInterval: NodeJS.Timeout | null = null;
 
@@ -29,16 +29,20 @@ class AppInitializer {
 
   private async checkNetworkConnection(): Promise<boolean> {
     try {
-      // 尝试获取一个小的资源来测试连接
-      const response = await fetch('/timesheet-management-system/favicon.svg', {
+      // 使用简单的网络检测
+      if (!navigator.onLine) {
+        return false;
+      }
+      
+      // 尝试一个简单的网络请求
+      const response = await fetch('data:text/plain,test', {
         method: 'HEAD',
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(5000) // 5秒超时
+        cache: 'no-cache'
       });
-      return response.ok;
+      return true;
     } catch (error) {
       console.warn('网络连接检查失败:', error);
-      return false;
+      return navigator.onLine;
     }
   }
 
@@ -60,22 +64,16 @@ class AppInitializer {
 
   private async initializeApp() {
     try {
+      // 更新加载状态
+      this.updateLoaderText('正在初始化应用...');
+
       // 检查网络状态
       if (!navigator.onLine) {
         this.handleOfflineState();
         return;
       }
 
-      // 更新加载状态
-      this.updateLoaderText('正在初始化应用...');
-
-      // 检查实际网络连接
-      const isConnected = await this.checkNetworkConnection();
-      if (!isConnected) {
-        throw new Error('网络连接测试失败');
-      }
-
-      // 预加载关键资源
+      // 预加载关键资源（简化版）
       await this.preloadCriticalResources();
 
       // 注册 Service Worker
@@ -94,27 +92,14 @@ class AppInitializer {
     try {
       this.updateLoaderText('正在加载核心资源...');
       
-      // 预加载关键的CSS和JS资源
-      const criticalResources = [
-        '/timesheet-management-system/src/main.tsx',
-        '/timesheet-management-system/src/App.tsx'
-      ];
-
-      const preloadPromises = criticalResources.map(resource => {
-        return new Promise((resolve, reject) => {
-          const link = document.createElement('link');
-          link.rel = 'modulepreload';
-          link.href = resource;
-          link.onload = resolve;
-          link.onerror = reject;
-          document.head.appendChild(link);
-          
-          // 设置超时
-          setTimeout(() => reject(new Error(`资源加载超时: ${resource}`)), 10000);
-        });
-      });
-
-      await Promise.allSettled(preloadPromises);
+      // 简化预加载逻辑，只预加载必要的资源
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = '/timesheet-management-system/favicon.svg';
+      document.head.appendChild(link);
+      
+      // 等待一小段时间让预加载开始
+      await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (error) {
       console.warn('预加载资源失败:', error);
@@ -195,8 +180,7 @@ class AppInitializer {
     
     const isNetworkError = error.message?.includes('fetch') || 
                           error.message?.includes('network') ||
-                          error.message?.includes('Failed to import') ||
-                          error.message?.includes('网络连接测试失败');
+                          error.message?.includes('Failed to import');
 
     if (isNetworkError && this.retryCount <= this.maxRetries) {
       this.updateLoaderText(`网络连接失败，正在重试... (${this.retryCount}/${this.maxRetries})`);
