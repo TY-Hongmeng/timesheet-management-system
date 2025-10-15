@@ -881,33 +881,6 @@ const SupervisorApproval: React.FC = () => {
         if (!historySuccess) return;
 
         setSelectedRecords(new Set());
-      } else if (pendingData.type === 'batch' && pendingData.selectedRecords) {
-        // 批量审核
-        const selectedGroupedRecords = groupedRecords.filter(record => 
-          pendingData.selectedRecords!.includes(record.groupKey)
-        );
-        
-        for (const groupedRecord of selectedGroupedRecords) {
-          const recordIds = groupedRecord.originalRecords.map(record => record.id);
-          
-          const updateSuccess = await updateRecordStatus(recordIds, 'approved');
-          if (!updateSuccess) return;
-
-          const historyRecords = recordIds.map(recordId => ({
-            timesheet_record_id: recordId,
-            approver_id: user?.id,
-            approver_type: 'supervisor',
-            action: 'approved',
-            comment: '',
-            created_at: new Date().toISOString()
-          }));
-
-          const historySuccess = await insertApprovalHistory(historyRecords);
-          if (!historySuccess) return;
-        }
-        
-        setSelectedRecords(new Set());
-        navigate('/');
       }
 
       toast.success('保存并审核成功');
@@ -1075,7 +1048,7 @@ const SupervisorApproval: React.FC = () => {
       } else if (pendingData.type === 'batch' && pendingData.selectedRecords) {
         // 批量审核
         const selectedGroupedRecords = groupedRecords.filter(record => 
-          pendingData.selectedRecords!.includes(record.groupKey)
+          pendingData.selectedRecords?.includes(record.groupKey) ?? false
         );
         
         for (const groupedRecord of selectedGroupedRecords) {

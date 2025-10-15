@@ -150,6 +150,7 @@ export default function TimesheetRecord() {
         production_line_id: 0,
         supervisor_id: null,
         section_chief_id: null,
+        shift_type: '白班',
         status: 'draft',
         items: []
       })
@@ -1277,6 +1278,7 @@ export default function TimesheetRecord() {
         production_line_id: 0,
         supervisor_id: null,
         section_chief_id: null,
+        shift_type: '白班',
         status: 'draft',
         items: []
       })
@@ -1496,6 +1498,7 @@ export default function TimesheetRecord() {
         production_line_id: 0,
         supervisor_id: null,
         section_chief_id: null,
+        shift_type: '白班',
         status: 'draft',
         items: []
       })

@@ -1060,7 +1060,7 @@ const SectionChiefApproval: React.FC = () => {
       } else if (pendingData.type === 'batch' && pendingData.selectedRecords) {
         // 批量审核
         const selectedGroupedRecords = groupedRecords.filter(record => 
-          pendingData.selectedRecords!.includes(record.groupKey)
+          pendingData.selectedRecords?.includes(record.groupKey) ?? false
         );
         
         for (const groupedRecord of selectedGroupedRecords) {
