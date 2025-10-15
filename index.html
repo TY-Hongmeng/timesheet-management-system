@@ -19,6 +19,15 @@
     <!-- 关键资源预加载 -->
     <link rel="modulepreload" href="/src/main.tsx" />
     <link rel="modulepreload" href="/src/App.tsx" />
+    <link rel="modulepreload" href="/src/contexts/AuthContext.tsx" />
+    
+    <!-- 预加载关键 CSS -->
+    <link rel="preload" href="/src/index.css" as="style" />
+    <link rel="preload" href="/src/styles/globals.css" as="style" />
+    
+    <!-- 预加载字体 -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
     
     <!-- 性能优化 -->
     <meta name="theme-color" content="#ffffff" />

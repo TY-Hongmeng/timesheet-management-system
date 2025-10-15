@@ -11,21 +11,32 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ResetPassword from '@/pages/ResetPassword'
 
-// 其他页面懒加载
+// 其他页面懒加载 - 按使用频率和大小分组
+// 高频页面 - 预加载
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
-const CompanyManagement = lazy(() => import('@/pages/CompanyManagement'))
-const UserManagement = lazy(() => import('@/pages/UserManagement'))
-const RoleList = lazy(() => import('@/pages/RoleList'))
-const ProcessManagement = lazy(() => import('@/pages/ProcessManagement'))
 const TimesheetRecord = lazy(() => import('@/pages/TimesheetRecord'))
 const TimesheetHistory = lazy(() => import('@/pages/TimesheetHistory'))
-const SupervisorApproval = lazy(() => import('@/pages/SupervisorApproval'))
-const SectionChiefApproval = lazy(() => import('@/pages/SectionChiefApproval'))
-const Reports = lazy(() => import('@/pages/Reports'))
-const ToastTest = lazy(() => import('@/pages/ToastTest'))
+
+// 管理页面 - 按需加载
+const CompanyManagement = lazy(() => import('@/pages/CompanyManagement'))
+const UserManagement = lazy(() => import('@/pages/UserManagement'))
+const ProcessManagement = lazy(() => import('@/pages/ProcessManagement'))
+
+// 角色权限相关 - 按需加载
+const RoleList = lazy(() => import('@/pages/RoleList'))
 const RoleEdit = lazy(() => import('@/pages/RoleEdit'))
 const RoleCreate = lazy(() => import('@/pages/RoleCreate'))
+
+// 审批相关 - 按需加载
+const SupervisorApproval = lazy(() => import('@/pages/SupervisorApproval'))
+const SectionChiefApproval = lazy(() => import('@/pages/SectionChiefApproval'))
+
+// 报表相关 - 延迟加载（包含大型 Excel 库）
+const Reports = lazy(() => import('@/pages/Reports'))
 const History = lazy(() => import('@/pages/History'))
+
+// 测试页面 - 开发时使用
+const ToastTest = lazy(() => import('@/pages/ToastTest'))
 
 // 增强的加载组件
 const EnhancedLoadingSpinner = () => {
@@ -193,6 +204,25 @@ class AppErrorBoundary extends Component<
   }
 }
 
+// 预加载高频组件
+const preloadComponents = () => {
+  // 在空闲时间预加载高频组件
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      Dashboard.preload?.()
+      TimesheetRecord.preload?.()
+      TimesheetHistory.preload?.()
+    })
+  } else {
+    // 降级方案
+    setTimeout(() => {
+      Dashboard.preload?.()
+      TimesheetRecord.preload?.()
+      TimesheetHistory.preload?.()
+    }, 2000)
+  }
+}
+
 // 懒加载包装组件
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<EnhancedLoadingSpinner />}>
@@ -204,6 +234,11 @@ const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
 
 
 function App() {
+  // 在组件挂载后预加载高频组件
+  useEffect(() => {
+    preloadComponents()
+  }, [])
+
   return (
     <AppErrorBoundary>
       <AuthProvider>

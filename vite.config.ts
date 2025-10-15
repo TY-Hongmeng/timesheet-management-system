@@ -39,9 +39,12 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // 核心框架库
-          if (id.includes('react') || id.includes('react-dom')) {
-            return 'react-vendor';
+          // 核心框架库 - 进一步细分
+          if (id.includes('react-dom')) {
+            return 'react-dom';
+          }
+          if (id.includes('react') && !id.includes('react-router')) {
+            return 'react';
           }
           // 路由库
           if (id.includes('react-router-dom')) {
@@ -51,11 +54,14 @@ export default defineConfig({
           if (id.includes('@supabase/supabase-js')) {
             return 'supabase';
           }
-          // UI 组件库
-          if (id.includes('lucide-react') || id.includes('sonner')) {
-            return 'ui-components';
+          // UI 组件库 - 进一步细分
+          if (id.includes('lucide-react')) {
+            return 'icons';
           }
-          // Excel 处理库
+          if (id.includes('sonner')) {
+            return 'toast';
+          }
+          // Excel 处理库 - 这是最大的库，需要单独处理
           if (id.includes('xlsx')) {
             return 'excel';
           }
@@ -63,8 +69,16 @@ export default defineConfig({
           if (id.includes('@dnd-kit')) {
             return 'dnd';
           }
+          // 日期处理库
+          if (id.includes('date-fns')) {
+            return 'date-utils';
+          }
+          // 表单处理库
+          if (id.includes('react-hook-form') || id.includes('zod')) {
+            return 'form-utils';
+          }
           // 工具库
-          if (id.includes('clsx') || id.includes('tailwind-merge')) {
+          if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
             return 'utils';
           }
           // 其他第三方库
@@ -87,17 +101,27 @@ export default defineConfig({
         entryFileNames: 'js/[name]-[hash].js'
       }
     },
-    chunkSizeWarningLimit: 1000,
-    assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 500, // 降低警告阈值，鼓励更小的 chunk
+    assetsInlineLimit: 2048, // 减少内联资源大小，减少初始包大小
     terserOptions: {
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info'],
-        passes: 2
+        pure_funcs: ['console.log', 'console.info', 'console.warn'],
+        passes: 3, // 增加压缩次数
+        unsafe: true,
+        unsafe_comps: true,
+        unsafe_math: true,
+        unsafe_methods: true,
+        unsafe_proto: true,
+        unsafe_regexp: true,
+        unsafe_undefined: true
       },
       mangle: {
-        safari10: true
+        safari10: true,
+        properties: {
+          regex: /^_/
+        }
       },
       format: {
         comments: false
