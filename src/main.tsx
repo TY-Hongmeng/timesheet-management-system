@@ -29,17 +29,8 @@ class AppInitializer {
 
   private async checkNetworkConnection(): Promise<boolean> {
     try {
-      // 使用简单的网络检测
-      if (!navigator.onLine) {
-        return false;
-      }
-      
-      // 尝试一个简单的网络请求
-      const response = await fetch('data:text/plain,test', {
-        method: 'HEAD',
-        cache: 'no-cache'
-      });
-      return true;
+      // 简化网络检测，只使用 navigator.onLine
+      return navigator.onLine;
     } catch (error) {
       console.warn('网络连接检查失败:', error);
       return navigator.onLine;
