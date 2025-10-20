@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
-import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
+import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills';
+import { mobileOptimization } from './utils/mobileOptimization.js';
+import { mobileStabilityEnhancer } from './utils/mobileStabilityEnhancer.js';
+import { mobileResourceLoader } from './utils/mobileResourceLoader';
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -15,12 +18,48 @@ class AppInitializer {
   constructor() {
     this.initializeApp();
     this.setupNetworkMonitoring();
+    
+    // 启动移动端稳定性增强器和资源加载优化
+    console.log('🌐 Starting mobile optimization systems');
+    this.initializeMobileOptimizations();
+  }
+
+  private async initializeMobileOptimizations() {
+    try {
+      // 优化移动端缓存策略
+      mobileResourceLoader.optimizeMobileCache();
+      
+      // 预加载关键资源
+      await mobileResourceLoader.preloadCriticalResources();
+      
+      console.log('📱 移动端优化系统启动完成');
+    } catch (error) {
+      console.warn('📱 移动端优化启动失败:', error);
+    }
   }
 
   private setupNetworkMonitoring() {
     // 监听网络状态变化
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));
+    
+    // 监听移动端连接状态变化
+    window.addEventListener('mobileConnectionChange', (event: any) => {
+      const { type, networkState } = event.detail;
+      console.log(`📱 移动端连接状态变化: ${type}`, networkState);
+      
+      switch (type) {
+        case 'unstable':
+          this.updateLoaderText('检测到网络不稳定，正在优化连接...');
+          break;
+        case 'restored':
+          this.updateLoaderText('网络连接已恢复');
+          break;
+        case 'stable':
+          // 网络稳定，无需特殊处理
+          break;
+      }
+    });
     
     // 定期检查网络连接
     this.connectionCheckInterval = setInterval(() => {
