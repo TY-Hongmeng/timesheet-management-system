@@ -472,6 +472,25 @@
         if (navigator.onLine) {
           initializeEnhancedNetworking().then(async (success) => {
             if (success) {
+              // 初始化5G网络处理器
+              try {
+                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-B9-DnS3A.ts');
+                const diagnostics = await fiveGHandler.detectNetworkCapabilities();
+                
+                if (fiveGHandler.is5GNetwork()) {
+                  console.log('🚀 5G network detected, applying optimizations...');
+                  await fiveGHandler.optimizeFor5G();
+                  
+                  // 5G网络专用DNS优化
+                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-v_8qklmW.ts');
+                  dnsResolver.optimizeFor5G();
+                }
+                
+                console.log('📊 Network diagnostics:', diagnostics);
+              } catch (error) {
+                console.warn('⚠️ 5G network handler failed to load:', error);
+              }
+              
               // 初始化移动端优化
               try {
                 const { initMobileOptimization } = await import('/timesheet-management-system/assets/mobileOptimization-BgC8KYvb.ts');
