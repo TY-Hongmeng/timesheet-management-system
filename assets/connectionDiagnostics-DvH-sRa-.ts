@@ -61,16 +61,22 @@ export class ConnectionDiagnostics {
     }
   }
 
-  // 基础连接测试
+  // 基础连接测试 - 仅使用本地资源
   private async testBasicConnectivity(): Promise<void> {
-    const testUrls = [
-      'https://www.google.com/favicon.ico',
-      'https://cdn.jsdelivr.net/npm/vue@3/package.json',
-      window.location.origin + '/manifest.json'
-    ]
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    const testUrls = isLocalDev ? [
+      window.location.origin + '/manifest.json',
+      window.location.origin + '/favicon.svg',
+      window.location.origin + '/'
+    ] : [
+      window.location.origin + '/timesheet-management-system/manifest.json',
+      window.location.origin + '/timesheet-management-system/favicon.svg',
+      window.location.origin + '/timesheet-management-system/'
+    ];
 
     for (const url of testUrls) {
-      await this.runTest(`Basic Connectivity - ${new URL(url).hostname}`, async () => {
+      await this.runTest(`Local Connectivity - ${new URL(url).pathname}`, async () => {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 5000)
 
@@ -79,7 +85,8 @@ export class ConnectionDiagnostics {
             method: 'HEAD',
             cache: 'no-cache',
             signal: controller.signal,
-            mode: url.startsWith(window.location.origin) ? 'cors' : 'no-cors'
+            mode: 'cors',
+            credentials: 'same-origin'
           })
           
           clearTimeout(timeout)
@@ -422,18 +429,30 @@ export class ConnectionDiagnostics {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
-  // 获取简化的连接状态
+  // 获取简化的连接状态 - 使用本地资源和浏览器API
   public async getQuickStatus(): Promise<{
     online: boolean
     quality: 'fast' | 'slow' | 'offline'
     latency?: number
   }> {
+    // 首先检查浏览器的在线状态
+    if (!navigator.onLine) {
+      return {
+        online: false,
+        quality: 'offline'
+      }
+    }
+
     try {
       const start = performance.now()
-      await fetch('https://www.google.com/favicon.ico', {
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+      
+      await fetch(testUrl, {
         method: 'HEAD',
         cache: 'no-cache',
-        mode: 'no-cors'
+        mode: 'cors',
+        credentials: 'same-origin'
       })
       const latency = performance.now() - start
 
@@ -443,9 +462,32 @@ export class ConnectionDiagnostics {
         latency: Math.round(latency)
       }
     } catch (error) {
-      return {
-        online: false,
-        quality: 'offline'
+      // 备用检查：使用浏览器连接API
+      try {
+        if ('connection' in navigator) {
+          const connection = (navigator as any).connection;
+          if (connection) {
+            const effectiveType = connection.effectiveType;
+            const rtt = connection.rtt || 0;
+            
+            return {
+              online: true,
+              quality: (effectiveType === '4g' || rtt < 300) ? 'fast' : 'slow',
+              latency: rtt
+            }
+          }
+        }
+        
+        // 最后备用：基于navigator.onLine
+        return {
+          online: navigator.onLine,
+          quality: navigator.onLine ? 'slow' : 'offline'
+        }
+      } catch (fallbackError) {
+        return {
+          online: false,
+          quality: 'offline'
+        }
       }
     }
   }

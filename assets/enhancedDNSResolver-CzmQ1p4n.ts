@@ -60,11 +60,15 @@ class EnhancedDNSResolver {
           ? `https://[${server}]/dns-query`
           : `https://${server}/dns-query`;
         
-        // 简化测试：直接测试到Google的连接
-        await fetch('https://www.google.com/favicon.ico', {
+        // 使用本地资源进行DNS测试
+        const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+        
+        await fetch(testUrl, {
           method: 'HEAD',
-          mode: 'no-cors',
+          mode: 'cors',
           cache: 'no-cache',
+          credentials: 'same-origin',
           signal: AbortSignal.timeout(this.config.timeout)
         });
         
@@ -135,13 +139,19 @@ class EnhancedDNSResolver {
         link.href = `//${domain}`;
         document.head.appendChild(link);
 
-        // 同时进行实际连接测试
-        await fetch(`https://${domain}/favicon.ico`, {
-          method: 'HEAD',
-          mode: 'no-cors',
-          cache: 'no-cache',
-          signal: AbortSignal.timeout(3000)
-        });
+        // 对于本地域名，进行实际连接测试
+        if (domain === window.location.hostname) {
+          const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+          
+          await fetch(testUrl, {
+            method: 'HEAD',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            signal: AbortSignal.timeout(3000)
+          });
+        }
 
         console.log(`Successfully pre-resolved: ${domain}`);
       } catch (error) {
@@ -212,10 +222,15 @@ class EnhancedDNSResolver {
       try {
         const start = performance.now();
         
-        await fetch(`https://${domain}/favicon.ico`, {
+        // 使用本地资源进行IPv4测试
+        const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+        
+        await fetch(testUrl, {
           method: 'HEAD',
-          mode: 'no-cors',
+          mode: 'cors',
           cache: 'no-cache',
+          credentials: 'same-origin',
           signal: AbortSignal.timeout(this.config.timeout)
         });
         
@@ -245,10 +260,15 @@ class EnhancedDNSResolver {
       try {
         const start = performance.now();
         
-        await fetch(`https://${domain}/favicon.ico`, {
+        // 使用本地资源进行IPv6测试
+        const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+        
+        await fetch(testUrl, {
           method: 'HEAD',
-          mode: 'no-cors',
+          mode: 'cors',
           cache: 'no-cache',
+          credentials: 'same-origin',
           signal: AbortSignal.timeout(this.config.timeout)
         });
         

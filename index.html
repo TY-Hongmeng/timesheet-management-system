@@ -8,14 +8,6 @@
     <meta name="description" content="JT工时管理系统 - 高效的工时记录和审核管理平台" />
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
-    <!-- DNS 预解析 -->
-    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
-    
-    <!-- 预连接重要资源 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
     <!-- 关键资源预加载 -->
     <link rel="modulepreload" href="/timesheet-management-system/assets/main-96Cwy11H.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/App-C1AB_GYR.tsx" />
@@ -23,9 +15,14 @@
     
     <!-- 预加载关键 CSS -->
     
-    <!-- 预加载字体 -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+    <!-- 使用系统字体，移除Google字体依赖 -->
+    <style>
+      :root {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+      }
+    </style>
     
     <!-- 性能优化 -->
     <meta name="theme-color" content="#ffffff" />
@@ -387,9 +384,9 @@
       async function initializeEnhancedNetworking() {
         try {
           // 动态导入网络管理模块
-        const { networkManager: nm } = await import('/timesheet-management-system/assets/enhancedNetworkManager-BGFB1Wgx.ts');
+        const { networkManager: nm } = await import('/timesheet-management-system/assets/enhancedNetworkManager-lKGjndLN.ts');
         const { resourceOptimizer: ro } = await import('/timesheet-management-system/assets/resourceLoadOptimizer-ORsJrZ60.ts');
-        const { connectionDiagnostics: cd } = await import('/timesheet-management-system/assets/connectionDiagnostics-eEhpkC4q.ts');
+        const { connectionDiagnostics: cd } = await import('/timesheet-management-system/assets/connectionDiagnostics-DvH-sRa-.ts');
           
           networkManager = nm;
           resourceOptimizer = ro;
@@ -474,7 +471,7 @@
             if (success) {
               // 初始化5G网络处理器
               try {
-                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-B9-DnS3A.ts');
+                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-CnnIeOJM.ts');
                 const diagnostics = await fiveGHandler.detectNetworkCapabilities();
                 
                 if (fiveGHandler.is5GNetwork()) {
@@ -482,7 +479,7 @@
                   await fiveGHandler.optimizeFor5G();
                   
                   // 5G网络专用DNS优化
-                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-v_8qklmW.ts');
+                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-CzmQ1p4n.ts');
                   dnsResolver.optimizeFor5G();
                 }
                 

@@ -149,21 +149,49 @@ class FiveGNetworkHandler {
   }
 
   /**
-   * 测量网络延迟
+   * 测量网络延迟 - 使用本地资源
    */
   private async measureLatency(): Promise<number> {
     try {
       const start = performance.now();
-      await fetch('https://www.google.com/favicon.ico', {
+      
+      // 使用本地资源进行延迟测试
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const testUrl = isLocalDev ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+      
+      await fetch(testUrl, {
         method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
+        mode: 'cors'
       });
+      
       const end = performance.now();
       return end - start;
     } catch (error) {
-      console.warn('Latency measurement failed:', error);
-      return -1;
+      console.warn('Latency measurement failed, using fallback method:', error);
+      
+      // 备用方法：使用浏览器原生API
+      try {
+        const start = performance.now();
+        // 使用 navigator.onLine 和 connection API 进行估算
+        if ('connection' in navigator) {
+          const connection = (navigator as any).connection;
+          if (connection && connection.rtt) {
+            return connection.rtt;
+          }
+        }
+        
+        // 最后备用：基于当前页面的加载时间估算
+        const navigationTiming = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navigationTiming && navigationTiming.responseStart && navigationTiming.requestStart) {
+          return navigationTiming.responseStart - navigationTiming.requestStart;
+        }
+        
+        return 100; // 默认估算值
+      } catch (fallbackError) {
+        console.warn('Fallback latency measurement also failed:', fallbackError);
+        return -1;
+      }
     }
   }
 

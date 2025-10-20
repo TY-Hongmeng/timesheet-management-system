@@ -1,3 +1,6 @@
+import { connectionDiagnostics } from './connectionDiagnostics'
+import { nativeNetworkDetector } from './nativeNetworkDetector'
+
 // 增强的网络连接管理器
 export class EnhancedNetworkManager {
   private retryCount = 0
@@ -263,22 +266,15 @@ export class EnhancedNetworkManager {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     
     if (isLocalDev) {
-      // 本地开发环境：使用本地资源进行检测
+      // 本地开发环境：优先使用轻量级资源
       return [
-        {
-          url: '/manifest.json',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode
-          }
-        },
         {
           url: '/favicon.svg',
           options: {
             method: 'HEAD',
             cache: 'no-cache',
-            mode: 'cors' as RequestMode
+            mode: 'cors' as RequestMode,
+            timeout: 3000
           }
         },
         {
@@ -286,29 +282,22 @@ export class EnhancedNetworkManager {
           options: {
             method: 'HEAD',
             cache: 'no-cache',
-            mode: 'cors' as RequestMode
+            mode: 'cors' as RequestMode,
+            timeout: 5000
           }
         }
       ]
     } else {
-      // 生产环境：使用同域资源进行检测
+      // 生产环境：使用同域资源进行检测，优化manifest访问
       return [
-        {
-          url: '/timesheet-management-system/manifest.json',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials
-          }
-        },
         {
           url: '/timesheet-management-system/favicon.svg',
           options: {
             method: 'HEAD',
             cache: 'no-cache',
             mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials
+            credentials: 'same-origin' as RequestCredentials,
+            timeout: 3000
           }
         },
         {
@@ -317,7 +306,18 @@ export class EnhancedNetworkManager {
             method: 'HEAD',
             cache: 'no-cache',
             mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials
+            credentials: 'same-origin' as RequestCredentials,
+            timeout: 5000
+          }
+        },
+        {
+          url: '/timesheet-management-system/manifest.json',
+          options: {
+            method: 'GET', // 改为GET以获取更准确的响应
+            cache: 'no-cache',
+            mode: 'cors' as RequestMode,
+            credentials: 'same-origin' as RequestCredentials,
+            timeout: 8000 // 给manifest更长的超时时间
           }
         }
       ]
@@ -436,7 +436,47 @@ export class EnhancedNetworkManager {
 
   // 是否应该使用低网速模式
   public shouldUseLowSpeedMode(): boolean {
-    return this.connectionQuality === 'slow' || this.failureStreak > 2
+    return this.connectionQuality === 'slow' || this.isMobile
+  }
+
+  /**
+   * 使用原生检测器进行网络质量评估
+   */
+  public async performNativeNetworkCheck(): Promise<boolean> {
+    try {
+      const quality = await nativeNetworkDetector.measureNetworkQuality()
+      
+      // 更新连接质量
+      if (quality.level === 'offline') {
+        this.connectionQuality = 'offline'
+        this.isOnline = false
+      } else if (quality.score >= 60) {
+        this.connectionQuality = 'fast'
+        this.isOnline = true
+      } else {
+        this.connectionQuality = 'slow'
+        this.isOnline = true
+      }
+
+      // 重置失败计数
+      if (this.isOnline) {
+        this.failureStreak = 0
+        this.lastSuccessfulConnection = Date.now()
+      }
+
+      this.notifyListeners(this.isOnline)
+      return this.isOnline
+    } catch (error) {
+      console.warn('Native network check failed:', error)
+      return false
+    }
+  }
+
+  /**
+   * 获取5G网络优化建议
+   */
+  public get5GOptimizationTips(): string[] {
+    return nativeNetworkDetector.get5GOptimizationTips()
   }
 }
 
