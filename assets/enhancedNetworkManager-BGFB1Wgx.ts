@@ -164,26 +164,71 @@ export class EnhancedNetworkManager {
     
     try {
       const controller = new AbortController()
-      const timeout = this.connectionQuality === 'slow' ? 10000 : 5000
+      
+      // 智能超时配置 - 针对5G网络优化
+      let timeout = 5000 // 默认超时
+      
+      if (this.networkInfo) {
+        const effectiveType = this.networkInfo.effectiveType
+        if (effectiveType === '5g') {
+          timeout = 3000 // 5G网络响应更快，但可能不稳定
+        } else if (effectiveType === '4g') {
+          timeout = 4000
+        } else if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+          timeout = 15000
+        } else if (this.connectionQuality === 'slow') {
+          timeout = 10000
+        }
+      } else if (this.connectionQuality === 'slow') {
+        timeout = 10000
+      }
+      
+      // 移动端适当延长超时
+      if (this.isMobile && this.failureStreak > 1) {
+        timeout = Math.min(timeout * 1.5, 12000)
+      }
+      
       const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-      // 多重检测策略
+      // 多重检测策略 - 优化错误处理
       const testUrls = this.getTestUrls()
       let success = false
+      let lastError: Error | null = null
 
       for (const { url, options } of testUrls) {
         try {
           const response = await fetch(url, {
             ...options,
-            signal: controller.signal
+            signal: controller.signal,
+            // 添加5G网络优化的请求头
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+              ...options.headers
+            }
           })
           
-          if (options.mode === 'no-cors' || response.ok) {
+          if (response.ok || response.status === 304) {
             success = true
+            console.log(`✅ Network test successful: ${url}`)
             break
+          } else {
+            console.warn(`⚠️ Test URL returned ${response.status}: ${url}`)
           }
-        } catch (error) {
-          console.warn(`🔗 Test URL failed: ${url}`, error)
+        } catch (error: any) {
+          lastError = error
+          
+          // 优雅处理常见的网络错误
+          if (error.name === 'AbortError') {
+            console.warn(`⏰ Test URL timeout: ${url}`)
+          } else if (error.message?.includes('ERR_ABORTED')) {
+            console.warn(`🚫 Test URL aborted: ${url}`)
+          } else if (error.message?.includes('ERR_FAILED')) {
+            console.warn(`❌ Test URL failed: ${url}`)
+          } else {
+            console.warn(`🔗 Test URL error: ${url}`, error.message)
+          }
           continue
         }
       }
@@ -218,28 +263,47 @@ export class EnhancedNetworkManager {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     
     if (isLocalDev) {
+      // 本地开发环境：使用本地资源进行检测
       return [
         {
-          url: 'https://www.google.com/favicon.ico',
+          url: '/manifest.json',
           options: {
             method: 'HEAD',
             cache: 'no-cache',
-            mode: 'no-cors' as RequestMode
+            mode: 'cors' as RequestMode
           }
         },
         {
-          url: 'https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js',
+          url: '/favicon.svg',
           options: {
             method: 'HEAD',
             cache: 'no-cache',
-            mode: 'no-cors' as RequestMode
+            mode: 'cors' as RequestMode
+          }
+        },
+        {
+          url: '/',
+          options: {
+            method: 'HEAD',
+            cache: 'no-cache',
+            mode: 'cors' as RequestMode
           }
         }
       ]
     } else {
+      // 生产环境：使用同域资源进行检测
       return [
         {
           url: '/timesheet-management-system/manifest.json',
+          options: {
+            method: 'HEAD',
+            cache: 'no-cache',
+            mode: 'cors' as RequestMode,
+            credentials: 'same-origin' as RequestCredentials
+          }
+        },
+        {
+          url: '/timesheet-management-system/favicon.svg',
           options: {
             method: 'HEAD',
             cache: 'no-cache',
