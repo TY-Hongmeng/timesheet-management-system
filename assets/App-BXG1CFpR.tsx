@@ -5,6 +5,7 @@ import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 import { Toaster } from 'sonner'
 import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
 import NetworkStatus from '@/components/NetworkStatus'
+import NetworkStatusMonitor from '@/components/NetworkStatusMonitor'
 import MobileLoadingSpinner from '@/components/MobileLoadingSpinner'
 import { MobilePageSkeleton } from '@/components/MobileSkeleton'
 
@@ -281,6 +282,7 @@ function App() {
     <AppErrorBoundary>
       <AuthProvider>
         <Router basename="/timesheet-management-system">
+          <NetworkStatusMonitor />
           <NetworkStatus />
           <Toaster position="top-right" richColors />
           <Routes>

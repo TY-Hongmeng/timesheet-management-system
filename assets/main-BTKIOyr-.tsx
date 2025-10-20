@@ -6,6 +6,7 @@ import "./styles/globals.css";
 import { initMobileOptimization } from "./utils/mobileOptimization";
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
 import { mobileErrorHandler } from './utils/mobileErrorHandler'
+import { safariNetworkHandler } from './utils/safariNetworkHandler'
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -71,14 +72,27 @@ class AppInitializer {
         console.log('浏览器兼容性检测完成:', compatibility);
       }
       
+      // 初始化 Safari 网络处理器
+      this.updateLoaderText('正在初始化网络处理...');
+      safariNetworkHandler.onNetworkChange((online) => {
+        if (online) {
+          console.log('Safari 网络处理器: 网络已连接');
+          this.updateLoaderText('网络连接正常');
+        } else {
+          console.log('Safari 网络处理器: 网络已断开');
+          this.updateLoaderText('网络连接已断开');
+        }
+      });
+      
       // 初始化移动端错误处理
       console.log('移动端错误处理器已初始化');
       
       // 更新加载状态
       this.updateLoaderText('正在初始化应用...');
 
-      // 检查网络状态
-      if (!navigator.onLine) {
+      // 使用 Safari 网络处理器检查网络状态
+      const networkStatus = await safariNetworkHandler.checkNetworkStatus();
+      if (!networkStatus) {
         this.handleOfflineState();
         return;
       }
