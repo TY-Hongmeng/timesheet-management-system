@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
     <!-- 关键资源预加载 -->
-    <link rel="modulepreload" href="/timesheet-management-system/assets/main-BTKIOyr-.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/main-pJs47Kmp.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/App-BXG1CFpR.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/AuthContext-ZTsjUHPY.tsx" />
     
@@ -183,7 +183,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/js/index-43LwgZC6.js"></script>
+    <script type="module" crossorigin src="/timesheet-management-system/js/index-Mtvuu3e9.js"></script>
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/vendor-DLvgz_hY.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-vendor-DNzT5kIg.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/supabase-BSlBLnmQ.js">
@@ -294,15 +294,145 @@
         }
       };
       
-      // 错误处理
+      // Service Worker 注册 - 增强网络错误处理
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            // 检测环境并设置正确的 SW 路径
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const swPath = isLocal ? '/sw.js' : '/timesheet-management-system/sw.js';
+            
+            const registration = await navigator.serviceWorker.register(swPath, {
+              scope: isLocal ? '/' : '/timesheet-management-system/'
+            });
+            
+            console.log('[SW] Service Worker 注册成功:', registration.scope);
+            
+            // 监听 SW 更新
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // 有新版本可用
+                  if (confirm('发现新版本，是否立即更新？')) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+            
+            // 监听 SW 控制变化
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              window.location.reload();
+            });
+            
+          } catch (error) {
+            console.error('[SW] Service Worker 注册失败:', error);
+            // SW 注册失败不影响应用正常运行
+          }
+        });
+      }
+      
+      // 增强的错误处理 - 支持网络错误重定向
       window.addEventListener('error', (event) => {
         console.error('页面加载错误:', event.error);
+        
+        // 检查是否是网络相关错误
+        const errorMessage = event.error?.message || '';
+        if (errorMessage.includes('CONNECTION_RESET') || 
+            errorMessage.includes('ERR_CONNECTION_RESET') ||
+            errorMessage.includes('net::ERR_')) {
+          
+          // 重定向到错误处理页面
+          const errorUrl = new URL('/error-handler.html', window.location.origin);
+          errorUrl.searchParams.set('error', 'ERR_CONNECTION_RESET');
+          errorUrl.searchParams.set('message', errorMessage);
+          errorUrl.searchParams.set('url', window.location.pathname);
+          
+          window.location.href = errorUrl.toString();
+          return;
+        }
+        
         showRetryButton('应用加载失败，请重试');
       });
       
       window.addEventListener('unhandledrejection', (event) => {
         console.error('未处理的 Promise 错误:', event.reason);
+        
+        // 检查是否是网络相关的 Promise 错误
+        const reason = event.reason?.message || event.reason || '';
+        if (typeof reason === 'string' && 
+            (reason.includes('CONNECTION_RESET') || 
+             reason.includes('ERR_CONNECTION_RESET') ||
+             reason.includes('fetch'))) {
+          
+          // 重定向到错误处理页面
+          const errorUrl = new URL('/error-handler.html', window.location.origin);
+          errorUrl.searchParams.set('error', 'ERR_NETWORK_FAILED');
+          errorUrl.searchParams.set('message', reason);
+          errorUrl.searchParams.set('url', window.location.pathname);
+          
+          window.location.href = errorUrl.toString();
+          return;
+        }
+        
         showRetryButton('应用初始化失败，请重试');
+      });
+      
+      // 网络连接监控
+      let connectionCheckInterval;
+      
+      function startConnectionMonitoring() {
+        connectionCheckInterval = setInterval(async () => {
+          try {
+            // 检查网络连接
+            const response = await fetch('/manifest.json', { 
+              method: 'HEAD',
+              cache: 'no-cache',
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            
+          } catch (error) {
+            console.warn('[Network] 连接检查失败:', error.message);
+            
+            // 如果是连接重置错误，重定向到错误页面
+            if (error.message.includes('CONNECTION_RESET') || 
+                error.message.includes('ERR_CONNECTION_RESET')) {
+              
+              clearInterval(connectionCheckInterval);
+              
+              const errorUrl = new URL('/error-handler.html', window.location.origin);
+              errorUrl.searchParams.set('error', 'ERR_CONNECTION_RESET');
+              errorUrl.searchParams.set('message', '网络连接被重置');
+              errorUrl.searchParams.set('url', window.location.pathname);
+              
+              window.location.href = errorUrl.toString();
+            }
+          }
+        }, 30000); // 每30秒检查一次
+      }
+      
+      // 启动连接监控
+      if (navigator.onLine) {
+        startConnectionMonitoring();
+      }
+      
+      // 网络状态变化时重新启动监控
+      window.addEventListener('online', () => {
+        updateNetworkStatus();
+        startConnectionMonitoring();
+      });
+      
+      window.addEventListener('offline', () => {
+        updateNetworkStatus();
+        if (connectionCheckInterval) {
+          clearInterval(connectionCheckInterval);
+        }
       });
     </script>
     
