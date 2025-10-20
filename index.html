@@ -9,7 +9,7 @@
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
     <!-- 关键资源预加载 -->
-    <link rel="modulepreload" href="/timesheet-management-system/assets/main-96Cwy11H.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/main-BYgrn0F4.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/App-C1AB_GYR.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/AuthContext-ZTsjUHPY.tsx" />
     
@@ -180,7 +180,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/js/index-0sLLy8JX.js"></script>
+    <script type="module" crossorigin src="/timesheet-management-system/js/index-D3RMskbT.js"></script>
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/vendor-DLvgz_hY.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-vendor-DNzT5kIg.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/supabase-BSlBLnmQ.js">
@@ -236,6 +236,14 @@
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
         retryButton.style.display = 'inline-block';
+      }
+      
+      function hideRetryButton() {
+        const errorMessage = document.getElementById('error-message');
+        const retryButton = document.getElementById('retry-button');
+        
+        if (errorMessage) errorMessage.style.display = 'none';
+        if (retryButton) retryButton.style.display = 'none';
       }
       
       function retryLoad() {
@@ -383,30 +391,8 @@
       // 初始化增强的网络管理
       async function initializeEnhancedNetworking() {
         try {
-          // 动态导入网络管理模块
-        const { networkManager: nm } = await import('/timesheet-management-system/assets/enhancedNetworkManager-WPEWx83L.ts');
-        const { resourceOptimizer: ro } = await import('/timesheet-management-system/assets/resourceLoadOptimizer-ORsJrZ60.ts');
-        const { connectionDiagnostics: cd } = await import('/timesheet-management-system/assets/connectionDiagnostics-Cx3Gou7k.ts');
-          
-          networkManager = nm;
-          resourceOptimizer = ro;
-          connectionDiagnostics = cd;
-          
-          // 设置网络状态监听
-          networkManager.addNetworkListener((online) => {
-            updateNetworkStatus(online);
-            if (online) {
-              hideRetryButton();
-            } else {
-              showRetryButton('网络连接已断开', 'CONNECTION_LOST');
-            }
-          });
-          
-          // 预加载关键资源
-          await resourceOptimizer.preloadCriticalResources();
-          
-          console.log('✅ Enhanced networking initialized');
-          return true;
+          console.log('✅ Using basic networking (simplified)');
+          return false; // 直接使用基础网络监控
         } catch (error) {
           console.warn('⚠️ Enhanced networking failed to initialize:', error);
           // 回退到基础网络监控
@@ -465,60 +451,28 @@
         }
       }
       
-      // 启动增强网络管理或回退到基础监控
-        if (navigator.onLine) {
-          initializeEnhancedNetworking().then(async (success) => {
-            if (success) {
-              // 初始化5G网络处理器
-              try {
-                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-BFOyvxfR.ts');
-                const diagnostics = await fiveGHandler.detectNetworkCapabilities();
-                
-                if (fiveGHandler.is5GNetwork()) {
-                  console.log('🚀 5G network detected, applying optimizations...');
-                  await fiveGHandler.optimizeFor5G();
-                  
-                  // 5G网络专用DNS优化
-                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-M8plG_Ax.ts');
-                  dnsResolver.optimizeFor5G();
-                }
-                
-                console.log('📊 Network diagnostics:', diagnostics);
-              } catch (error) {
-                console.warn('⚠️ 5G network handler failed to load:', error);
-              }
-              
-              // 初始化移动端优化
-              try {
-                const { initMobileOptimization } = await import('/timesheet-management-system/assets/mobileOptimization-BgC8KYvb.ts');
-                initMobileOptimization();
-                console.log('📱 Mobile optimization initialized');
-              } catch (error) {
-                console.warn('⚠️ Mobile optimization failed to load:', error);
-              }
-            }
-          }).catch(() => {
-            startBasicConnectionMonitoring();
-          });
-        }
+      // 启动基础网络监控
+      if (navigator.onLine) {
+        console.log('🌐 Starting basic network monitoring');
+        startBasicConnectionMonitoring();
+      } else {
+        console.log('📴 Device is offline, starting offline monitoring');
+        startBasicConnectionMonitoring();
+      }
       
       // 网络状态变化时重新启动监控
       window.addEventListener('online', () => {
+        console.log('🌐 Network back online');
         updateNetworkStatus();
-        if (networkManager) {
-          networkManager.handleOnline();
-        } else {
-          startBasicConnectionMonitoring();
-        }
+        hideRetryButton();
+        startBasicConnectionMonitoring();
       });
       
       window.addEventListener('offline', () => {
+        console.log('📴 Network went offline');
         updateNetworkStatus();
-        if (networkManager) {
-          networkManager.handleOffline();
-        } else if (connectionCheckInterval) {
-          clearInterval(connectionCheckInterval);
-        }
+        showRetryButton('网络连接已断开，请检查网络后重试');
+        stopConnectionMonitoring();
       });
     </script>
     

@@ -3,13 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
-import { mobileOptimization } from "./utils/mobileOptimization";
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
-import { mobileErrorHandler } from './utils/mobileErrorHandler'
-import { safariNetworkHandler } from './utils/safariNetworkHandler'
-import { advancedNetworkHandler } from './utils/advancedNetworkHandler'
-import { mobileNetworkAdapter } from './utils/mobileNetworkAdapter'
-import { connectionStabilizer } from './utils/connectionStabilizer'
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -75,39 +69,11 @@ class AppInitializer {
         console.log('浏览器兼容性检测完成:', compatibility);
       }
       
-      // 初始化高级网络处理器
-      this.updateLoaderText('正在初始化高级网络处理...');
-      console.log('高级网络处理器已初始化');
-      
-      // 初始化移动端网络适配器
-      this.updateLoaderText('正在初始化移动端网络适配...');
-      console.log('移动端网络适配器已初始化，网络质量:', mobileNetworkAdapter.getNetworkQuality());
-      
-      // 初始化连接稳定器
-      this.updateLoaderText('正在初始化连接稳定器...');
-      console.log('连接稳定器已初始化');
-      
-      // 初始化 Safari 网络处理器
-      this.updateLoaderText('正在初始化 Safari 网络处理...');
-      safariNetworkHandler.onNetworkChange((online) => {
-        if (online) {
-          console.log('Safari 网络处理器: 网络已连接');
-          this.updateLoaderText('网络连接正常');
-        } else {
-          console.log('Safari 网络处理器: 网络已断开');
-          this.updateLoaderText('网络连接已断开');
-        }
-      });
-      
-      // 初始化移动端错误处理
-      console.log('移动端错误处理器已初始化');
-      
       // 更新加载状态
       this.updateLoaderText('正在初始化应用...');
 
-      // 使用 Safari 网络处理器检查网络状态
-      const networkStatus = await safariNetworkHandler.checkNetworkStatus();
-      if (!networkStatus) {
+      // 简单的网络状态检查
+      if (!navigator.onLine) {
         this.handleOfflineState();
         return;
       }
