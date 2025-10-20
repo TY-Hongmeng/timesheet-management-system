@@ -4,6 +4,8 @@ import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
 import { initMobileOptimization } from "./utils/mobileOptimization";
+import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
+import { mobileErrorHandler } from './utils/mobileErrorHandler'
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -56,6 +58,22 @@ class AppInitializer {
 
   private async initializeApp() {
     try {
+      this.updateLoaderText('正在初始化兼容性支持...');
+      
+      // 初始化移动端兼容性
+      if (typeof initMobileCompatibility === 'function') {
+        initMobileCompatibility();
+      }
+      
+      // 检查浏览器兼容性
+      if (typeof checkBrowserCompatibility === 'function') {
+        const compatibility = checkBrowserCompatibility();
+        console.log('浏览器兼容性检测完成:', compatibility);
+      }
+      
+      // 初始化移动端错误处理
+      console.log('移动端错误处理器已初始化');
+      
       // 更新加载状态
       this.updateLoaderText('正在初始化应用...');
 
