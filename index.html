@@ -9,11 +9,20 @@
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
     <!-- 关键资源预加载 -->
-    <link rel="modulepreload" href="/timesheet-management-system/assets/main-D0VUA6Q1.tsx" />
-    <link rel="modulepreload" href="/timesheet-management-system/assets/App-C1AB_GYR.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/main-gzsZGP7N.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/App-CSLcm32d.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/AuthContext-ZTsjUHPY.tsx" />
     
     <!-- 预加载关键 CSS -->
+    
+    <!-- 移动端优化预加载 -->
+    <link rel="modulepreload" href="/timesheet-management-system/assets/MobileLoadingSpinner-CBdg-I1_.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/mobileOptimizationManager-CcW7BA7z.ts" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/mobileBrowserOptimizer-C67pSv8z.ts" />
+    
+    <!-- DNS 预解析 -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
     
     <!-- 使用系统字体，移除Google字体依赖 -->
     <style>
@@ -180,13 +189,13 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/js/index-BidJgHLo.js"></script>
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-D6UPbbTV.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/vendor-CKbz-9sG.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-dom-BT3gIiCK.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/supabase-BE3bwnEA.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/toast-C6NSsgfd.js">
-    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-7EGWcRHO.css">
+    <script type="module" crossorigin src="/timesheet-management-system/js/index-CRVVxJI6.js"></script>
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-CJFYUZ2-.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-dom-CF0h6VJ-.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/vendor-BGL5XM0N.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/supabase-BCgBSYV2.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/toast-FCEag1yS.js">
+    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-C_oMjwzz.css">
   </head>
   <body>
     <!-- 初始加载屏幕 -->
@@ -211,6 +220,8 @@
       let loadTimeout;
       let retryCount = 0;
       const maxRetries = 3;
+      let loadStartTime = Date.now();
+      let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
       
       function updateNetworkStatus() {
         const networkStatus = document.getElementById('network-status');
@@ -221,7 +232,21 @@
           if (navigator.connection) {
             const connection = navigator.connection;
             const effectiveType = connection.effectiveType || 'unknown';
-            networkStatus.textContent = `网络连接: ${effectiveType}`;
+            const downlink = connection.downlink || 0;
+            
+            // 移动端网络状态优化显示
+            if (isMobile) {
+              if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+                networkStatus.textContent = '网络较慢，正在优化加载...';
+                loaderText.textContent = '检测到慢速网络，正在压缩资源...';
+              } else if (effectiveType === '3g') {
+                networkStatus.textContent = '3G网络，优化加载中...';
+              } else {
+                networkStatus.textContent = `网络连接: ${effectiveType} (${downlink.toFixed(1)}Mbps)`;
+              }
+            } else {
+              networkStatus.textContent = `网络连接: ${effectiveType}`;
+            }
           }
         } else {
           networkStatus.textContent = '网络连接断开';
@@ -262,10 +287,26 @@
         errorMessage.style.display = 'none';
         retryButton.style.display = 'none';
         
-        // 重新加载页面
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // 移动端特殊重试策略
+        if (isMobile) {
+          // 清除可能的缓存问题
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => {
+                caches.delete(name);
+              });
+            });
+          }
+          
+          // 延长重试间隔，给移动端更多时间
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
       }
       
       // 监听网络状态变化
@@ -275,17 +316,31 @@
       // 初始化网络状态
       updateNetworkStatus();
       
-      // 设置加载超时
+      // 设置加载超时 - 移动端优化
+      const timeoutDuration = isMobile ? 15000 : 10000; // 移动端给更长时间
+      const retryTimeoutDuration = isMobile ? 8000 : 5000;
+      
       loadTimeout = setTimeout(() => {
         const loaderText = document.getElementById('loader-text');
-        loaderText.textContent = '加载时间较长，可能是网络较慢...';
+        const loadTime = ((Date.now() - loadStartTime) / 1000).toFixed(1);
+        
+        if (isMobile) {
+          loaderText.textContent = `加载中... (${loadTime}s) 移动端网络可能较慢`;
+        } else {
+          loaderText.textContent = '加载时间较长，可能是网络较慢...';
+        }
         
         setTimeout(() => {
           if (document.getElementById('initial-loader').style.display !== 'none') {
-            showRetryButton('加载超时，请检查网络连接后重试');
+            const finalLoadTime = ((Date.now() - loadStartTime) / 1000).toFixed(1);
+            if (isMobile) {
+              showRetryButton(`移动端加载超时 (${finalLoadTime}s)，请检查网络或尝试刷新`);
+            } else {
+              showRetryButton('加载超时，请检查网络连接后重试');
+            }
           }
-        }, 5000);
-      }, 10000);
+        }, retryTimeoutDuration);
+      }, timeoutDuration);
       
       // 当 React 应用加载完成时隐藏加载屏幕
       window.hideInitialLoader = function() {
@@ -300,7 +355,7 @@
         }
       };
       
-      // Service Worker 注册 - 增强网络错误处理
+      // Service Worker 注册 - 增强网络错误处理和移动端优化
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
@@ -314,15 +369,47 @@
             
             console.log('[SW] Service Worker 注册成功:', registration.scope);
             
+            // 移动端特殊处理：预缓存关键资源
+            if (isMobile && registration.active) {
+              registration.active.postMessage({
+                type: 'PRECACHE_MOBILE_RESOURCES',
+                resources: [
+                  '/src/main.tsx',
+                  '/src/App.tsx',
+                  '/src/components/MobileLoadingSpinner.tsx',
+                  '/src/utils/mobileOptimizationManager.ts'
+                ]
+              });
+            }
+            
             // 监听 SW 更新
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing;
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // 有新版本可用
-                  if (confirm('发现新版本，是否立即更新？')) {
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    window.location.reload();
+                  if (isMobile) {
+                    // 移动端更温和的更新提示
+                    const updateNotice = document.createElement('div');
+                    updateNotice.style.cssText = `
+                      position: fixed; top: 20px; left: 20px; right: 20px; z-index: 10000;
+                      background: #3b82f6; color: white; padding: 12px; border-radius: 8px;
+                      text-align: center; font-size: 14px;
+                    `;
+                    updateNotice.innerHTML = `
+                      <div>发现新版本</div>
+                      <button onclick="this.parentElement.remove(); location.reload();" 
+                              style="background: white; color: #3b82f6; border: none; padding: 4px 12px; border-radius: 4px; margin-top: 8px;">
+                        立即更新
+                      </button>
+                    `;
+                    document.body.appendChild(updateNotice);
+                    setTimeout(() => updateNotice.remove(), 10000);
+                  } else {
+                    if (confirm('发现新版本，是否立即更新？')) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
                   }
                 }
               });
