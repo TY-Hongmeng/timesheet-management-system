@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
-import { initMobileOptimization } from "./utils/mobileOptimization";
+import { mobileOptimization } from "./utils/mobileOptimization";
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
 import { mobileErrorHandler } from './utils/mobileErrorHandler'
 import { safariNetworkHandler } from './utils/safariNetworkHandler'
@@ -174,7 +174,7 @@ class AppInitializer {
       this.updateLoaderText('正在启动应用...');
       
       // 初始化移动端优化
-      initMobileOptimization();
+      console.log('📱 Mobile optimization status:', mobileOptimization.getStatus());
       
       const container = document.getElementById("root");
       if (!container) {

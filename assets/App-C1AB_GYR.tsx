@@ -278,10 +278,12 @@ function App() {
     preloadComponents()
   }, [])
 
+  const basename = import.meta.env.DEV ? '' : '/timesheet-management-system'
+  
   return (
     <AppErrorBoundary>
       <AuthProvider>
-        <Router basename="/timesheet-management-system">
+        <Router basename={basename}>
           <NetworkStatusMonitor />
           <NetworkStatus />
           <Toaster position="top-right" richColors />
