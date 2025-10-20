@@ -20,9 +20,6 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const TimesheetRecord = lazy(() => import('@/pages/TimesheetRecord'))
 const TimesheetHistory = lazy(() => import('@/pages/TimesheetHistory'))
 
-// 移动端诊断页面
-const MobileDiagnostic = lazy(() => import('@/components/MobileDiagnostic'))
-
 // 管理页面 - 按需加载
 const CompanyManagement = lazy(() => import('@/pages/CompanyManagement'))
 const UserManagement = lazy(() => import('@/pages/UserManagement'))
@@ -373,11 +370,7 @@ function App() {
               <LazyWrapper><ToastTest /></LazyWrapper>
             </ProtectedRoute>
           } />
-          
-          {/* 移动端诊断页面 - 公开访问，用于网络问题排查 */}
-          <Route path="/mobile-diagnostic" element={
-            <LazyWrapper><MobileDiagnostic /></LazyWrapper>
-          } />
+
 
           
           {/* Catch all route */}
