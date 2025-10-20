@@ -180,7 +180,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/js/index-CZMERn47.js"></script>
+    <script type="module" crossorigin src="/timesheet-management-system/js/index-0sLLy8JX.js"></script>
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/vendor-DLvgz_hY.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/react-vendor-DNzT5kIg.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/js/supabase-BSlBLnmQ.js">
@@ -384,9 +384,9 @@
       async function initializeEnhancedNetworking() {
         try {
           // 动态导入网络管理模块
-        const { networkManager: nm } = await import('/timesheet-management-system/assets/enhancedNetworkManager-lKGjndLN.ts');
+        const { networkManager: nm } = await import('/timesheet-management-system/assets/enhancedNetworkManager-WPEWx83L.ts');
         const { resourceOptimizer: ro } = await import('/timesheet-management-system/assets/resourceLoadOptimizer-ORsJrZ60.ts');
-        const { connectionDiagnostics: cd } = await import('/timesheet-management-system/assets/connectionDiagnostics-DvH-sRa-.ts');
+        const { connectionDiagnostics: cd } = await import('/timesheet-management-system/assets/connectionDiagnostics-Cx3Gou7k.ts');
           
           networkManager = nm;
           resourceOptimizer = ro;
@@ -471,7 +471,7 @@
             if (success) {
               // 初始化5G网络处理器
               try {
-                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-CnnIeOJM.ts');
+                const { fiveGHandler } = await import('/timesheet-management-system/assets/fiveGNetworkHandler-BFOyvxfR.ts');
                 const diagnostics = await fiveGHandler.detectNetworkCapabilities();
                 
                 if (fiveGHandler.is5GNetwork()) {
@@ -479,7 +479,7 @@
                   await fiveGHandler.optimizeFor5G();
                   
                   // 5G网络专用DNS优化
-                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-CzmQ1p4n.ts');
+                  const { dnsResolver } = await import('/timesheet-management-system/assets/enhancedDNSResolver-M8plG_Ax.ts');
                   dnsResolver.optimizeFor5G();
                 }
                 

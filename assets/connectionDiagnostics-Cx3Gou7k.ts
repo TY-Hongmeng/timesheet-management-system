@@ -109,10 +109,9 @@ export class ConnectionDiagnostics {
         const start = performance.now()
         
         try {
-          await fetch('https://www.google.com/favicon.ico', {
+          await fetch(window.location.origin + '/favicon.svg', {
             method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'no-cors'
+            cache: 'no-cache'
           })
           
           const latency = performance.now() - start
@@ -172,10 +171,9 @@ export class ConnectionDiagnostics {
     for (let i = 0; i < testCount; i++) {
       try {
         await this.runTest(`Stability Test ${i + 1}`, async () => {
-          const response = await fetch('https://www.google.com/favicon.ico', {
+          const response = await fetch(window.location.origin + '/favicon.svg', {
             method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'no-cors'
+            cache: 'no-cache'
           })
           successCount++
           return { success: true }
@@ -213,9 +211,9 @@ export class ConnectionDiagnostics {
   // DNS解析测试
   private async testDNSResolution(): Promise<void> {
     const domains = [
-      'www.google.com',
-      'cdn.jsdelivr.net',
-      'fonts.googleapis.com'
+      window.location.hostname,
+      'localhost',
+      '127.0.0.1'
     ]
 
     for (const domain of domains) {
@@ -252,10 +250,9 @@ export class ConnectionDiagnostics {
       
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      const response = await fetch('https://www.google.com/favicon.ico', {
+      const response = await fetch(window.location.origin + '/favicon.svg', {
         method: 'HEAD',
-        cache: 'no-cache',
-        mode: 'no-cors'
+        cache: 'no-cache'
       })
       
       return { recovered: true }

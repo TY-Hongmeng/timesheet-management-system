@@ -214,23 +214,23 @@ export class EnhancedNetworkManager {
           
           if (response.ok || response.status === 304) {
             success = true
-            console.log(`✅ Network test successful: ${url}`)
+            console.debug(`✅ Network test successful: ${url}`)
             break
           } else {
-            console.warn(`⚠️ Test URL returned ${response.status}: ${url}`)
+            console.debug(`⚠️ Test URL returned ${response.status}: ${url}`)
           }
         } catch (error: any) {
           lastError = error
           
-          // 优雅处理常见的网络错误
+          // 静默处理常见的网络错误，避免控制台污染
           if (error.name === 'AbortError') {
-            console.warn(`⏰ Test URL timeout: ${url}`)
+            console.debug(`⏰ Test URL timeout: ${url}`)
           } else if (error.message?.includes('ERR_ABORTED')) {
-            console.warn(`🚫 Test URL aborted: ${url}`)
+            console.debug(`🚫 Test URL aborted: ${url}`)
           } else if (error.message?.includes('ERR_FAILED')) {
-            console.warn(`❌ Test URL failed: ${url}`)
+            console.debug(`❌ Test URL failed: ${url}`)
           } else {
-            console.warn(`🔗 Test URL error: ${url}`, error.message)
+            console.debug(`🔗 Test URL error: ${url}`, error.message)
           }
           continue
         }
@@ -265,63 +265,24 @@ export class EnhancedNetworkManager {
   private getTestUrls() {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     
-    if (isLocalDev) {
-      // 本地开发环境：优先使用轻量级资源
-      return [
-        {
-          url: '/favicon.svg',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            timeout: 3000
-          }
-        },
-        {
-          url: '/',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            timeout: 5000
-          }
+    return [
+      {
+        url: '/manifest.json',
+        options: {
+          method: 'HEAD',
+          cache: 'no-cache',
+          timeout: 2000
         }
-      ]
-    } else {
-      // 生产环境：使用同域资源进行检测，优化manifest访问
-      return [
-        {
-          url: '/timesheet-management-system/favicon.svg',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials,
-            timeout: 3000
-          }
-        },
-        {
-          url: '/timesheet-management-system/',
-          options: {
-            method: 'HEAD',
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials,
-            timeout: 5000
-          }
-        },
-        {
-          url: '/timesheet-management-system/manifest.json',
-          options: {
-            method: 'GET', // 改为GET以获取更准确的响应
-            cache: 'no-cache',
-            mode: 'cors' as RequestMode,
-            credentials: 'same-origin' as RequestCredentials,
-            timeout: 8000 // 给manifest更长的超时时间
-          }
+      },
+      {
+        url: '/',
+        options: {
+          method: 'HEAD',
+          cache: 'no-cache',
+          timeout: 2000
         }
-      ]
-    }
+      }
+    ]
   }
 
   // 智能重试机制

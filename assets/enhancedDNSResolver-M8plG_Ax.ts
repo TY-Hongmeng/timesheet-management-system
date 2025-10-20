@@ -359,8 +359,8 @@ class EnhancedDNSResolver {
       'ty-hongmeng.github.io',
       'github.com',
       'githubusercontent.com',
-      'google.com',
-      'cloudflare.com'
+      window.location.hostname,
+      'localhost'
     ]);
   }
 }

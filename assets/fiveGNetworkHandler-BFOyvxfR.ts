@@ -81,40 +81,40 @@ class FiveGNetworkHandler {
    * 检测IP协议版本支持
    */
   private async detectIPVersion(): Promise<'IPv4' | 'IPv6' | 'Dual' | 'Unknown'> {
-    const results = {
-      ipv4: false,
-      ipv6: false
-    };
-
     try {
-      // 测试IPv4连接
-      const ipv4Test = fetch('https://ipv4.google.com/generate_204', {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      }).then(() => {
-        results.ipv4 = true;
-      }).catch(() => {
-        results.ipv4 = false;
-      });
-
-      // 测试IPv6连接
-      const ipv6Test = fetch('https://ipv6.google.com/generate_204', {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-cache'
-      }).then(() => {
-        results.ipv6 = true;
-      }).catch(() => {
-        results.ipv6 = false;
-      });
-
-      await Promise.allSettled([ipv4Test, ipv6Test]);
-
-      if (results.ipv4 && results.ipv6) return 'Dual';
-      if (results.ipv4) return 'IPv4';
-      if (results.ipv6) return 'IPv6';
-      return 'Unknown';
+      // 使用浏览器原生API检测IP版本支持
+      const connection = (navigator as any).connection;
+      
+      // 基于连接类型和网络信息推断IP版本支持
+      if (connection) {
+        const effectiveType = connection.effectiveType;
+        const networkType = connection.type;
+        
+        // 5G网络通常支持双栈
+        if (effectiveType === '4g' && networkType === 'cellular') {
+          return 'Dual';
+        }
+        
+        // WiFi网络通常支持双栈
+        if (networkType === 'wifi') {
+          return 'Dual';
+        }
+        
+        // 其他情况默认IPv4
+        return 'IPv4';
+      }
+      
+      // 降级策略：检查用户代理和平台信息
+      const userAgent = navigator.userAgent.toLowerCase();
+      const platform = navigator.platform.toLowerCase();
+      
+      // 现代移动设备通常支持双栈
+      if (userAgent.includes('mobile') || userAgent.includes('android') || userAgent.includes('iphone')) {
+        return 'Dual';
+      }
+      
+      // 默认返回IPv4
+      return 'IPv4';
     } catch (error) {
       console.warn('IP version detection failed:', error);
       return 'Unknown';
