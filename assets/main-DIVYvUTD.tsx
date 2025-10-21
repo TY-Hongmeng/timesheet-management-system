@@ -61,10 +61,10 @@ class AppInitializer {
       }
     });
     
-    // 定期检查网络连接
+    // 定期检查网络连接（降低频率以减少性能开销）
     this.connectionCheckInterval = setInterval(() => {
       this.checkNetworkConnection();
-    }, 30000); // 每30秒检查一次
+    }, 60000); // 每60秒检查一次，减少性能开销
   }
 
   private async checkNetworkConnection(): Promise<boolean> {
@@ -136,14 +136,17 @@ class AppInitializer {
     try {
       this.updateLoaderText('正在加载核心资源...');
       
-      // 简化预加载逻辑，只预加载必要的资源
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = '/timesheet-management-system/favicon.svg';
-      document.head.appendChild(link);
+      // 进一步简化预加载逻辑，减少性能开销
+      // 只在必要时预加载，避免影响首屏加载速度
+      if (navigator.connection && navigator.connection.effectiveType === '4g') {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = '/timesheet-management-system/favicon.svg';
+        document.head.appendChild(link);
+      }
       
-      // 等待一小段时间让预加载开始
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // 减少等待时间
+      await new Promise(resolve => setTimeout(resolve, 50));
       
     } catch (error) {
       console.warn('预加载资源失败:', error);

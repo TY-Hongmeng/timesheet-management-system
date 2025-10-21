@@ -180,28 +180,15 @@ const preloadComponents = () => {
   // 第四层：重型组件（最后预加载，仅在网络空闲时）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      // 检查网络连接质量，支持4G和5G网络
+      // 简化网络检测逻辑，只检查基本连接类型
       const connection = navigator.connection
-      const isGoodConnection = connection && (
-        connection.effectiveType === '4g' || 
-        connection.effectiveType === '5g' ||
-        // 对于5G网络，有些浏览器可能报告为4g但下行速度很高
-        (connection.effectiveType === '4g' && connection.downlink && connection.downlink > 10)
-      )
+      const isGoodConnection = connection && connection.effectiveType === '4g'
       
       if (isGoodConnection) {
         Reports.preload?.()
         History.preload?.()
-        
-        // 5G网络下可以更积极地预加载其他组件
-        if (connection.effectiveType === '5g' || (connection.downlink && connection.downlink > 20)) {
-          // 在5G网络下预加载更多组件
-          RoleList.preload?.()
-          RoleEdit.preload?.()
-          RoleCreate.preload?.()
-        }
       }
-    }, { timeout: 10000 })
+    }, { timeout: 15000 }) // 增加延迟，减少对首屏加载的影响
   }
 }
 
