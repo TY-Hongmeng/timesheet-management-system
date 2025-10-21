@@ -26,13 +26,21 @@ class AppInitializer {
 
   private async initializeMobileOptimizations() {
     try {
-      // 延迟移动端优化，避免影响首屏加载
+      // 进一步延迟移动端优化，确保首屏完全加载完成后再执行
       setTimeout(() => {
-        mobileResourceLoader.optimizeMobileCache();
-      }, 2000);
+        // 只在用户交互后或页面空闲时执行移动端优化
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            mobileResourceLoader.optimizeMobileCache();
+          }, { timeout: 5000 });
+        } else {
+          setTimeout(() => {
+            mobileResourceLoader.optimizeMobileCache();
+          }, 5000);
+        }
+      }, 3000); // 延迟到3秒后
       
-      // 移除预加载关键资源，减少首屏加载压力
-      console.log('📱 移动端优化系统启动完成（轻量模式）');
+      console.log('📱 移动端优化系统已安排延迟启动（超轻量模式）');
     } catch (error) {
       console.warn('📱 移动端优化启动失败:', error);
     }
@@ -133,25 +141,9 @@ class AppInitializer {
   }
 
   private async preloadCriticalResources() {
-    try {
-      this.updateLoaderText('正在加载核心资源...');
-      
-      // 进一步简化预加载逻辑，减少性能开销
-      // 只在必要时预加载，避免影响首屏加载速度
-      if (navigator.connection && navigator.connection.effectiveType === '4g') {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = '/timesheet-management-system/favicon.svg';
-        document.head.appendChild(link);
-      }
-      
-      // 减少等待时间
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-    } catch (error) {
-      console.warn('预加载资源失败:', error);
-      // 预加载失败不应该阻止应用启动
-    }
+    // 移除favicon预加载逻辑，减少首屏加载时间
+    // favicon会在浏览器需要时自动加载，无需预加载
+    console.log('跳过非关键资源预加载，优化首屏性能');
   }
 
   private async registerServiceWorker() {
@@ -196,12 +188,12 @@ class AppInitializer {
         </StrictMode>
       );
 
-      // 隐藏加载屏幕
+      // 更快地隐藏加载屏幕，提升用户体验
       setTimeout(() => {
         if (window.hideInitialLoader) {
           window.hideInitialLoader();
         }
-      }, 500);
+      }, 200);
 
       console.log('应用启动成功');
       

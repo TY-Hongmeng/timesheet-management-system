@@ -134,20 +134,29 @@ class AppErrorBoundary extends Component<
 
 // 优化的轻量级预加载策略
 const preloadComponents = () => {
-  // 只预加载最核心的组件，大幅减少首屏加载压力
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      // 只预加载用户最可能访问的页面
-      Dashboard.preload?.()
-    }, { timeout: 3000 }) // 延长等待时间，确保首屏完全加载完成
-  } else {
-    setTimeout(() => {
-      Dashboard.preload?.()
-    }, 3000)
-  }
-
-  // 其他组件采用按需加载，不进行预加载
-  // 这样可以显著减少网络请求和内存占用
+  // 完全移除预加载逻辑，采用纯按需加载策略
+  // 这样可以最大化首屏加载速度，组件在用户实际访问时才加载
+  console.log('采用纯按需加载策略，优化首屏性能');
+  
+  // 可选：在用户首次交互后再考虑预加载
+  let hasInteracted = false;
+  const handleFirstInteraction = () => {
+    if (!hasInteracted) {
+      hasInteracted = true;
+      // 用户交互后，在空闲时预加载Dashboard
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          Dashboard.preload?.();
+        }, { timeout: 10000 });
+      }
+      // 移除事件监听器
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+    }
+  };
+  
+  document.addEventListener('click', handleFirstInteraction, { once: true });
+  document.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
 }
 
 // 懒加载包装组件 - 移动端优化
