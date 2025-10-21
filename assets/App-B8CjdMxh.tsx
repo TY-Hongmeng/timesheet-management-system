@@ -132,31 +132,64 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 优化的轻量级预加载策略
+// 智能分层预加载策略
 const preloadComponents = () => {
-  // 完全移除预加载逻辑，采用纯按需加载策略
-  // 这样可以最大化首屏加载速度，组件在用户实际访问时才加载
-  console.log('采用纯按需加载策略，优化首屏性能');
-  
-  // 可选：在用户首次交互后再考虑预加载
-  let hasInteracted = false;
-  const handleFirstInteraction = () => {
-    if (!hasInteracted) {
-      hasInteracted = true;
-      // 用户交互后，在空闲时预加载Dashboard
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          Dashboard.preload?.();
-        }, { timeout: 10000 });
+  // 第一层：核心高频组件（立即预加载）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      Dashboard.preload?.()
+      TimesheetRecord.preload?.()
+    }, { timeout: 1000 })
+  } else {
+    setTimeout(() => {
+      Dashboard.preload?.()
+      TimesheetRecord.preload?.()
+    }, 1000)
+  }
+
+  // 第二层：常用组件（延迟预加载）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      TimesheetHistory.preload?.()
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, { timeout: 3000 })
+  } else {
+    setTimeout(() => {
+      TimesheetHistory.preload?.()
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, 3000)
+  }
+
+  // 第三层：管理功能（更晚预加载）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, { timeout: 5000 })
+  } else {
+    setTimeout(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, 5000)
+  }
+
+  // 第四层：重型组件（最后预加载，仅在网络空闲时）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      // 简化网络检测逻辑，只检查基本连接类型
+      const connection = navigator.connection
+      const isGoodConnection = connection && connection.effectiveType === '4g'
+      
+      if (isGoodConnection) {
+        Reports.preload?.()
+        History.preload?.()
       }
-      // 移除事件监听器
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-    }
-  };
-  
-  document.addEventListener('click', handleFirstInteraction, { once: true });
-  document.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
+    }, { timeout: 15000 }) // 增加延迟，减少对首屏加载的影响
+  }
 }
 
 // 懒加载包装组件 - 移动端优化

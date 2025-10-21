@@ -26,21 +26,13 @@ class AppInitializer {
 
   private async initializeMobileOptimizations() {
     try {
-      // 进一步延迟移动端优化，确保首屏完全加载完成后再执行
-      setTimeout(() => {
-        // 只在用户交互后或页面空闲时执行移动端优化
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => {
-            mobileResourceLoader.optimizeMobileCache();
-          }, { timeout: 5000 });
-        } else {
-          setTimeout(() => {
-            mobileResourceLoader.optimizeMobileCache();
-          }, 5000);
-        }
-      }, 3000); // 延迟到3秒后
+      // 优化移动端缓存策略
+      mobileResourceLoader.optimizeMobileCache();
       
-      console.log('📱 移动端优化系统已安排延迟启动（超轻量模式）');
+      // 预加载关键资源
+      await mobileResourceLoader.preloadCriticalResources();
+      
+      console.log('📱 移动端优化系统启动完成');
     } catch (error) {
       console.warn('📱 移动端优化启动失败:', error);
     }
@@ -69,10 +61,10 @@ class AppInitializer {
       }
     });
     
-    // 进一步降低网络检查频率，减少性能开销
+    // 定期检查网络连接（降低频率以减少性能开销）
     this.connectionCheckInterval = setInterval(() => {
       this.checkNetworkConnection();
-    }, 120000); // 每2分钟检查一次，大幅减少性能开销
+    }, 60000); // 每60秒检查一次，减少性能开销
   }
 
   private async checkNetworkConnection(): Promise<boolean> {
@@ -141,9 +133,25 @@ class AppInitializer {
   }
 
   private async preloadCriticalResources() {
-    // 移除favicon预加载逻辑，减少首屏加载时间
-    // favicon会在浏览器需要时自动加载，无需预加载
-    console.log('跳过非关键资源预加载，优化首屏性能');
+    try {
+      this.updateLoaderText('正在加载核心资源...');
+      
+      // 进一步简化预加载逻辑，减少性能开销
+      // 只在必要时预加载，避免影响首屏加载速度
+      if (navigator.connection && navigator.connection.effectiveType === '4g') {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = '/timesheet-management-system/favicon.svg';
+        document.head.appendChild(link);
+      }
+      
+      // 减少等待时间
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+    } catch (error) {
+      console.warn('预加载资源失败:', error);
+      // 预加载失败不应该阻止应用启动
+    }
   }
 
   private async registerServiceWorker() {
@@ -188,12 +196,12 @@ class AppInitializer {
         </StrictMode>
       );
 
-      // 更快地隐藏加载屏幕，提升用户体验
+      // 隐藏加载屏幕
       setTimeout(() => {
         if (window.hideInitialLoader) {
           window.hideInitialLoader();
         }
-      }, 200);
+      }, 500);
 
       console.log('应用启动成功');
       
