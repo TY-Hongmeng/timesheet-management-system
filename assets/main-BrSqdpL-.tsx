@@ -7,6 +7,7 @@ import { initMobileCompatibility, checkBrowserCompatibility } from './utils/poly
 import { mobileOptimization } from './utils/mobileOptimization.js';
 import { mobileStabilityEnhancer } from './utils/mobileStabilityEnhancer.js';
 import { mobileResourceLoader } from './utils/mobileResourceLoader';
+import { mobileCompatibility } from './utils/mobileCompatibility';
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -26,6 +27,9 @@ class AppInitializer {
 
   private async initializeMobileOptimizations() {
     try {
+      // 启动移动端兼容性增强器
+      mobileCompatibility.recheckCompatibility();
+      
       // 优化移动端缓存策略
       mobileResourceLoader.optimizeMobileCache();
       
