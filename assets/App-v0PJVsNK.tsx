@@ -3,7 +3,9 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 import { Toaster } from 'sonner'
-import { lazy, Suspense, Component, ErrorInfo, ReactNode, useEffect } from 'react'
+import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
+
+
 
 // 关键页面直接导入（登录相关）
 import Login from '@/pages/Login'
@@ -37,12 +39,90 @@ const History = lazy(() => import('@/pages/History'))
 // 测试页面 - 开发时使用
 const ToastTest = lazy(() => import('@/pages/ToastTest'))
 
-// 简化的加载组件
-const SimpleLoadingSpinner = () => {
+// 增强的加载组件
+const EnhancedLoadingSpinner = () => {
+  const [loadingText, setLoadingText] = useState('正在加载...')
+  const [showRetry, setShowRetry] = useState(false)
+  const [isSlowConnection, setIsSlowConnection] = useState(false)
+
+  useEffect(() => {
+    // 检测慢速连接
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+    if (connection) {
+      const slowTypes = ['slow-2g', '2g', '3g']
+      setIsSlowConnection(slowTypes.includes(connection.effectiveType))
+    }
+
+    // 加载超时处理
+    const timer1 = setTimeout(() => {
+      setLoadingText('加载时间较长，请稍候...')
+    }, 3000)
+
+    const timer2 = setTimeout(() => {
+      setLoadingText('网络较慢，正在努力加载...')
+    }, 8000)
+
+    const timer3 = setTimeout(() => {
+      setShowRetry(true)
+      setLoadingText('加载超时，请检查网络连接')
+    }, 15000)
+
+    return () => {
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+      clearTimeout(timer3)
+    }
+  }, [])
+
+  const handleRetry = () => {
+    window.location.reload()
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
-      <p className="text-gray-600">正在加载...</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="text-center">
+        {/* 加载动画 */}
+        <div className="relative mb-6">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+          {isSlowConnection && (
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">!</span>
+            </div>
+          )}
+        </div>
+
+        {/* 加载文本 */}
+        <p className="text-gray-600 mb-4 text-lg">{loadingText}</p>
+
+        {/* 网络状态提示 */}
+        {isSlowConnection && (
+          <p className="text-orange-600 text-sm mb-4">
+            检测到网络连接较慢，加载可能需要更长时间
+          </p>
+        )}
+
+        {/* 重试按钮 */}
+        {showRetry && (
+          <div className="space-y-3">
+            <button
+              onClick={handleRetry}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              重新加载
+            </button>
+            <p className="text-gray-500 text-sm">
+              如果问题持续存在，请检查网络连接或稍后再试
+            </p>
+          </div>
+        )}
+
+        {/* 加载进度指示 */}
+        <div className="mt-6 w-64 mx-auto">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -125,26 +205,63 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 简化的预加载策略
+// 移动端优化的预加载策略
 const preloadComponents = () => {
-  // 简单的预加载，只预加载最常用的页面
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-    })
+  // 检测是否为移动设备
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768
+  
+  // 检测网络连接类型
+  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+  const isSlowConnection = connection && ['slow-2g', '2g', '3g'].includes(connection.effectiveType)
+  
+  if (isMobile) {
+    // 移动端：更保守的预加载策略
+    if (!isSlowConnection) {
+      // 只在非慢速网络下预加载核心页面
+      setTimeout(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+      }, 3000)
+      
+      // 进一步延迟预加载其他页面
+      setTimeout(() => {
+        TimesheetHistory.preload?.()
+      }, 8000)
+    }
+    // 慢速网络下不预加载，完全按需加载
   } else {
+    // 桌面端：原有的预加载策略
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+        TimesheetHistory.preload?.()
+      })
+    } else {
+      setTimeout(() => {
+        Dashboard.preload?.()
+        TimesheetRecord.preload?.()
+        TimesheetHistory.preload?.()
+      }, 2000)
+    }
+    
+    // 延迟预加载管理页面
     setTimeout(() => {
-      Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-    }, 2000)
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, 5000)
   }
 }
 
-// 简化的懒加载包装组件
+// 懒加载包装组件 - 移动端优化
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => {
+  // 检测是否为移动设备
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768
+
   return (
-    <Suspense fallback={<SimpleLoadingSpinner />}>
+    <Suspense fallback={isMobile ? <MobileLoadingSpinner /> : <EnhancedLoadingSpinner />}>
       <AppErrorBoundary>
         {children}
       </AppErrorBoundary>
