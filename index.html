@@ -10,7 +10,7 @@
     
     <!-- 关键资源预加载 -->
     <link rel="modulepreload" href="/timesheet-management-system/assets/main-D0VUA6Q1.tsx" />
-    <link rel="modulepreload" href="/timesheet-management-system/assets/App-o9fjG1vG.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/App-CjDK3wIV.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/AuthContext-ZTsjUHPY.tsx" />
     
     <!-- 预加载关键 CSS -->
@@ -180,11 +180,12 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/assets/index-BXUZDvBH.js"></script>
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/vendor-J95WCW4x.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/router-BSPfhsUn.js">
-    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/ui-CHDxits7.js">
-    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-C9owwAqY.css">
+    <script type="module" crossorigin src="/timesheet-management-system/assets/index-Bu9C9BlJ.js"></script>
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/vendor-Dj0T90Ik.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/react-core-CEw6lU7H.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/supabase-DInoECZ_.js">
+    <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/ui-BmDV7GQB.js">
+    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-B8gUldNq.css">
   </head>
   <body>
     <!-- 初始加载屏幕 -->
@@ -410,17 +411,12 @@
         
         connectionCheckInterval = setInterval(async () => {
           try {
-            // 检查网络连接
-            const response = await fetch('/manifest.json', { 
-              method: 'HEAD',
-              cache: 'no-cache',
-              signal: AbortSignal.timeout(5000)
-            });
-            
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
+            // 使用更简单的连接检查 - 避免额外的网络请求
+            if (navigator.onLine === false) {
+              throw new Error('Network offline');
             }
             
+            // 简单的连通性检查，不发送实际请求
             retryAttempts = 0;
             
           } catch (error) {

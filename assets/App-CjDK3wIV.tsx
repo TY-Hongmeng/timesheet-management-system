@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RoleProtectedRoute from '@/components/RoleProtectedRoute'
+import PerformanceMonitor from '@/components/PerformanceMonitor'
 import { Toaster } from 'sonner'
 import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
 
@@ -38,6 +39,7 @@ const History = lazy(() => import('@/pages/History'))
 
 // 测试页面 - 开发时使用
 const ToastTest = lazy(() => import('@/pages/ToastTest'))
+const LazyLoadTest = lazy(() => import('@/pages/LazyLoadTest'))
 
 // 简化的加载组件
 const EnhancedLoadingSpinner = () => {
@@ -130,22 +132,60 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 简化的预加载策略
+// 智能分层预加载策略
 const preloadComponents = () => {
-  // 使用requestIdleCallback进行预加载，避免阻塞主线程
+  // 第一层：核心高频组件（立即预加载）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
       Dashboard.preload?.()
       TimesheetRecord.preload?.()
-      TimesheetHistory.preload?.()
-    })
+    }, { timeout: 1000 })
   } else {
-    // 降级到setTimeout
     setTimeout(() => {
       Dashboard.preload?.()
       TimesheetRecord.preload?.()
+    }, 1000)
+  }
+
+  // 第二层：常用组件（延迟预加载）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
       TimesheetHistory.preload?.()
-    }, 2000)
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, { timeout: 3000 })
+  } else {
+    setTimeout(() => {
+      TimesheetHistory.preload?.()
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, 3000)
+  }
+
+  // 第三层：管理功能（更晚预加载）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, { timeout: 5000 })
+  } else {
+    setTimeout(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, 5000)
+  }
+
+  // 第四层：重型组件（最后预加载，仅在网络空闲时）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      // 只有在网络连接良好时才预加载重型组件
+      if (navigator.connection && navigator.connection.effectiveType === '4g') {
+        Reports.preload?.()
+        History.preload?.()
+      }
+    }, { timeout: 10000 })
   }
 }
 
@@ -173,7 +213,6 @@ function App() {
     <AppErrorBoundary>
       <AuthProvider>
         <Router basename={basename}>
-          <Toaster position="top-right" richColors />
           <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -257,6 +296,11 @@ function App() {
               <LazyWrapper><ToastTest /></LazyWrapper>
             </ProtectedRoute>
           } />
+          <Route path="/lazy-test" element={
+            <ProtectedRoute>
+              <LazyWrapper><LazyLoadTest /></LazyWrapper>
+            </ProtectedRoute>
+          } />
 
 
           
@@ -264,6 +308,12 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
+      
+      {/* 性能监控组件 - 仅在开发环境显示 */}
+      {import.meta.env.DEV && <PerformanceMonitor />}
+      
+      {/* Toast 通知 */}
+      <Toaster position="top-right" richColors />
     </AuthProvider>
   </AppErrorBoundary>
   )
