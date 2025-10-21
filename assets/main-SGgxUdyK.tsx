@@ -26,13 +26,13 @@ class AppInitializer {
 
   private async initializeMobileOptimizations() {
     try {
-      // 优化移动端缓存策略
-      mobileResourceLoader.optimizeMobileCache();
+      // 延迟移动端优化，避免影响首屏加载
+      setTimeout(() => {
+        mobileResourceLoader.optimizeMobileCache();
+      }, 2000);
       
-      // 预加载关键资源
-      await mobileResourceLoader.preloadCriticalResources();
-      
-      console.log('📱 移动端优化系统启动完成');
+      // 移除预加载关键资源，减少首屏加载压力
+      console.log('📱 移动端优化系统启动完成（轻量模式）');
     } catch (error) {
       console.warn('📱 移动端优化启动失败:', error);
     }
@@ -61,10 +61,10 @@ class AppInitializer {
       }
     });
     
-    // 定期检查网络连接（降低频率以减少性能开销）
+    // 进一步降低网络检查频率，减少性能开销
     this.connectionCheckInterval = setInterval(() => {
       this.checkNetworkConnection();
-    }, 60000); // 每60秒检查一次，减少性能开销
+    }, 120000); // 每2分钟检查一次，大幅减少性能开销
   }
 
   private async checkNetworkConnection(): Promise<boolean> {

@@ -132,64 +132,22 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 智能分层预加载策略
+// 优化的轻量级预加载策略
 const preloadComponents = () => {
-  // 第一层：核心高频组件（立即预加载）
+  // 只预加载最核心的组件，大幅减少首屏加载压力
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
+      // 只预加载用户最可能访问的页面
       Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-    }, { timeout: 1000 })
+    }, { timeout: 3000 }) // 延长等待时间，确保首屏完全加载完成
   } else {
     setTimeout(() => {
       Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-    }, 1000)
-  }
-
-  // 第二层：常用组件（延迟预加载）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      TimesheetHistory.preload?.()
-      CompanyManagement.preload?.()
-      UserManagement.preload?.()
-    }, { timeout: 3000 })
-  } else {
-    setTimeout(() => {
-      TimesheetHistory.preload?.()
-      CompanyManagement.preload?.()
-      UserManagement.preload?.()
     }, 3000)
   }
 
-  // 第三层：管理功能（更晚预加载）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      ProcessManagement.preload?.()
-      SupervisorApproval.preload?.()
-      SectionChiefApproval.preload?.()
-    }, { timeout: 5000 })
-  } else {
-    setTimeout(() => {
-      ProcessManagement.preload?.()
-      SupervisorApproval.preload?.()
-      SectionChiefApproval.preload?.()
-    }, 5000)
-  }
-
-  // 第四层：重型组件（最后预加载，仅在网络空闲时）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      // 简化网络检测逻辑，只检查基本连接类型
-      const connection = navigator.connection
-      const isGoodConnection = connection && connection.effectiveType === '4g'
-      
-      if (isGoodConnection) {
-        Reports.preload?.()
-        History.preload?.()
-      }
-    }, { timeout: 15000 }) // 增加延迟，减少对首屏加载的影响
-  }
+  // 其他组件采用按需加载，不进行预加载
+  // 这样可以显著减少网络请求和内存占用
 }
 
 // 懒加载包装组件 - 移动端优化
