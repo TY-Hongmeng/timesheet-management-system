@@ -9,8 +9,8 @@
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
     <!-- 关键资源预加载 -->
-    <link rel="modulepreload" href="/timesheet-management-system/assets/main-DIVYvUTD.tsx" />
-    <link rel="modulepreload" href="/timesheet-management-system/assets/App-cteLc2pU.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/main-D-12O9oB.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/assets/App-xspCXt_4.tsx" />
     <link rel="modulepreload" href="/timesheet-management-system/assets/AuthContext-ZTsjUHPY.tsx" />
     
     <!-- 预加载关键 CSS -->
@@ -57,41 +57,58 @@
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
     <style>
-      /* 初始加载屏幕样式 */
+      /* 初始加载屏幕样式 - 黑客风格 */
       #initial-loader {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        background: #000000;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         z-index: 9999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Courier New', monospace;
+        color: #00ff41;
+        overflow: hidden;
+      }
+
+      /* 矩阵雨背景效果 */
+      .matrix-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1;
+        z-index: -1;
       }
       
       .loader-content {
         text-align: center;
-        color: white;
-        max-width: 300px;
+        color: #00ff41;
+        max-width: 400px;
         padding: 20px;
+        position: relative;
+        z-index: 1;
       }
       
       .loader-logo {
         font-size: 2rem;
         font-weight: bold;
         margin-bottom: 1rem;
-        color: #60a5fa;
+        color: #00ff41;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        animation: pulse 2s infinite;
       }
       
       .loader-spinner {
         width: 50px;
         height: 50px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid #60a5fa;
+        border: 2px solid rgba(0, 255, 65, 0.3);
+        border-top: 2px solid #00ff41;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin: 0 auto 1rem;
@@ -101,69 +118,86 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+
+      @keyframes pulse {
+        0% { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+        50% { text-shadow: 0 0 20px rgba(0, 255, 65, 0.8); }
+        100% { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+      }
+
+      @keyframes glow {
+        from { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+        to { text-shadow: 0 0 20px rgba(0, 255, 65, 0.8); }
+      }
+
+      @keyframes progressGlow {
+        from { box-shadow: 0 0 10px rgba(0, 255, 65, 0.6); }
+        to { box-shadow: 0 0 20px rgba(0, 255, 65, 0.9); }
+      }
       
       .loader-text {
         font-size: 1rem;
         margin-bottom: 0.5rem;
         opacity: 0.9;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        animation: glow 2s ease-in-out infinite alternate;
       }
       
       .loader-progress {
-        width: 200px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 2px;
+        width: 300px;
+        height: 8px;
+        background: rgba(0, 255, 65, 0.2);
+        border-radius: 4px;
         margin: 1rem auto;
         overflow: hidden;
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
       }
       
       .loader-progress-bar {
         height: 100%;
-        background: #60a5fa;
-        border-radius: 2px;
-        animation: progress 3s ease-in-out infinite;
-      }
-      
-      @keyframes progress {
-        0% { width: 0%; }
-        50% { width: 70%; }
-        100% { width: 100%; }
-      }
-      
-      .network-status {
-        font-size: 0.875rem;
-        opacity: 0.8;
-        margin-top: 1rem;
+        background: linear-gradient(90deg, #00ff41 0%, #00cc33 50%, #00ff41 100%);
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.5s ease;
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.6);
+        animation: progressGlow 1.5s ease-in-out infinite alternate;
       }
       
       .retry-button {
-        background: #60a5fa;
-        color: white;
-        border: none;
+        background: rgba(0, 255, 65, 0.1);
+        color: #00ff41;
+        border: 1px solid #00ff41;
         padding: 10px 20px;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 0.875rem;
         cursor: pointer;
         margin-top: 1rem;
         display: none;
+        font-family: 'Courier New', monospace;
+        transition: all 0.3s ease;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
       }
       
       .retry-button:hover {
-        background: #3b82f6;
+        background: rgba(0, 255, 65, 0.2);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+        transform: translateY(-1px);
       }
       
       .error-message {
-        color: #fca5a5;
+        color: #ff4444;
         font-size: 0.875rem;
         margin-top: 0.5rem;
         display: none;
+        text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
       }
       
       /* 移动端优化 */
       @media (max-width: 768px) {
         .loader-content {
           padding: 15px;
-          max-width: 280px;
+          max-width: 320px;
         }
         
         .loader-logo {
@@ -176,127 +210,294 @@
         }
         
         .loader-progress {
-          width: 160px;
+          width: 200px;
         }
       }
     </style>
-    <script type="module" crossorigin src="/timesheet-management-system/assets/index-fJdEo9IN.js"></script>
+    <script type="module" crossorigin src="/timesheet-management-system/assets/index-BwW5DR7-.js"></script>
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/vendor-Dj0T90Ik.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/react-core-CmOG7fiH.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/supabase-k270UWii.js">
     <link rel="modulepreload" crossorigin href="/timesheet-management-system/assets/ui-BpXc_XmY.js">
-    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-B1EZO20V.css">
+    <link rel="stylesheet" crossorigin href="/timesheet-management-system/assets/index-Cw25V3AY.css">
   </head>
   <body>
     <!-- 初始加载屏幕 -->
     <div id="initial-loader">
+      <div class="matrix-bg" id="matrix-bg"></div>
       <div class="loader-content">
-        <div class="loader-logo">⏰ 工时管理系统</div>
+        <div class="loader-logo">工时系统</div>
         <div class="loader-spinner"></div>
-        <div class="loader-text" id="loader-text">正在加载应用...</div>
+        <div class="loader-text" id="loader-text">正在初始化工时管理系统...</div>
         <div class="loader-progress">
-          <div class="loader-progress-bar"></div>
+          <div class="loader-progress-bar" id="progress-bar"></div>
         </div>
-        <div class="network-status" id="network-status">检测网络状态...</div>
+        <div class="loader-text" id="progress-text" style="font-size: 0.875rem; opacity: 0.8; margin-top: 0.5rem;">0%</div>
+        <div class="component-status" id="component-status">准备加载核心组件...</div>
         <div class="error-message" id="error-message"></div>
-        <button class="retry-button" id="retry-button" onclick="retryLoad()">重新加载</button>
+        <div class="button-container">
+          <button class="retry-button" id="retry-button" onclick="retryLoad()">重试加载</button>
+          <button class="skip-button" id="skip-button" onclick="skipPreload()">跳过预加载</button>
+        </div>
       </div>
     </div>
     
     <div id="root"></div>
     
     <script>
-      // 网络状态检测和加载管理
-      let loadTimeout;
+      let currentProgress = 0;
+      let progressInterval;
       let retryCount = 0;
-      const maxRetries = 3;
-      
-      function updateNetworkStatus() {
-        const networkStatus = document.getElementById('network-status');
+      let maxRetries = 3;
+      let loadingStartTime = Date.now();
+      let componentLoadTimes = {};
+      let isPreloadSkipped = false;
+      let loadTimeout;
+
+      // 组件加载状态管理
+      const componentStages = [
+        { name: '核心组件', components: ['Dashboard', 'TimesheetRecord', 'TimesheetHistory'], progress: 30 },
+        { name: '管理组件', components: ['UserManagement', 'CompanyManagement', 'ProcessManagement'], progress: 60 },
+        { name: '其他组件', components: ['Reports', 'History', 'RoleManagement'], progress: 90 }
+      ];
+
+      function updateProgress(progress, text = '', componentName = '') {
+        currentProgress = progress;
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const componentStatus = document.getElementById('component-status');
         const loaderText = document.getElementById('loader-text');
         
-        if (navigator.onLine) {
-          networkStatus.textContent = '网络连接正常';
-          if (navigator.connection) {
-            const connection = navigator.connection;
-            const effectiveType = connection.effectiveType || 'unknown';
-            networkStatus.textContent = `网络连接: ${effectiveType}`;
-          }
-        } else {
-          networkStatus.textContent = '网络连接断开';
-          loaderText.textContent = '网络连接异常，请检查网络设置';
-          showRetryButton('网络连接断开，请检查网络后重试');
+        if (progressBar) {
+          progressBar.style.width = progress + '%';
         }
+        if (progressText) {
+          progressText.textContent = `${Math.round(progress)}%`;
+        }
+        if (componentStatus && componentName) {
+          componentStatus.textContent = `正在加载: ${componentName}`;
+        } else if (componentStatus && text) {
+          componentStatus.textContent = text;
+        }
+        if (text && loaderText) {
+          loaderText.textContent = text;
+        }
+
+        // 开发环境下输出加载状态
+        if (window.location.hostname === 'localhost') {
+          console.log(`[加载进度] ${Math.round(progress)}% - ${text || componentName}`);
+        }
+      }
+
+      function simulateComponentLoading() {
+        if (isPreloadSkipped) return;
+        
+        let currentStageIndex = 0;
+        let currentComponentIndex = 0;
+        
+        function loadNextComponent() {
+          if (currentStageIndex >= componentStages.length) {
+            updateProgress(100, '所有组件加载完成！');
+            setTimeout(hideInitialLoader, 800);
+            return;
+          }
+          
+          const stage = componentStages[currentStageIndex];
+          const component = stage.components[currentComponentIndex];
+          
+          if (!component) {
+            currentStageIndex++;
+            currentComponentIndex = 0;
+            loadNextComponent();
+            return;
+          }
+          
+          const componentStartTime = Date.now();
+          updateProgress(
+            (currentStageIndex * 30) + ((currentComponentIndex + 1) / stage.components.length * 30),
+            `加载${stage.name}`,
+            component
+          );
+          
+          // 模拟组件加载时间（100-300ms）
+          const loadTime = Math.random() * 200 + 100;
+          
+          setTimeout(() => {
+            componentLoadTimes[component] = Date.now() - componentStartTime;
+            
+            // 模拟加载失败（5%概率）
+            if (Math.random() < 0.05 && retryCount < maxRetries) {
+              handleLoadError(`组件 ${component} 加载失败`);
+              return;
+            }
+            
+            currentComponentIndex++;
+            if (currentComponentIndex >= stage.components.length) {
+              currentStageIndex++;
+              currentComponentIndex = 0;
+            }
+            
+            setTimeout(loadNextComponent, 50);
+          }, loadTime);
+        }
+        
+        loadNextComponent();
+      }
+
+      function handleLoadError(message) {
+        retryCount++;
+        console.warn(`[加载错误] ${message} (重试 ${retryCount}/${maxRetries})`);
+        
+        if (retryCount >= maxRetries) {
+          showRetryButton(`${message}，已达到最大重试次数`);
+          return;
+        }
+        
+        // 自动重试
+        setTimeout(() => {
+          updateProgress(currentProgress, `重试中... (${retryCount}/${maxRetries})`);
+          setTimeout(simulateComponentLoading, 1000);
+        }, 2000);
+      }
+
+      function hideInitialLoader() {
+        const totalLoadTime = Date.now() - loadingStartTime;
+        
+        // 记录加载统计
+        if (window.location.hostname === 'localhost') {
+          console.log(`[加载统计] 总耗时: ${totalLoadTime}ms`);
+          console.log(`[加载统计] 组件加载时间:`, componentLoadTimes);
+          console.log(`[加载统计] 重试次数: ${retryCount}`);
+        }
+        
+        updateProgress(100, '系统初始化完成！');
+        
+        setTimeout(() => {
+          const loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.8s ease-out';
+            setTimeout(() => {
+              loader.style.display = 'none';
+            }, 800);
+          }
+        }, 1000);
       }
       
       function showRetryButton(message) {
         const errorMessage = document.getElementById('error-message');
         const retryButton = document.getElementById('retry-button');
+        const skipButton = document.getElementById('skip-button');
         
-        errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
-        retryButton.style.display = 'inline-block';
+        if (errorMessage) {
+          errorMessage.textContent = message;
+          errorMessage.style.display = 'block';
+        }
+        if (retryButton) {
+          retryButton.style.display = 'inline-block';
+        }
+        if (skipButton) {
+          skipButton.style.display = 'inline-block';
+        }
       }
       
       function hideRetryButton() {
         const errorMessage = document.getElementById('error-message');
         const retryButton = document.getElementById('retry-button');
+        const skipButton = document.getElementById('skip-button');
         
         if (errorMessage) errorMessage.style.display = 'none';
         if (retryButton) retryButton.style.display = 'none';
+        if (skipButton) skipButton.style.display = 'none';
       }
       
       function retryLoad() {
-        if (retryCount >= maxRetries) {
-          showRetryButton('加载失败次数过多，请刷新页面重试');
-          return;
-        }
-        
-        retryCount++;
-        const loaderText = document.getElementById('loader-text');
         const errorMessage = document.getElementById('error-message');
         const retryButton = document.getElementById('retry-button');
+        const skipButton = document.getElementById('skip-button');
         
-        loaderText.textContent = `正在重试加载... (${retryCount}/${maxRetries})`;
-        errorMessage.style.display = 'none';
-        retryButton.style.display = 'none';
+        if (errorMessage) errorMessage.style.display = 'none';
+        if (retryButton) retryButton.style.display = 'none';
+        if (skipButton) skipButton.style.display = 'none';
         
-        // 重新加载页面
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        retryCount = 0;
+        currentProgress = 0;
+        isPreloadSkipped = false;
+        loadingStartTime = Date.now();
+        componentLoadTimes = {};
+        
+        updateProgress(0, '重新开始加载...', '');
+        setTimeout(simulateComponentLoading, 500);
+      }
+
+      function skipPreload() {
+        isPreloadSkipped = true;
+        updateProgress(100, '跳过预加载，直接启动系统');
+        setTimeout(hideInitialLoader, 1000);
+      }
+
+      // 添加矩阵雨效果
+      function createMatrixEffect() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const matrixBg = document.getElementById('matrix-bg');
+        
+        if (!matrixBg) return;
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.zIndex = '-1';
+        
+        matrixBg.appendChild(canvas);
+        
+        const chars = '01';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        
+        for (let i = 0; i < columns; i++) {
+          drops[i] = 1;
+        }
+        
+        function draw() {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          ctx.fillStyle = '#00ff41';
+          ctx.font = fontSize + 'px Courier New';
+          
+          for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+        }
+        
+        setInterval(draw, 100);
       }
       
-      // 监听网络状态变化
-      window.addEventListener('online', updateNetworkStatus);
-      window.addEventListener('offline', updateNetworkStatus);
-      
-      // 初始化网络状态
-      updateNetworkStatus();
+      // 启动加载流程
+      createMatrixEffect();
+      setTimeout(simulateComponentLoading, 1000);
       
       // 设置加载超时
       loadTimeout = setTimeout(() => {
-        const loaderText = document.getElementById('loader-text');
-        loaderText.textContent = '加载时间较长，可能是网络较慢...';
-        
-        setTimeout(() => {
-          if (document.getElementById('initial-loader').style.display !== 'none') {
-            showRetryButton('加载超时，请检查网络连接后重试');
-          }
-        }, 5000);
+        if (currentProgress < 100 && !isPreloadSkipped) {
+          handleLoadError('加载超时，请检查网络连接');
+        }
       }, 10000);
       
       // 当 React 应用加载完成时隐藏加载屏幕
       window.hideInitialLoader = function() {
         clearTimeout(loadTimeout);
-        const loader = document.getElementById('initial-loader');
-        if (loader) {
-          loader.style.opacity = '0';
-          loader.style.transition = 'opacity 0.5s ease-out';
-          setTimeout(() => {
-            loader.style.display = 'none';
-          }, 500);
-        }
+        hideInitialLoader();
       };
       
       // Service Worker 注册 - 增强网络错误处理

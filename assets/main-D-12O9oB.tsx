@@ -5,8 +5,6 @@ import "./index.css";
 import "./styles/globals.css";
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills';
 import { mobileOptimization } from './utils/mobileOptimization.js';
-import { mobileStabilityEnhancer } from './utils/mobileStabilityEnhancer.js';
-import { mobileResourceLoader } from './utils/mobileResourceLoader';
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -26,12 +24,6 @@ class AppInitializer {
 
   private async initializeMobileOptimizations() {
     try {
-      // 优化移动端缓存策略
-      mobileResourceLoader.optimizeMobileCache();
-      
-      // 预加载关键资源
-      await mobileResourceLoader.preloadCriticalResources();
-      
       console.log('📱 移动端优化系统启动完成');
     } catch (error) {
       console.warn('📱 移动端优化启动失败:', error);
