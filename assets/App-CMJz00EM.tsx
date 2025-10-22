@@ -37,9 +37,7 @@ const SectionChiefApproval = lazy(() => import('@/pages/SectionChiefApproval'))
 const Reports = lazy(() => import('@/pages/Reports'))
 const History = lazy(() => import('@/pages/History'))
 
-// 测试页面 - 开发时使用
-const ToastTest = lazy(() => import('@/pages/ToastTest'))
-const LazyLoadTest = lazy(() => import('@/pages/LazyLoadTest'))
+
 
 // 简化的加载组件
 const EnhancedLoadingSpinner = () => {
@@ -134,61 +132,39 @@ class AppErrorBoundary extends Component<
 
 // 智能分层预加载策略
 const preloadComponents = () => {
-  // 第一层：核心高频组件（立即预加载）
+  // 优化预加载策略 - 只预加载最核心的组件，减少首屏加载时间
+  // 第一层：仅预加载Dashboard（用户登录后的首页）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
       Dashboard.preload?.()
-      TimesheetRecord.preload?.()
-    }, { timeout: 1000 })
+    }, { timeout: 2000 }) // 增加延迟，确保首屏加载完成
   } else {
     setTimeout(() => {
       Dashboard.preload?.()
+    }, 2000)
+  }
+
+  // 第二层：延迟预加载最常用的工时记录功能
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
       TimesheetRecord.preload?.()
-    }, 1000)
-  }
-
-  // 第二层：常用组件（延迟预加载）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      TimesheetHistory.preload?.()
-      CompanyManagement.preload?.()
-      UserManagement.preload?.()
-    }, { timeout: 3000 })
-  } else {
-    setTimeout(() => {
-      TimesheetHistory.preload?.()
-      CompanyManagement.preload?.()
-      UserManagement.preload?.()
-    }, 3000)
-  }
-
-  // 第三层：管理功能（更晚预加载）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      ProcessManagement.preload?.()
-      SupervisorApproval.preload?.()
-      SectionChiefApproval.preload?.()
     }, { timeout: 5000 })
   } else {
     setTimeout(() => {
-      ProcessManagement.preload?.()
-      SupervisorApproval.preload?.()
-      SectionChiefApproval.preload?.()
+      TimesheetRecord.preload?.()
     }, 5000)
   }
 
-  // 第四层：重型组件（最后预加载，仅在网络空闲时）
+  // 第三层：其他组件仅在网络条件良好时预加载
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      // 简化网络检测逻辑，只检查基本连接类型
       const connection = navigator.connection
-      const isGoodConnection = connection && connection.effectiveType === '4g'
+      const isGoodConnection = !connection || connection.effectiveType === '4g'
       
       if (isGoodConnection) {
-        Reports.preload?.()
-        History.preload?.()
+        TimesheetHistory.preload?.()
       }
-    }, { timeout: 15000 }) // 增加延迟，减少对首屏加载的影响
+    }, { timeout: 10000 })
   }
 }
 
@@ -294,16 +270,7 @@ function App() {
               <LazyWrapper><History /></LazyWrapper>
             </ProtectedRoute>
           } />
-          <Route path="/toast-test" element={
-            <ProtectedRoute>
-              <LazyWrapper><ToastTest /></LazyWrapper>
-            </ProtectedRoute>
-          } />
-          <Route path="/lazy-test" element={
-            <ProtectedRoute>
-              <LazyWrapper><LazyLoadTest /></LazyWrapper>
-            </ProtectedRoute>
-          } />
+
 
 
           
