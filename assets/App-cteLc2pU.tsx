@@ -132,39 +132,61 @@ class AppErrorBoundary extends Component<
 
 // 智能分层预加载策略
 const preloadComponents = () => {
-  // 优化预加载策略 - 只预加载最核心的组件，减少首屏加载时间
-  // 第一层：仅预加载Dashboard（用户登录后的首页）
+  // 优化预加载策略 - 快速预加载核心组件，提升用户体验
+  // 第一层：立即预加载Dashboard和TimesheetRecord（最常用的组件）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
       Dashboard.preload?.()
-    }, { timeout: 2000 }) // 增加延迟，确保首屏加载完成
+      TimesheetRecord.preload?.()
+    }, { timeout: 500 }) // 快速预加载核心组件
   } else {
     setTimeout(() => {
       Dashboard.preload?.()
-    }, 2000)
+      TimesheetRecord.preload?.()
+    }, 500)
   }
 
-  // 第二层：延迟预加载最常用的工时记录功能
+  // 第二层：预加载常用管理组件
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      TimesheetRecord.preload?.()
-    }, { timeout: 5000 })
+      TimesheetHistory.preload?.()
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, { timeout: 1500 })
   } else {
     setTimeout(() => {
-      TimesheetRecord.preload?.()
-    }, 5000)
+      TimesheetHistory.preload?.()
+      CompanyManagement.preload?.()
+      UserManagement.preload?.()
+    }, 1500)
   }
 
-  // 第三层：其他组件仅在网络条件良好时预加载
+  // 第三层：预加载其他功能组件
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, { timeout: 3000 })
+  } else {
+    setTimeout(() => {
+      ProcessManagement.preload?.()
+      SupervisorApproval.preload?.()
+      SectionChiefApproval.preload?.()
+    }, 3000)
+  }
+
+  // 第四层：延迟预加载重型组件（仅在网络条件良好时）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
       const connection = navigator.connection
       const isGoodConnection = !connection || connection.effectiveType === '4g'
       
       if (isGoodConnection) {
-        TimesheetHistory.preload?.()
+        Reports.preload?.()
+        History.preload?.()
       }
-    }, { timeout: 10000 })
+    }, { timeout: 5000 })
   }
 }
 
