@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 移动端环境优化 */
+body {
+  /* 防止页面被拖拽 */
+  overscroll-behavior: none;
+  /* 防止选中文本 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* 防止长按弹出菜单 */
+  -webkit-touch-callout: none;
+  /* 防止点击高亮 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+
+/* 移动端样式优化 */
+.mobile-env {
+  /* 移动端触摸优化 */
+  touch-action: manipulation;
+}
+
+/* 输入框在移动端的优化 */
+input, textarea, select {
+  /* 防止iOS缩放 */
+  font-size: 16px !important;
+  /* 防止自动大写 */
+  autocapitalize: none;
+  /* 防止自动更正 */
+  autocorrect: off;
+  /* 防止拼写检查 */
+  spellcheck: false;
+}
+
+/* 按钮点击效果优化 */
+button, .btn {
+  /* 防止双击缩放 */
+  touch-action: manipulation;
+  /* 移除默认样式 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* 滚动条优化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.6); /* 绿色主题滚动条 */
+  border-radius: 4px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.8);
+}
+
+/* 移动端响应式适配 */
+@media screen and (max-width: 768px) {
+  html, body {
+    height: 100%;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    min-height: 100vh;
+    position: relative;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding: max(0px)) {
+  .safe-area-inset-top {
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-inset-left {
+    padding-left: max(20px, env(safe-area-inset-left));
+  }
+  
+  .safe-area-inset-right {
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+}

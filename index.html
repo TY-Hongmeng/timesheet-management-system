@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工时管理系统</title>
+    <meta name="description" content="JT工时管理系统 - 高效的工时记录和审核管理平台" />
+    <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
+    
+    <!-- 关键资源预加载 -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    <link rel="modulepreload" href="/src/App.tsx" />
+    <link rel="modulepreload" href="/src/contexts/AuthContext.tsx" />
+    
+    <!-- 预加载关键 CSS -->
+    <link rel="preload" href="/src/index.css" as="style" />
+    <link rel="preload" href="/src/styles/globals.css" as="style" />
+    
+    <!-- 使用系统字体，移除Google字体依赖 -->
+    <style>
+      :root {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+      }
+    </style>
+    
+    <!-- 性能优化 -->
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Start Single Page Apps for GitHub Pages -->
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script checks to see if a redirect is present in the query string,
+      // converts it back into the correct url and adds it to the
+      // browser's history using window.history.replaceState(...),
+      // which won't cause the browser to attempt to load the new url.
+      // When the single page app is loaded further down in this file,
+      // the correct url will be waiting in the browser's history for
+      // the single page app to route accordingly.
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    <!-- End Single Page Apps for GitHub Pages -->
+    <style>
+      /* 初始加载屏幕样式 - 黑绿主题 */
+      #initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #000000 0%, #0f1419 50%, #1a1a1a 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        font-family: 'Courier New', monospace;
+        overflow: hidden;
+      }
+      
+      /* 背景动画效果 */
+      #initial-loader::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+          radial-gradient(circle at 20% 80%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(0, 255, 65, 0.05) 0%, transparent 50%);
+        animation: backgroundPulse 4s ease-in-out infinite;
+      }
+      
+      @keyframes backgroundPulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+      }
+      
+      .loader-content {
+        text-align: center;
+        color: #00ff41;
+        max-width: 400px;
+        padding: 30px;
+        position: relative;
+        z-index: 1;
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        box-shadow: 
+          0 0 30px rgba(0, 255, 65, 0.2),
+          inset 0 0 20px rgba(0, 255, 65, 0.05);
+      }
+      
+      .loader-logo {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        color: #00ff41;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        animation: logoGlow 2s ease-in-out infinite alternate;
+      }
+      
+      @keyframes logoGlow {
+        from { text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+        to { text-shadow: 0 0 20px rgba(0, 255, 65, 0.8), 0 0 30px rgba(0, 255, 65, 0.3); }
+      }
+      
+      .loader-spinner {
+        width: 60px;
+        height: 60px;
+        border: 3px solid rgba(0, 255, 65, 0.2);
+        border-top: 3px solid #00ff41;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1.5rem;
+        position: relative;
+      }
+      
+      .loader-spinner::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 30px;
+        height: 30px;
+        border: 2px solid rgba(0, 255, 65, 0.3);
+        border-top: 2px solid #00ff41;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: spin 0.5s linear infinite reverse;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loader-text {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        color: #00ff41;
+        font-family: 'Courier New', monospace;
+        animation: textBlink 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes textBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      
+      .loader-progress-container {
+        width: 280px;
+        margin: 1.5rem auto;
+      }
+      
+      .loader-progress {
+        width: 100%;
+        height: 8px;
+        background: rgba(0, 255, 65, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        position: relative;
+      }
+      
+      .loader-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff41, #00cc33, #00ff41);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        position: relative;
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        width: 0%;
+      }
+      
+      .loader-progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: progressShine 2s ease-in-out infinite;
+      }
+      
+      @keyframes progressShine {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      
+      .loader-percentage {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #00ff41;
+        margin-top: 0.5rem;
+        font-family: 'Courier New', monospace;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+      }
+      
+      .loader-status {
+        font-size: 0.9rem;
+        color: #66ff66;
+        margin-top: 1rem;
+        opacity: 0.8;
+        font-family: 'Courier New', monospace;
+      }
+      
+      .retry-button {
+        background: linear-gradient(45deg, #00ff41, #00cc33);
+        color: #000000;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        display: none;
+        font-family: 'Courier New', monospace;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+      }
+      
+      .retry-button:hover {
+        background: linear-gradient(45deg, #00cc33, #00ff41);
+        box-shadow: 0 0 25px rgba(0, 255, 65, 0.5);
+        transform: translateY(-2px);
+      }
+      
+      .error-message {
+        color: #ff4444;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        display: none;
+        font-family: 'Courier New', monospace;
+        text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
+      }
+      
+      /* 移动端优化 */
+      @media (max-width: 768px) {
+        .loader-content {
+          padding: 20px;
+          max-width: 320px;
+          margin: 0 20px;
+        }
+        
+        .loader-logo {
+          font-size: 2rem;
+        }
+        
+        .loader-spinner {
+          width: 50px;
+          height: 50px;
+        }
+        
+        .loader-progress-container {
+          width: 240px;
+        }
+        
+        .loader-text {
+          font-size: 1rem;
+        }
+        
+        .loader-percentage {
+          font-size: 1.1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 初始加载屏幕 -->
+    <div id="initial-loader">
+      <div class="loader-content">
+        <div class="loader-logo">⏰ 工时管理系统</div>
+        <div class="loader-spinner"></div>
+        <div class="loader-text" id="loader-text">正在初始化系统...</div>
+        <div class="loader-progress-container">
+          <div class="loader-progress">
+            <div class="loader-progress-bar" id="loader-progress-bar"></div>
+          </div>
+          <div class="loader-percentage" id="loader-percentage">0%</div>
+        </div>
+        <div class="loader-status" id="loader-status">正在加载核心模块...</div>
+        <div class="error-message" id="error-message"></div>
+        <button class="retry-button" id="retry-button" onclick="retryLoad()">重新加载</button>
+      </div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script>
+      // 加载进度管理
+      let loadTimeout;
+      let retryCount = 0;
+      const maxRetries = 3;
+      let currentProgress = 0;
+      let progressInterval;
+      
+      // 加载阶段配置
+      const loadingStages = [
+        { progress: 10, text: '正在初始化系统...', status: '加载系统核心...' },
+        { progress: 25, text: '正在加载核心模块...', status: '初始化用户界面...' },
+        { progress: 40, text: '正在连接数据库...', status: '建立安全连接...' },
+        { progress: 55, text: '正在加载用户界面...', status: '渲染组件库...' },
+        { progress: 70, text: '正在预加载资源...', status: '优化用户体验...' },
+        { progress: 85, text: '正在完成初始化...', status: '准备就绪...' },
+        { progress: 100, text: '系统加载完成', status: '欢迎使用工时管理系统' }
+      ];
+      
+      let currentStageIndex = 0;
+      
+      function updateProgress(targetProgress, text, status) {
+        const progressBar = document.getElementById('loader-progress-bar');
+        const percentageEl = document.getElementById('loader-percentage');
+        const textEl = document.getElementById('loader-text');
+        const statusEl = document.getElementById('loader-status');
+        
+        if (progressBar && percentageEl && textEl && statusEl) {
+          // 平滑更新进度条
+          const startProgress = currentProgress;
+          const progressDiff = targetProgress - startProgress;
+          const duration = 800; // 800ms 动画时间
+          const startTime = Date.now();
+          
+          function animateProgress() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3); // easeOut cubic
+            
+            const newProgress = startProgress + (progressDiff * easeProgress);
+            currentProgress = newProgress;
+            
+            progressBar.style.width = `${newProgress}%`;
+            percentageEl.textContent = `${Math.round(newProgress)}%`;
+            
+            if (progress < 1) {
+              requestAnimationFrame(animateProgress);
+            } else {
+              // 动画完成后更新文本
+              textEl.textContent = text;
+              statusEl.textContent = status;
+            }
+          }
+          
+          animateProgress();
+        }
+      }
+      
+      function nextLoadingStage() {
+        if (currentStageIndex < loadingStages.length) {
+          const stage = loadingStages[currentStageIndex];
+          updateProgress(stage.progress, stage.text, stage.status);
+          currentStageIndex++;
+          
+          // 根据阶段设置不同的延迟时间
+          let delay = 600;
+          if (currentStageIndex === 1) delay = 300; // 快速启动
+          if (currentStageIndex === 2) delay = 800; // 数据库连接稍慢
+          if (currentStageIndex === 3) delay = 500; // UI 加载
+          if (currentStageIndex === 4) delay = 700; // 资源预加载
+          if (currentStageIndex === 5) delay = 400; // 完成初始化
+          if (currentStageIndex === 6) delay = 300; // 最终完成
+          
+          if (currentStageIndex < loadingStages.length) {
+            setTimeout(nextLoadingStage, delay);
+          }
+        }
+      }
+      
+      function showRetryButton(message) {
+        const errorMessage = document.getElementById('error-message');
+        const retryButton = document.getElementById('retry-button');
+        
+        if (errorMessage && retryButton) {
+          errorMessage.textContent = message;
+          errorMessage.style.display = 'block';
+          retryButton.style.display = 'inline-block';
+        }
+      }
+      
+      function retryLoad() {
+        if (retryCount >= maxRetries) {
+          showRetryButton('加载失败次数过多，请刷新页面重试');
+          return;
+        }
+        
+        retryCount++;
+        const textEl = document.getElementById('loader-text');
+        const errorMessage = document.getElementById('error-message');
+        const retryButton = document.getElementById('retry-button');
+        
+        if (textEl) textEl.textContent = `正在重试加载... (${retryCount}/${maxRetries})`;
+        if (errorMessage) errorMessage.style.display = 'none';
+        if (retryButton) retryButton.style.display = 'none';
+        
+        // 重置进度并重新开始
+        currentProgress = 0;
+        currentStageIndex = 0;
+        setTimeout(() => {
+          nextLoadingStage();
+        }, 500);
+      }
+      
+      // 开始加载进度
+      setTimeout(() => {
+        nextLoadingStage();
+      }, 300);
+      
+      // 设置加载超时
+      loadTimeout = setTimeout(() => {
+        if (currentProgress < 100) {
+          showRetryButton('加载超时，请重试');
+        }
+      }, 15000);
+      
+      // 当 React 应用加载完成时隐藏加载屏幕
+      window.hideInitialLoader = function() {
+        clearTimeout(loadTimeout);
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.style.opacity = '0';
+          loader.style.transition = 'opacity 0.5s ease-out';
+          setTimeout(() => {
+            loader.style.display = 'none';
+          }, 500);
+        }
+      };
+      
+      // Service Worker 注册 - 增强网络错误处理
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            // 检测环境并设置正确的 SW 路径
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const swPath = isLocal ? '/sw.js' : '/timesheet-management-system/sw.js';
+            
+            const registration = await navigator.serviceWorker.register(swPath, {
+              scope: isLocal ? '/' : '/timesheet-management-system/'
+            });
+            
+            console.log('[SW] Service Worker 注册成功:', registration.scope);
+            
+            // 监听 SW 更新
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // 有新版本可用
+                  if (confirm('发现新版本，是否立即更新？')) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+            
+            // 监听 SW 控制变化
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              window.location.reload();
+            });
+            
+          } catch (error) {
+            console.error('[SW] Service Worker 注册失败:', error);
+            // SW 注册失败不影响应用正常运行
+          }
+        });
+      }
+      
+      // 增强的错误处理 - 支持网络错误重定向
+      window.addEventListener('error', (event) => {
+        console.error('页面加载错误:', event.error);
+        
+        // 检查是否是网络相关错误
+        const errorMessage = event.error?.message || '';
+        if (errorMessage.includes('CONNECTION_RESET') || 
+            errorMessage.includes('ERR_CONNECTION_RESET') ||
+            errorMessage.includes('net::ERR_')) {
+          
+          // 重定向到错误处理页面
+          const errorUrl = new URL('/error-handler.html', window.location.origin);
+          errorUrl.searchParams.set('error', 'ERR_CONNECTION_RESET');
+          errorUrl.searchParams.set('message', errorMessage);
+          errorUrl.searchParams.set('url', window.location.pathname);
+          
+          window.location.href = errorUrl.toString();
+          return;
+        }
+        
+        showRetryButton('应用加载失败，请重试');
+      });
+      
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('未处理的 Promise 错误:', event.reason);
+        
+        // 检查是否是网络相关的 Promise 错误
+        const reason = event.reason?.message || event.reason || '';
+        if (typeof reason === 'string' && 
+            (reason.includes('CONNECTION_RESET') || 
+             reason.includes('ERR_CONNECTION_RESET') ||
+             reason.includes('fetch'))) {
+          
+          // 重定向到错误处理页面
+          const errorUrl = new URL('/error-handler.html', window.location.origin);
+          errorUrl.searchParams.set('error', 'ERR_NETWORK_FAILED');
+          errorUrl.searchParams.set('message', reason);
+          errorUrl.searchParams.set('url', window.location.pathname);
+          
+          window.location.href = errorUrl.toString();
+          return;
+        }
+        
+        showRetryButton('应用初始化失败，请重试');
+      });
+      
+      // 导入增强的网络管理器
+      let networkManager, resourceOptimizer, connectionDiagnostics;
+      
+      // 初始化增强的网络管理
+      async function initializeEnhancedNetworking() {
+        try {
+          console.log('✅ Using basic networking (simplified)');
+          return false; // 直接使用基础网络监控
+        } catch (error) {
+          console.warn('⚠️ Enhanced networking failed to initialize:', error);
+          // 回退到基础网络监控
+          startBasicConnectionMonitoring();
+          return false;
+        }
+      }
+
+      // 基础连接监控（回退方案）
+      let connectionCheckInterval;
+      let retryAttempts = 0;
+      const maxConnectionRetries = 5;
+      
+      function startBasicConnectionMonitoring() {
+        if (connectionCheckInterval) return;
+        
+        connectionCheckInterval = setInterval(async () => {
+          try {
+            // 使用更简单的连接检查 - 避免额外的网络请求
+            if (navigator.onLine === false) {
+              throw new Error('Network offline');
+            }
+            
+            // 简单的连通性检查，不发送实际请求
+            retryAttempts = 0;
+            
+          } catch (error) {
+            console.warn('[Network] 连接检查失败:', error.message);
+            
+            // 如果是连接重置错误，重定向到错误页面
+            if (error.message.includes('CONNECTION_RESET') || 
+                error.message.includes('ERR_CONNECTION_RESET')) {
+              
+              clearInterval(connectionCheckInterval);
+              
+              const errorUrl = new URL('/error-handler.html', window.location.origin);
+              errorUrl.searchParams.set('error', 'ERR_CONNECTION_RESET');
+              errorUrl.searchParams.set('message', '网络连接被重置');
+              errorUrl.searchParams.set('url', window.location.pathname);
+              
+              window.location.href = errorUrl.toString();
+            }
+          }
+        }, 30000); // 每30秒检查一次
+      }
+      
+      function stopConnectionMonitoring() {
+        if (connectionCheckInterval) {
+          clearInterval(connectionCheckInterval);
+          connectionCheckInterval = null;
+        }
+      }
+      
+      // 启动基础网络监控
+      if (navigator.onLine) {
+        console.log('🌐 Starting basic network monitoring');
+        startBasicConnectionMonitoring();
+      } else {
+        console.log('📴 Device is offline, starting offline monitoring');
+        startBasicConnectionMonitoring();
+      }
+      
+      // 网络状态变化时重新启动监控
+      window.addEventListener('online', () => {
+        console.log('🌐 Network back online');
+        updateNetworkStatus();
+        hideRetryButton();
+        startBasicConnectionMonitoring();
+      });
+      
+      window.addEventListener('offline', () => {
+        console.log('📴 Network went offline');
+        updateNetworkStatus();
+        showRetryButton('网络连接已断开，请检查网络后重试');
+        stopConnectionMonitoring();
+      });
+    </script>
+    
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
