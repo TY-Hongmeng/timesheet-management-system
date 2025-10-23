@@ -61,7 +61,10 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: module.id })
+  } = useSortable({ 
+    id: module.id,
+    disabled: !dragModeEnabled // 只有在拖拽模式开启时才启用拖拽
+  })
 
   const { isModuleHighlighted, isModuleLoaded } = useModuleLoading()
 
@@ -81,6 +84,17 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
     if (isDragMode || dragModeEnabled) {
       e.preventDefault()
       e.stopPropagation()
+      return false
+    }
+  }
+
+  // 处理链接点击
+  const handleLinkClick = (e: React.MouseEvent) => {
+    // 如果拖拽模式开启，阻止链接跳转
+    if (dragModeEnabled || isDragMode) {
+      e.preventDefault()
+      e.stopPropagation()
+      return false
     }
   }
 
@@ -115,10 +129,10 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
         <Link 
           to={module.path} 
           className="group block"
-          onClick={handleClick}
+          onClick={handleLinkClick}
         >
           <div className={`relative bg-gray-800 rounded-xl border transition-all duration-300 hover:transform hover:scale-[1.02] hover:shadow-xl min-h-[140px] backdrop-blur-sm ${
-            isDragMode ? 'pointer-events-none' : ''
+            isDragMode || dragModeEnabled ? 'pointer-events-none' : ''
           } ${
             dragModeEnabled && !isDragMode ? 'border-blue-400 shadow-lg shadow-blue-400/20 bg-gradient-to-br from-gray-800 to-blue-900/20' : ''
           } ${
@@ -207,7 +221,7 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
-  const { markModuleAsLoaded } = useModuleLoading()
+  const { markModuleAsLoaded, initializeProgressiveLoading } = useModuleLoading()
 
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -265,6 +279,9 @@ export default function Dashboard() {
     try {
       // Dashboard页面加载完成后标记为已加载
       markModuleAsLoaded('dashboard')
+      
+      // 启动分级加载
+      initializeProgressiveLoading()
     } catch (error: any) {
       console.error('获取数据失败:', error)
     } finally {
@@ -280,16 +297,17 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 只在拖拽模式开启时启用
+  // 拖拽传感器配置 - 根据拖拽模式动态配置
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 桌面端8px激活
+        distance: dragModeEnabled ? 5 : 999999, // 只有在拖拽模式开启时才启用
       }
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        distance: 8, // 手机端也使用距离激活，移除长按延迟
+        delay: dragModeEnabled ? 0 : 999999, // 移除延迟，只有在拖拽模式开启时才启用
+        tolerance: dragModeEnabled ? 5 : 999999,
       }
     }),
     useSensor(KeyboardSensor, {
@@ -301,7 +319,8 @@ export default function Dashboard() {
   const handleDragStart = (event: DragStartEvent) => {
     // 只有在拖拽模式开启时才允许拖拽
     if (!dragModeEnabled) {
-      return
+      event.preventDefault?.()
+      return false
     }
     setIsDragMode(true)
   }
@@ -332,6 +351,17 @@ export default function Dashboard() {
   // 处理拖拽取消
   const handleDragCancel = () => {
     setIsDragMode(false)
+  }
+
+  // 切换拖拽模式
+  const toggleDragMode = () => {
+    const newDragModeEnabled = !dragModeEnabled
+    setDragModeEnabled(newDragModeEnabled)
+    
+    // 如果关闭拖拽模式，同时关闭拖拽状态
+    if (!newDragModeEnabled) {
+      setIsDragMode(false)
+    }
   }
 
   // 只返回实际的模块，不添加占位符
@@ -451,7 +481,7 @@ export default function Dashboard() {
                   {/* 拖拽开关 */}
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => setDragModeEnabled(!dragModeEnabled)}
+                      onClick={toggleDragMode}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm font-medium transition-all duration-200 ${
                         dragModeEnabled
                           ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 hover:from-blue-600 hover:to-blue-700'
