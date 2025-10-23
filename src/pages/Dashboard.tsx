@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2 } from 'lucide-react'
+import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2, Move3D, Hand } from 'lucide-react'
 import { useModuleLoading } from '../contexts/ModuleLoadingContext'
 import {
   DndContext,
@@ -50,9 +50,10 @@ interface SortableModuleProps {
   module: DashboardModule & { isPlaceholder?: boolean }
   index: number
   isDragMode: boolean
+  dragModeEnabled: boolean
 }
 
-function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
+function SortableModule({ module, index, isDragMode, dragModeEnabled }: SortableModuleProps) {
   const {
     attributes,
     listeners,
@@ -63,7 +64,6 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
   } = useSortable({ id: module.id })
 
   const { isModuleHighlighted, isModuleLoaded } = useModuleLoading()
-  const [isLongPressing, setIsLongPressing] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -77,40 +77,11 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
 
   // 处理点击事件
   const handleClick = (e: React.MouseEvent) => {
-    // 如果正在拖拽模式，阻止点击
-    if (isDragMode) {
+    // 如果正在拖拽或拖拽功能开启，阻止点击
+    if (isDragMode || dragModeEnabled) {
       e.preventDefault()
       e.stopPropagation()
     }
-  }
-
-  // 长按反馈效果 - 与拖拽传感器同步
-  const handleTouchStart = () => {
-    // 如果已经在拖拽模式，不显示长按反馈
-    if (isDragMode) return
-    
-    const timer = setTimeout(() => {
-      setIsLongPressing(true)
-      // 1秒后自动清除长按反馈，因为此时拖拽应该已经激活
-      setTimeout(() => {
-        setIsLongPressing(false)
-      }, 200)
-    }, 800) // 800ms后显示长按反馈，与TouchSensor的1000ms延迟配合
-
-    const cleanup = () => {
-      clearTimeout(timer)
-      setIsLongPressing(false)
-    }
-
-    // 监听触摸结束事件
-    const handleTouchEnd = () => {
-      cleanup()
-      document.removeEventListener('touchend', handleTouchEnd)
-      document.removeEventListener('touchcancel', handleTouchEnd)
-    }
-
-    document.addEventListener('touchend', handleTouchEnd)
-    document.addEventListener('touchcancel', handleTouchEnd)
   }
 
   // 移除占位符显示逻辑
@@ -132,12 +103,13 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
     >
       <div 
         {...attributes}
-        {...listeners}
-        onTouchStart={handleTouchStart}
+        {...(dragModeEnabled ? listeners : {})}
         className={`${
           isDragMode 
             ? 'cursor-grabbing' 
-            : 'cursor-pointer'
+            : dragModeEnabled 
+              ? 'cursor-grab' 
+              : 'cursor-pointer'
         }`}
       >
         <Link 
@@ -148,7 +120,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
           <div className={`relative bg-gray-800 rounded-xl border transition-all duration-300 hover:transform hover:scale-[1.02] hover:shadow-xl min-h-[140px] backdrop-blur-sm ${
             isDragMode ? 'pointer-events-none' : ''
           } ${
-            isLongPressing ? 'scale-105 border-yellow-400 shadow-lg shadow-yellow-400/30 bg-gradient-to-br from-gray-800 to-yellow-900/20' : ''
+            dragModeEnabled && !isDragMode ? 'border-blue-400 shadow-lg shadow-blue-400/20 bg-gradient-to-br from-gray-800 to-blue-900/20' : ''
           } ${
             isHighlighted 
               ? 'border-green-400 shadow-lg shadow-green-400/20 bg-gradient-to-br from-gray-800 to-green-900/20' 
@@ -179,12 +151,18 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
                 </div>
                 {/* 拖拽指示器 */}
                 <div className={`transition-opacity ${
-                  isDragMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  isDragMode ? 'opacity-100' : dragModeEnabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}>
                   <div className="flex flex-col gap-1">
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    }`}></div>
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    }`}></div>
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    }`}></div>
                   </div>
                 </div>
               </div>
@@ -211,10 +189,10 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
               </div>
             )}
             
-            {/* 长按反馈指示 */}
-            {isLongPressing && !isDragMode && (
-              <div className="absolute inset-0 bg-yellow-500/10 rounded-xl border-2 border-yellow-400/50 flex items-center justify-center backdrop-blur-sm">
-                <div className="text-yellow-400 font-mono text-sm font-bold animate-pulse">即将激活拖拽...</div>
+            {/* 拖拽模式开启指示 */}
+            {dragModeEnabled && !isDragMode && (
+              <div className="absolute top-2 right-2 bg-blue-500/20 border border-blue-400/50 rounded-lg px-2 py-1">
+                <div className="text-blue-400 font-mono text-xs font-bold">可拖拽</div>
               </div>
             )}
             
@@ -236,6 +214,7 @@ export default function Dashboard() {
   const [accessibleModules, setAccessibleModules] = useState<DashboardModule[]>([])
   const [orderedModules, setOrderedModules] = useState<DashboardModule[]>([])
   const [isDragMode, setIsDragMode] = useState(false)
+  const [dragModeEnabled, setDragModeEnabled] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -301,17 +280,16 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 优化手机端体验，避免误触发
+  // 拖拽传感器配置 - 只在拖拽模式开启时启用
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 桌面端降低到8px，提升响应性
+        distance: 8, // 桌面端8px激活
       }
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 1000, // 手机端长按1秒激活拖拽
-        tolerance: 8, // 容差8px，平衡响应性和稳定性
+        distance: 8, // 手机端也使用距离激活，移除长按延迟
       }
     }),
     useSensor(KeyboardSensor, {
@@ -321,6 +299,10 @@ export default function Dashboard() {
 
   // 处理拖拽开始
   const handleDragStart = (event: DragStartEvent) => {
+    // 只有在拖拽模式开启时才允许拖拽
+    if (!dragModeEnabled) {
+      return
+    }
     setIsDragMode(true)
   }
 
@@ -329,7 +311,8 @@ export default function Dashboard() {
     const { active, over } = event
     setIsDragMode(false)
 
-    if (!over || !user || active.id === over.id) {
+    // 只有在拖拽模式开启时才处理拖拽结果
+    if (!dragModeEnabled || !over || !user || active.id === over.id) {
       return
     }
 
@@ -436,6 +419,7 @@ export default function Dashboard() {
                     module={module}
                     index={index}
                     isDragMode={isDragMode}
+                    dragModeEnabled={dragModeEnabled}
                   />
                 ))}
               </div>
@@ -453,23 +437,54 @@ export default function Dashboard() {
             </div>
           )}
           
-          {/* 拖拽提示和状态 */}
+          {/* 拖拽控制和状态 */}
           {accessibleModules.length > 0 && (
-            <div className="mt-6 text-center">
+            <div className="mt-6">
               {isDragMode ? (
-                <div className="bg-green-900/30 border border-green-500 rounded-lg p-3">
+                <div className="bg-green-900/30 border border-green-500 rounded-lg p-3 text-center">
                   <p className="text-green-400 text-sm font-mono font-bold">
                     🎯 拖拽模式已激活 - 松开手指完成排序
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <p className="text-green-600 text-sm font-mono">
-                    💡 提示：长按模块1秒钟来重新排列顺序
-                  </p>
-                  <p className="text-green-700 text-xs font-mono">
-                    手机端：长按1秒激活拖拽 | 桌面端：拖拽8px激活
-                  </p>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                  {/* 拖拽开关 */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setDragModeEnabled(!dragModeEnabled)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm font-medium transition-all duration-200 ${
+                        dragModeEnabled
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 hover:from-blue-600 hover:to-blue-700'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                      }`}
+                    >
+                      {dragModeEnabled ? <Move3D className="w-4 h-4" /> : <Hand className="w-4 h-4" />}
+                      <span>{dragModeEnabled ? '拖拽模式：开启' : '拖拽模式：关闭'}</span>
+                    </button>
+                  </div>
+                  
+                  {/* 操作提示 */}
+                  <div className="text-center sm:text-right">
+                    {dragModeEnabled ? (
+                      <div className="space-y-1">
+                        <p className="text-blue-400 text-sm font-mono">
+                          💡 拖拽模式已开启，可以拖拽模块重新排序
+                        </p>
+                        <p className="text-blue-500 text-xs font-mono">
+                          点击模块进入功能已禁用，关闭拖拽模式恢复正常
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-green-600 text-sm font-mono">
+                          💡 点击开启拖拽模式来重新排列模块顺序
+                        </p>
+                        <p className="text-green-700 text-xs font-mono">
+                          拖拽模式关闭时，点击模块可正常进入功能页面
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
