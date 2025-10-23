@@ -78,19 +78,9 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
   const isHighlighted = isModuleHighlighted(module.id)
   const isLoaded = isModuleLoaded(module.id)
 
-  // 处理点击事件
-  const handleClick = (e: React.MouseEvent) => {
-    // 如果正在拖拽或拖拽功能开启，阻止点击
-    if (isDragMode || dragModeEnabled) {
-      e.preventDefault()
-      e.stopPropagation()
-      return false
-    }
-  }
-
   // 处理链接点击
   const handleLinkClick = (e: React.MouseEvent) => {
-    // 如果拖拽模式开启，阻止链接跳转
+    // 如果拖拽模式开启或正在拖拽，阻止链接跳转
     if (dragModeEnabled || isDragMode) {
       e.preventDefault()
       e.stopPropagation()
@@ -125,6 +115,9 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
               ? 'cursor-grab' 
               : 'cursor-pointer'
         }`}
+        style={{
+          touchAction: dragModeEnabled ? 'none' : 'auto', // 手机端拖拽时禁用默认触摸行为
+        }}
       >
         <Link 
           to={module.path} 
@@ -300,15 +293,15 @@ export default function Dashboard() {
   // 拖拽传感器配置 - 根据拖拽模式动态配置
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: dragModeEnabled ? 5 : 999999, // 只有在拖拽模式开启时才启用
-      }
+      activationConstraint: dragModeEnabled ? {
+        distance: 8, // 桌面端需要移动8px才激活拖拽
+      } : undefined
     }),
     useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: dragModeEnabled ? 0 : 999999, // 移除延迟，只有在拖拽模式开启时才启用
-        tolerance: dragModeEnabled ? 5 : 999999,
-      }
+      activationConstraint: dragModeEnabled ? {
+        delay: 100, // 手机端延迟100ms，避免与滚动冲突
+        tolerance: 8, // 容忍度8px
+      } : undefined
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -319,8 +312,7 @@ export default function Dashboard() {
   const handleDragStart = (event: DragStartEvent) => {
     // 只有在拖拽模式开启时才允许拖拽
     if (!dragModeEnabled) {
-      event.preventDefault?.()
-      return false
+      return
     }
     setIsDragMode(true)
   }
