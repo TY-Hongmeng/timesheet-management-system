@@ -142,28 +142,13 @@
       }
       
       .loader-spinner {
-        width: 60px;
-        height: 60px;
-        border: 3px solid rgba(0, 255, 65, 0.2);
-        border-top: 3px solid #00ff41;
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(74, 222, 128, 0.2);
+        border-top: 4px solid #4ade80;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin: 0 auto 1.5rem;
-        position: relative;
-      }
-      
-      .loader-spinner::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 30px;
-        height: 30px;
-        border: 2px solid rgba(0, 255, 65, 0.3);
-        border-top: 2px solid #00ff41;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        animation: spin 0.5s linear infinite reverse;
       }
       
       @keyframes spin {
@@ -192,20 +177,20 @@
       .loader-progress {
         width: 100%;
         height: 8px;
-        background: rgba(0, 255, 65, 0.1);
+        background: rgba(74, 222, 128, 0.1);
         border-radius: 4px;
         overflow: hidden;
-        border: 1px solid rgba(0, 255, 65, 0.3);
+        border: 1px solid rgba(74, 222, 128, 0.3);
         position: relative;
       }
       
       .loader-progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, #00ff41, #00cc33, #00ff41);
+        background: linear-gradient(90deg, #4ade80, #22c55e, #4ade80);
         border-radius: 4px;
         transition: width 0.3s ease;
         position: relative;
-        box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
         width: 0%;
       }
       
@@ -228,50 +213,88 @@
       .loader-percentage {
         font-size: 1.2rem;
         font-weight: bold;
-        color: #00ff41;
+        color: #4ade80;
         margin-top: 0.5rem;
         font-family: 'Courier New', monospace;
-        text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
       }
       
       .loader-status {
         font-size: 0.9rem;
-        color: #66ff66;
+        color: rgba(74, 222, 128, 0.8);
         margin-top: 1rem;
         opacity: 0.8;
         font-family: 'Courier New', monospace;
       }
       
       .retry-button {
-        background: linear-gradient(45deg, #00ff41, #00cc33);
-        color: #000000;
+        background: #16a34a;
+        color: #000;
         border: none;
         padding: 12px 24px;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: bold;
+        border-radius: 6px;
         cursor: pointer;
-        margin-top: 1.5rem;
-        display: none;
+        font-size: 1rem;
+        font-weight: bold;
         font-family: 'Courier New', monospace;
         transition: all 0.3s ease;
-        box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        display: none;
+        margin: 15px auto;
+        box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
       }
       
       .retry-button:hover {
-        background: linear-gradient(45deg, #00cc33, #00ff41);
-        box-shadow: 0 0 25px rgba(0, 255, 65, 0.5);
+        background: #15803d;
+        box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
         transform: translateY(-2px);
       }
       
       .error-message {
-        color: #ff4444;
-        font-size: 0.9rem;
-        margin-top: 1rem;
-        display: none;
-        font-family: 'Courier New', monospace;
-        text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
-      }
+         color: #ef4444;
+         font-size: 0.9rem;
+         margin: 15px 0;
+         padding: 10px;
+         background: rgba(239, 68, 68, 0.1);
+         border: 1px solid rgba(239, 68, 68, 0.3);
+         border-radius: 5px;
+         display: none;
+         font-family: 'Courier New', monospace;
+       }
+
+       /* 页脚样式 */
+       .loading-footer {
+         text-align: center;
+         color: #16a34a;
+         font-size: 0.65rem;
+         font-family: 'Courier New', monospace;
+       }
+
+       .loading-footer p {
+         margin: 0;
+       }
+
+       .loading-dots {
+         margin-top: 0.5rem;
+         display: flex;
+         justify-content: center;
+         gap: 0.5rem;
+       }
+
+       .dot {
+         width: 0.5rem;
+         height: 0.5rem;
+         background: #4ade80;
+         border-radius: 50%;
+         animation: pulse 2s infinite;
+       }
+
+       .dot:nth-child(2) {
+         animation-delay: 0.2s;
+       }
+
+       .dot:nth-child(3) {
+         animation-delay: 0.4s;
+       }
       
       /* 移动端优化 */
       @media (max-width: 768px) {
@@ -302,6 +325,43 @@
           font-size: 1.1rem;
         }
       }
+      
+      /* 移动端优化 */
+       @media (max-width: 480px) {
+         .loader-content {
+           padding: 1rem;
+           gap: 1.5rem;
+         }
+         
+         .loading-title {
+           font-size: 1.875rem;
+         }
+         
+         .loading-content-inner {
+           padding: 1.5rem;
+         }
+         
+         .loading-subtitle {
+           font-size: 1.25rem;
+         }
+         
+         .loader-spinner {
+           width: 40px;
+           height: 40px;
+         }
+         
+         .loader-text {
+           font-size: 0.9rem;
+         }
+         
+         .loader-percentage {
+           font-size: 1rem;
+         }
+         
+         .loading-footer {
+           font-size: 0.55rem;
+         }
+       }
     </style>
   </head>
   <body>

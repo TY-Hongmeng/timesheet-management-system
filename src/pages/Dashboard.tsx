@@ -7,6 +7,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -61,7 +62,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
     isDragging,
   } = useSortable({ id: module.id })
 
-  const { isModuleHighlighted } = useModuleLoading()
+  const { isModuleHighlighted, isModuleLoaded } = useModuleLoading()
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -71,6 +72,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
   const IconComponent = iconMap[module.icon]
   const isPlaceholder = module.isPlaceholder
   const isHighlighted = isModuleHighlighted(module.id)
+  const isLoaded = isModuleLoaded(module.id)
 
   // 处理点击事件
   const handleClick = (e: React.MouseEvent) => {
@@ -157,8 +159,16 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
             
             {/* 内容区域 */}
             <div className="p-6 flex flex-col items-center justify-center">
-              {/* 模块描述 */}
-              <p className="text-gray-400 text-sm text-center leading-relaxed group-hover:text-gray-300 transition-colors">{module.description}</p>
+              {!isLoaded ? (
+                /* 未加载状态 */
+                <div className="flex flex-col items-center space-y-3">
+                  <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
+                  <span className="text-green-400 text-sm font-mono">加载中...</span>
+                </div>
+              ) : (
+                /* 已加载状态 - 模块描述 */
+                <p className="text-gray-400 text-sm text-center leading-relaxed group-hover:text-gray-300 transition-colors">{module.description}</p>
+              )}
             </div>
             
             {/* 拖拽状态指示 */}
@@ -254,9 +264,13 @@ export default function Dashboard() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // 需要移动5px才开始拖拽
-        delay: 100,  // 100ms延迟
-        tolerance: 3 // 容差
+        distance: 8, // 需要移动8px才开始拖拽
+      }
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 长按250ms后开始拖拽
+        tolerance: 5, // 容差5px
       }
     }),
     useSensor(KeyboardSensor, {

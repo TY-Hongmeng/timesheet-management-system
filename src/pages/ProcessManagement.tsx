@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Search, Edit, Trash2, Filter, X, Settings, Upload, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
 import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExcelImportDialog from '../components/ExcelImportDialog';
@@ -42,6 +43,7 @@ interface Company {
 
 const ProcessManagement: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const { markModuleAsLoaded } = useModuleLoading();
   const navigate = useNavigate();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -246,6 +248,7 @@ const ProcessManagement: React.FC = () => {
       toast.error(`获取工序列表失败: ${error.message || '未知错误'}`);
     } finally {
       setLoading(false);
+      markModuleAsLoaded(MODULE_IDS.PROCESS_MANAGEMENT);
     }
   };
 
@@ -951,9 +954,9 @@ const ProcessManagement: React.FC = () => {
             </div>
             <Link
               to="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-green-300 hover:text-green-200 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">返回控制台</span>
               <span className="sm:hidden">返回</span>
             </Link>

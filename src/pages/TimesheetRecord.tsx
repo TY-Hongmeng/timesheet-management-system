@@ -3,6 +3,7 @@ import { Plus, Trash2, Calendar, Clock, User, Building, Package, Settings, Arrow
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
+import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext'
 import { supabase } from '../lib/supabase'
 import { isSuperAdmin } from '../utils/permissions'
 import TimesheetConfirmDialog from '../components/TimesheetConfirmDialog'
@@ -64,6 +65,7 @@ interface TimesheetRecord {
 
 export default function TimesheetRecord() {
   const { user, isAuthenticated, refreshUser } = useAuth()
+  const { markModuleAsLoaded } = useModuleLoading()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   
@@ -446,6 +448,9 @@ export default function TimesheetRecord() {
       
       // 注意：不在这里加载workTypes和products，因为它们依赖于生产线选择
       // 这些数据会在用户选择生产线后通过useEffect自动加载
+      
+      // 标记模块为已加载
+      markModuleAsLoaded(MODULE_IDS.TIMESHEET_RECORD)
       
     } catch (error) {
       toast.error('加载数据失败')
