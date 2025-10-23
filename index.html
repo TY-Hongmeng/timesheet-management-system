@@ -265,7 +265,7 @@
        .loading-footer {
          text-align: center;
          color: #16a34a;
-         font-size: 0.65rem;
+         font-size: 0.75rem;
          font-family: 'Courier New', monospace;
        }
 
@@ -359,7 +359,7 @@
          }
          
          .loading-footer {
-           font-size: 0.55rem;
+           font-size: 0.65rem;
          }
        }
     </style>
@@ -412,6 +412,7 @@
     <script>
       // 加载进度管理
       let loadTimeout;
+      let forceJumpTimeout;
       let retryCount = 0;
       const maxRetries = 3;
       let currentProgress = 0;
@@ -482,7 +483,25 @@
           if (currentStageIndex === 5) delay = 400; // 完成初始化
           if (currentStageIndex === 6) delay = 300; // 最终完成
           
-          if (currentStageIndex < loadingStages.length) {
+          // 检查是否到达100%进度
+          if (stage.progress === 100) {
+            // 到达100%后，等待一段时间然后自动跳转
+            setTimeout(() => {
+              // 确保React应用已经加载完成，如果没有则强制跳转
+              if (document.getElementById('initial-loader').style.display !== 'none') {
+                console.log('进度100%，强制跳转到应用');
+                if (window.hideInitialLoader) {
+                  window.hideInitialLoader();
+                } else {
+                  // 备用跳转方案
+                  const loader = document.getElementById('initial-loader');
+                  if (loader) {
+                    loader.style.display = 'none';
+                  }
+                }
+              }
+            }, 1500); // 100%后等待1.5秒自动跳转
+          } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
           }
         }
@@ -534,9 +553,23 @@
         }
       }, 15000);
       
+      // 设置强制跳转超时保护（防止卡在加载页面）
+      forceJumpTimeout = setTimeout(() => {
+        const loader = document.getElementById('initial-loader');
+        if (loader && loader.style.display !== 'none') {
+          console.log('超时保护：强制跳转到应用');
+          if (window.hideInitialLoader) {
+            window.hideInitialLoader();
+          } else {
+            loader.style.display = 'none';
+          }
+        }
+      }, 20000); // 20秒后强制跳转
+      
       // 当 React 应用加载完成时隐藏加载屏幕
       window.hideInitialLoader = function() {
         clearTimeout(loadTimeout);
+        clearTimeout(forceJumpTimeout);
         const loader = document.getElementById('initial-loader');
         if (loader) {
           loader.style.opacity = '0';

@@ -43,7 +43,14 @@ interface ModuleLoadingProviderProps {
 }
 
 export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) {
-  const [moduleStates, setModuleStates] = useState<ModuleLoadingState>({})
+  const [moduleStates, setModuleStates] = useState<ModuleLoadingState>({
+    // Dashboard模块默认为已加载状态
+    [MODULE_IDS.DASHBOARD]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    }
+  })
 
   // 标记模块为已加载
   const markModuleAsLoaded = (moduleId: string) => {

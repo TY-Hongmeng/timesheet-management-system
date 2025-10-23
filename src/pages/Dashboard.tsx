@@ -189,6 +189,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
+  const { markModuleAsLoaded } = useModuleLoading()
 
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -243,8 +244,8 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-
-
+      // Dashboard页面加载完成后标记为已加载
+      markModuleAsLoaded('dashboard')
     } catch (error: any) {
       console.error('获取数据失败:', error)
     } finally {
@@ -260,17 +261,17 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 优化拖拽灵敏度
+  // 拖拽传感器配置 - 优化拖拽灵敏度，避免误触发
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 需要移动8px才开始拖拽
+        distance: 10, // 需要移动10px才开始拖拽
       }
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // 长按250ms后开始拖拽
-        tolerance: 5, // 容差5px
+        delay: 500, // 长按500ms后开始拖拽，避免误触发
+        tolerance: 8, // 容差8px
       }
     }),
     useSensor(KeyboardSensor, {
