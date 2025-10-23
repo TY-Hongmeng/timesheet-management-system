@@ -159,10 +159,6 @@ export default function Login() {
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center mb-2">
-            <svg className="w-16 h-16 mr-4" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="40" rx="38" ry="30" fill="black" stroke="#22c55e" strokeWidth="3"/>
-              <text x="40" y="50" textAnchor="middle" fill="#22c55e" fontSize="28" fontWeight="bold" fontFamily="Arial, sans-serif">JT</text>
-            </svg>
             <h1 className="text-4xl font-bold text-green-400 font-mono">
               工时管理系统
             </h1>

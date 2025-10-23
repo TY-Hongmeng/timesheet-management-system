@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon } from 'lucide-react'
+import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2 } from 'lucide-react'
 import { useModuleLoading } from '../contexts/ModuleLoadingContext'
 import {
   DndContext,
