@@ -109,14 +109,21 @@
           background: linear-gradient(to right, transparent, #4ade80, transparent);
         }
 
-        /* 内容区域样式 - 去除方框布局 */
+        /* 内容区域样式 - 完全去除方框布局 */
         .loading-content-inner {
-          background: transparent;
-          border: none;
-          border-radius: 0;
+          background: transparent !important;
+          border: none !important;
+          border-radius: 0 !important;
           padding: 2rem 1rem;
-          box-shadow: none;
+          box-shadow: none !important;
           text-align: center;
+          outline: none !important;
+          /* 确保没有任何可能的边框或背景 */
+          background-color: transparent !important;
+          background-image: none !important;
+          border-width: 0 !important;
+          border-style: none !important;
+          border-color: transparent !important;
         }
 
         .loading-subtitle {
@@ -339,6 +346,10 @@
          
          .loading-content-inner {
            padding: 1.5rem;
+           background: transparent !important;
+           border: none !important;
+           border-radius: 0 !important;
+           box-shadow: none !important;
          }
          
          .loading-subtitle {
@@ -485,22 +496,29 @@
           
           // 检查是否到达100%进度
           if (stage.progress === 100) {
-            // 到达100%后，等待一段时间然后自动跳转
+            // 到达100%后，立即准备跳转，减少黑屏时间
             setTimeout(() => {
               // 确保React应用已经加载完成，如果没有则强制跳转
               if (document.getElementById('initial-loader').style.display !== 'none') {
-                console.log('进度100%，强制跳转到应用');
+                console.log('进度100%，准备跳转到应用');
+                // 设置一个标志，表示加载已完成，可以跳转
+                window.loadingComplete = true;
+                
+                // 如果React应用还没有调用hideInitialLoader，等待一小段时间
                 if (window.hideInitialLoader) {
                   window.hideInitialLoader();
                 } else {
-                  // 备用跳转方案
-                  const loader = document.getElementById('initial-loader');
-                  if (loader) {
-                    loader.style.display = 'none';
-                  }
+                  // 备用跳转方案，但延迟时间更短
+                  setTimeout(() => {
+                    const loader = document.getElementById('initial-loader');
+                    if (loader && loader.style.display !== 'none') {
+                      console.log('备用跳转方案激活');
+                      loader.style.display = 'none';
+                    }
+                  }, 300);
                 }
               }
-            }, 1500); // 100%后等待1.5秒自动跳转
+            }, 200); // 100%后等待200ms，大幅减少等待时间
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
           }

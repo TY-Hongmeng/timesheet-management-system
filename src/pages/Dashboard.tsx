@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2, Move3D, Hand } from 'lucide-react'
 import { useModuleLoading } from '../contexts/ModuleLoadingContext'
@@ -67,6 +67,9 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
   })
 
   const { isModuleHighlighted, isModuleLoaded } = useModuleLoading()
+  
+  // 添加拖拽完成后的延迟状态，防止拖拽后立即触发点击
+  const [recentlyDragged, setRecentlyDragged] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,10 +81,23 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
   const isHighlighted = isModuleHighlighted(module.id)
   const isLoaded = isModuleLoaded(module.id)
 
+  // 监听拖拽状态变化，设置延迟保护
+  useEffect(() => {
+    if (isDragging) {
+      setRecentlyDragged(true)
+    } else if (recentlyDragged) {
+      // 拖拽结束后延迟300ms才允许点击，防止拖拽后立即触发点击事件
+      const timer = setTimeout(() => {
+        setRecentlyDragged(false)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [isDragging, recentlyDragged])
+
   // 处理链接点击
   const handleLinkClick = (e: React.MouseEvent) => {
-    // 如果拖拽模式开启或正在拖拽，阻止链接跳转
-    if (dragModeEnabled || isDragMode) {
+    // 如果拖拽模式开启、正在拖拽或刚完成拖拽，阻止链接跳转
+    if (dragModeEnabled || isDragMode || isDragging || recentlyDragged) {
       e.preventDefault()
       e.stopPropagation()
       return false
@@ -117,6 +133,9 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
         }`}
         style={{
           touchAction: dragModeEnabled ? 'none' : 'auto', // 手机端拖拽时禁用默认触摸行为
+          userSelect: dragModeEnabled ? 'none' : 'auto', // 拖拽模式时禁用文本选择
+          WebkitUserSelect: dragModeEnabled ? 'none' : 'auto', // Safari兼容
+          WebkitTouchCallout: dragModeEnabled ? 'none' : 'auto', // 禁用长按菜单
         }}
       >
         <Link 
@@ -156,19 +175,19 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
                     </div>
                   )}
                 </div>
-                {/* 拖拽指示器 */}
+                {/* 拖拽指示器 - 手机端优化 */}
                 <div className={`transition-opacity ${
                   isDragMode ? 'opacity-100' : dragModeEnabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}>
                   <div className="flex flex-col gap-1">
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
+                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
                     }`}></div>
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
+                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
                     }`}></div>
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      dragModeEnabled ? 'bg-blue-400' : 'bg-green-400'
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
+                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
                     }`}></div>
                   </div>
                 </div>
@@ -196,9 +215,9 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
               </div>
             )}
             
-            {/* 拖拽模式开启指示 */}
+            {/* 拖拽模式开启指示 - 手机端隐藏 */}
             {dragModeEnabled && !isDragMode && (
-              <div className="absolute top-2 right-2 bg-blue-500/20 border border-blue-400/50 rounded-lg px-2 py-1">
+              <div className="absolute top-2 right-2 bg-blue-500/20 border border-blue-400/50 rounded-lg px-2 py-1 hidden sm:block">
                 <div className="text-blue-400 font-mono text-xs font-bold">可拖拽</div>
               </div>
             )}
@@ -297,12 +316,15 @@ export default function Dashboard() {
         distance: 8, // 桌面端需要移动8px才激活拖拽
       } : undefined
     }),
-    useSensor(TouchSensor, {
-      activationConstraint: dragModeEnabled ? {
-        delay: 100, // 手机端延迟100ms，避免与滚动冲突
-        tolerance: 8, // 容忍度8px
-      } : undefined
-    }),
+    // 只有在拖拽模式开启时才启用TouchSensor，关闭时完全禁用长按功能
+    ...(dragModeEnabled ? [
+      useSensor(TouchSensor, {
+        activationConstraint: {
+          delay: 100, // 手机端延迟100ms，避免与滚动冲突
+          tolerance: 8, // 容忍度8px
+        }
+      })
+    ] : []),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

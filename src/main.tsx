@@ -189,12 +189,21 @@ class AppInitializer {
         </StrictMode>
       );
 
-      // 隐藏加载屏幕
-      setTimeout(() => {
+      // 隐藏加载屏幕 - 优化跳转时机，减少黑屏
+      // 检查加载是否已完成，如果是则立即跳转
+      if ((window as any).loadingComplete) {
+        // 加载进度已经100%，立即跳转
         if (window.hideInitialLoader) {
           window.hideInitialLoader();
         }
-      }, 500);
+      } else {
+        // 加载进度还没到100%，等待一小段时间
+        setTimeout(() => {
+          if (window.hideInitialLoader) {
+            window.hideInitialLoader();
+          }
+        }, 100); // 大幅减少延迟时间
+      }
 
       console.log('应用启动成功');
       
