@@ -496,29 +496,29 @@
           
           // 检查是否到达100%进度
           if (stage.progress === 100) {
-            // 到达100%后，立即准备跳转，减少黑屏时间
+            // 到达100%后，立即跳转，消除黑屏时间
             setTimeout(() => {
               // 确保React应用已经加载完成，如果没有则强制跳转
               if (document.getElementById('initial-loader').style.display !== 'none') {
-                console.log('进度100%，准备跳转到应用');
+                console.log('进度100%，立即跳转到应用');
                 // 设置一个标志，表示加载已完成，可以跳转
                 window.loadingComplete = true;
                 
-                // 如果React应用还没有调用hideInitialLoader，等待一小段时间
+                // 如果React应用还没有调用hideInitialLoader，立即调用
                 if (window.hideInitialLoader) {
                   window.hideInitialLoader();
                 } else {
-                  // 备用跳转方案，但延迟时间更短
+                  // 备用跳转方案，立即执行
                   setTimeout(() => {
                     const loader = document.getElementById('initial-loader');
                     if (loader && loader.style.display !== 'none') {
                       console.log('备用跳转方案激活');
                       loader.style.display = 'none';
                     }
-                  }, 300);
+                  }, 50); // 减少到50ms
                 }
               }
-            }, 200); // 100%后等待200ms，大幅减少等待时间
+            }, 50); // 100%后等待50ms，大幅减少黑屏时间
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
           }
