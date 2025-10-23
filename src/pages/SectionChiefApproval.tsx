@@ -180,8 +180,10 @@ const SectionChiefApproval: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    fetchPendingRecords();
-  }, []);
+    if (user) {
+      fetchPendingRecords();
+    }
+  }, [user]);
 
   // 刷新数据
   const handleRefresh = async () => {
@@ -1239,7 +1241,7 @@ const SectionChiefApproval: React.FC = () => {
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center">
               <Crown className="w-6 h-6 text-green-400 mr-2" />
-              <h1 className="text-2xl font-bold text-green-400 font-mono">段长审核</h1>
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">段长审核</h1>
             </div>
             <div className="flex items-center gap-2">
               <button

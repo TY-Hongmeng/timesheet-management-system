@@ -950,7 +950,7 @@ const ProcessManagement: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
               <Settings className="w-8 h-8 text-green-400 mr-3" />
-              <h1 className="text-4xl font-bold text-green-400 font-mono">工序管理</h1>
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">工序管理</h1>
             </div>
             <Link
               to="/dashboard"

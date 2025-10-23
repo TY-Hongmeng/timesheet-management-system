@@ -159,8 +159,8 @@ const RoleList: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
-              <Shield className="w-8 h-8 text-green-400 mr-3" />
-              <h1 className="text-4xl font-bold text-green-400 font-mono">权限管理</h1>
+              <Shield className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mr-3" />
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">权限管理</h1>
             </div>
             <Link
               to="/dashboard"

@@ -177,8 +177,10 @@ const SupervisorApproval: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    fetchPendingRecords();
-  }, []);
+    if (user) {
+      fetchPendingRecords();
+    }
+  }, [user]);
 
   // 刷新数据
   const handleRefresh = async () => {
@@ -1235,7 +1237,7 @@ const SupervisorApproval: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
               <CheckCircle className="w-8 h-8 text-green-400 mr-3" />
-              <h1 className="text-4xl font-bold text-green-400 font-mono">班长审核</h1>
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">班长审核</h1>
             </div>
             <div className="flex items-center gap-2">
               <button

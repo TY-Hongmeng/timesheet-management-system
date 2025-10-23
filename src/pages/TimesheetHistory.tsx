@@ -96,8 +96,10 @@ export default function TimesheetHistory() {
   const pageSize = 10
 
   useEffect(() => {
-    loadInitialData()
-  }, [])
+    if (user) {
+      loadInitialData()
+    }
+  }, [user])
 
   useEffect(() => {
     searchRecords()
@@ -355,8 +357,8 @@ export default function TimesheetHistory() {
       {/* Header */}
       <header className="bg-gray-900 border-b border-green-400 px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-green-400 font-mono flex items-center gap-2">
-            <Clock className="w-8 h-8" />
+          <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
+            <Clock className="w-5 h-5 sm:w-8 sm:h-8" />
             工时记录历史
           </h1>
           <p className="text-green-600 text-sm font-mono mt-1">

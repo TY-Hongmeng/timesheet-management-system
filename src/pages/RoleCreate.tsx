@@ -127,7 +127,7 @@ export default function RoleCreate() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-green-400 font-mono truncate">
+            <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono truncate">
               创建角色
             </h1>
             <button

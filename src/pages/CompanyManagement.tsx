@@ -152,8 +152,10 @@ export default function CompanyManagement() {
   }
 
   useEffect(() => {
-    fetchCompanies()
-  }, [])
+    if (user) {
+      fetchCompanies()
+    }
+  }, [user])
 
   const fetchCompanies = async () => {
     setLoading(true)
@@ -353,7 +355,7 @@ export default function CompanyManagement() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
               <Building className="w-8 h-8 text-green-400 mr-3" />
-              <h1 className="text-4xl font-bold text-green-400 font-mono">公司管理</h1>
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">公司管理</h1>
             </div>
             <Link
               to="/dashboard"

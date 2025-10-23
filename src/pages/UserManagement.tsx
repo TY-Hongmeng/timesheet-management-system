@@ -107,8 +107,10 @@ export default function UserManagement() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user && !authLoading) {
+      fetchData()
+    }
+  }, [user, authLoading])
 
   const fetchData = async () => {
     try {
@@ -1302,7 +1304,7 @@ export default function UserManagement() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
               <User className="w-8 h-8 text-green-400 mr-3" />
-              <h1 className="text-3xl font-bold text-green-400 font-mono">用户管理</h1>
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">用户管理</h1>
             </div>
             <Link
               to="/dashboard"

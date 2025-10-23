@@ -1356,8 +1356,8 @@ const Reports: React.FC = () => {
       <header className="bg-gray-900 border-b border-green-400 px-2 sm:px-4 lg:px-6 py-4">
         <div className="w-full">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-green-400 font-mono flex items-center gap-2">
-              <BarChart3 className="w-6 h-6" />
+            <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 sm:w-8 sm:h-8" />
               查看报表
             </h1>
             <div className="flex items-center gap-3">

@@ -513,8 +513,8 @@ const History: React.FC = () => {
       <header className="bg-gray-900 border-b border-green-400 px-6 py-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-green-400 font-mono flex items-center gap-2">
-              <HistoryIcon className="w-6 h-6" />
+            <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
+              <HistoryIcon className="w-5 h-5 sm:w-8 sm:h-8" />
               历史记录
             </h1>
             <div className="flex items-center gap-3">

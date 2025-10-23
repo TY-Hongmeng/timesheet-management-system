@@ -200,7 +200,7 @@ export default function RoleEdit() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-green-400 font-mono truncate">
+            <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono truncate">
               编辑角色 - {role.name}
             </h1>
             <Link

@@ -412,7 +412,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-green-400 font-mono">
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">
                 工时管理系统
               </h1>
               {/* 用户信息移到h1下面 */}
