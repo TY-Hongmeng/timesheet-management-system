@@ -59,57 +59,73 @@
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
     <style>
-      /* 初始加载屏幕样式 - 黑绿主题 */
+      /* 初始加载屏幕样式 */
       #initial-loader {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #000000 0%, #0f1419 50%, #1a1a1a 100%);
+        background: #000000;
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
         z-index: 9999;
         font-family: 'Courier New', monospace;
-        overflow: hidden;
+        padding: 1rem;
       }
-      
-      /* 背景动画效果 */
-      #initial-loader::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: 
-          radial-gradient(circle at 20% 80%, rgba(0, 255, 65, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(0, 255, 65, 0.05) 0%, transparent 50%);
-        animation: backgroundPulse 4s ease-in-out infinite;
-      }
-      
-      @keyframes backgroundPulse {
-        0%, 100% { opacity: 0.3; }
-        50% { opacity: 0.6; }
-      }
-      
+
       .loader-content {
-        text-align: center;
-        color: #00ff41;
-        max-width: 400px;
-        padding: 30px;
-        position: relative;
-        z-index: 1;
-        border: 1px solid rgba(0, 255, 65, 0.3);
-        border-radius: 12px;
-        background: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(10px);
-        box-shadow: 
-          0 0 30px rgba(0, 255, 65, 0.2),
-          inset 0 0 20px rgba(0, 255, 65, 0.05);
-      }
+         max-width: 28rem;
+         width: 100%;
+         display: flex;
+         flex-direction: column;
+         gap: 2rem;
+       }
+
+       /* 头部样式 */
+       .loading-header {
+         text-align: center;
+       }
+
+       .loading-title-container {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         margin-bottom: 0.5rem;
+       }
+
+       .loading-title {
+         font-size: 2.25rem;
+         font-weight: bold;
+         color: #4ade80;
+         font-family: 'Courier New', monospace;
+         margin: 0;
+       }
+
+       .loading-divider {
+          margin-top: 1rem;
+          height: 0.25rem;
+          background: linear-gradient(to right, transparent, #4ade80, transparent);
+        }
+
+        /* 内容区域样式 */
+        .loading-content-inner {
+          background: #111827;
+          border: 1px solid #4ade80;
+          border-radius: 0.5rem;
+          padding: 2rem;
+          box-shadow: 0 10px 15px -3px rgba(74, 222, 128, 0.2);
+          text-align: center;
+        }
+
+        .loading-subtitle {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #4ade80;
+          margin: 0 0 1.5rem 0;
+          font-family: 'Courier New', monospace;
+        }
       
       .loader-logo {
         font-size: 2.5rem;
@@ -292,18 +308,42 @@
     <!-- 初始加载屏幕 -->
     <div id="initial-loader">
       <div class="loader-content">
-        <div class="loader-logo">工时管理系统</div>
-        <div class="loader-spinner"></div>
-        <div class="loader-text" id="loader-text">正在初始化系统...</div>
-        <div class="loader-progress-container">
-          <div class="loader-progress">
-            <div class="loader-progress-bar" id="loader-progress-bar"></div>
+        <!-- Header -->
+        <div class="loading-header">
+          <div class="loading-title-container">
+            <h1 class="loading-title">工时管理系统</h1>
           </div>
-          <div class="loader-percentage" id="loader-percentage">0%</div>
+          <div class="loading-divider"></div>
         </div>
-        <div class="loader-status" id="loader-status">正在加载核心模块...</div>
-        <div class="error-message" id="error-message"></div>
-        <button class="retry-button" id="retry-button" onclick="retryLoad()">重新加载</button>
+
+        <!-- Content -->
+        <div class="loading-content-inner">
+          <h2 class="loading-subtitle">系统加载中</h2>
+          
+          <div class="loader-spinner"></div>
+          
+          <div class="loader-progress-container">
+            <div class="loader-progress">
+              <div class="loader-progress-bar" id="loader-progress-bar"></div>
+            </div>
+            <div class="loader-percentage" id="loader-percentage">0%</div>
+          </div>
+          
+          <div class="loader-text" id="loader-text">正在初始化系统...</div>
+          <div class="loader-status" id="loader-status">正在加载核心模块...</div>
+          <div class="error-message" id="error-message"></div>
+          <button class="retry-button" id="retry-button" onclick="retryLoad()">重新加载</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="loading-footer">
+          <p>&copy; 吉林省通用机械（集团）有限责任公司.</p>
+          <div class="loading-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
       </div>
     </div>
     
