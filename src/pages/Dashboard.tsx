@@ -175,22 +175,7 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
                     </div>
                   )}
                 </div>
-                {/* 拖拽指示器 - 手机端优化 */}
-                <div className={`transition-opacity ${
-                  isDragMode ? 'opacity-100' : dragModeEnabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                }`}>
-                  <div className="flex flex-col gap-1">
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
-                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
-                    }`}></div>
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
-                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
-                    }`}></div>
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
-                      dragModeEnabled ? 'bg-blue-400 shadow-lg shadow-blue-400/50' : 'bg-green-400'
-                    }`}></div>
-                  </div>
-                </div>
+
               </div>
             </div>
             
@@ -215,12 +200,7 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
               </div>
             )}
             
-            {/* 拖拽模式开启指示 - 手机端隐藏 */}
-            {dragModeEnabled && !isDragMode && (
-              <div className="absolute top-2 right-2 bg-blue-500/20 border border-blue-400/50 rounded-lg px-2 py-1 hidden sm:block">
-                <div className="text-blue-400 font-mono text-xs font-bold">可拖拽</div>
-              </div>
-            )}
+
             
             {/* 悬停效果光晕 */}
             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-green-500/0 via-green-500/0 to-green-500/0 group-hover:from-green-500/5 group-hover:via-transparent group-hover:to-green-500/5 transition-all duration-300"></div>
