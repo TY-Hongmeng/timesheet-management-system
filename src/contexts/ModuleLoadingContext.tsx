@@ -19,18 +19,18 @@ interface ModuleLoadingContextType {
 
 const ModuleLoadingContext = createContext<ModuleLoadingContextType | undefined>(undefined)
 
-// 模块ID映射
+// 模块ID映射 - 与Dashboard组件和permissions.ts保持一致
 export const MODULE_IDS = {
   DASHBOARD: 'dashboard',
-  TIMESHEET_RECORD: 'timesheet-record',
-  TIMESHEET_HISTORY: 'timesheet-history',
-  COMPANY_MANAGEMENT: 'company-management',
-  USER_MANAGEMENT: 'user-management',
-  PROCESS_MANAGEMENT: 'process-management',
-  SUPERVISOR_APPROVAL: 'supervisor-approval',
-  SECTION_CHIEF_APPROVAL: 'section-chief-approval',
+  TIME_RECORD: 'time_record',
   REPORTS: 'reports',
   HISTORY: 'history',
+  PROCESS_MANAGEMENT: 'process_management',
+  USER_MANAGEMENT: 'user_management',
+  COMPANY_MANAGEMENT: 'company_management',
+  SUPERVISOR_REVIEW: 'supervisor_review',
+  SECTION_CHIEF_REVIEW: 'section_chief_review',
+  PERMISSION_MANAGEMENT: 'permission_management',
   ROLE_LIST: 'role-list',
   ROLE_EDIT: 'role-edit',
   ROLE_CREATE: 'role-create'
@@ -50,37 +50,7 @@ export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) 
       loadedAt: Date.now(),
       isHighlighted: false
     },
-    [MODULE_IDS.TIMESHEET_RECORD]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.TIMESHEET_HISTORY]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.COMPANY_MANAGEMENT]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.USER_MANAGEMENT]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.PROCESS_MANAGEMENT]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.SUPERVISOR_APPROVAL]: {
-      isLoaded: true,
-      loadedAt: Date.now(),
-      isHighlighted: false
-    },
-    [MODULE_IDS.SECTION_CHIEF_APPROVAL]: {
+    [MODULE_IDS.TIME_RECORD]: {
       isLoaded: true,
       loadedAt: Date.now(),
       isHighlighted: false
@@ -91,6 +61,36 @@ export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) 
       isHighlighted: false
     },
     [MODULE_IDS.HISTORY]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.PROCESS_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.USER_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.COMPANY_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.SUPERVISOR_REVIEW]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.SECTION_CHIEF_REVIEW]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.PERMISSION_MANAGEMENT]: {
       isLoaded: true,
       loadedAt: Date.now(),
       isHighlighted: false

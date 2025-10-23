@@ -84,11 +84,18 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
     }
   }
 
-  // 长按反馈效果
+  // 长按反馈效果 - 与拖拽传感器同步
   const handleTouchStart = () => {
+    // 如果已经在拖拽模式，不显示长按反馈
+    if (isDragMode) return
+    
     const timer = setTimeout(() => {
       setIsLongPressing(true)
-    }, 800) // 800ms后显示长按反馈
+      // 1秒后自动清除长按反馈，因为此时拖拽应该已经激活
+      setTimeout(() => {
+        setIsLongPressing(false)
+      }, 200)
+    }, 800) // 800ms后显示长按反馈，与TouchSensor的1000ms延迟配合
 
     const cleanup = () => {
       clearTimeout(timer)
@@ -294,17 +301,17 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 严格控制拖拽激活条件，避免手机端误触发
+  // 拖拽传感器配置 - 优化手机端体验，避免误触发
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 15, // 需要移动15px才开始拖拽
+        distance: 8, // 桌面端降低到8px，提升响应性
       }
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 1000, // 长按1秒后开始拖拽，避免误触发
-        tolerance: 5, // 容差5px，更严格
+        delay: 1000, // 手机端长按1秒激活拖拽
+        tolerance: 8, // 容差8px，平衡响应性和稳定性
       }
     }),
     useSensor(KeyboardSensor, {
@@ -337,6 +344,11 @@ export default function Dashboard() {
       const orderIds = newItems.map(item => item.id)
       localStorage.setItem(`dashboard-order-${user.id}`, JSON.stringify(orderIds))
     }
+  }
+
+  // 处理拖拽取消
+  const handleDragCancel = () => {
+    setIsDragMode(false)
   }
 
   // 只返回实际的模块，不添加占位符
@@ -409,6 +421,7 @@ export default function Dashboard() {
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
               items={getDisplayModules().map(m => m.id)}
@@ -455,7 +468,7 @@ export default function Dashboard() {
                     💡 提示：长按模块1秒钟来重新排列顺序
                   </p>
                   <p className="text-green-700 text-xs font-mono">
-                    手机端：长按1秒激活拖拽 | 桌面端：拖拽15px激活
+                    手机端：长按1秒激活拖拽 | 桌面端：拖拽8px激活
                   </p>
                 </div>
               )}
