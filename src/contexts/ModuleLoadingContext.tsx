@@ -44,8 +44,68 @@ interface ModuleLoadingProviderProps {
 
 export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) {
   const [moduleStates, setModuleStates] = useState<ModuleLoadingState>({
-    // Dashboard模块默认为已加载状态
+    // 所有模块默认为已加载状态，避免手机端显示加载中
     [MODULE_IDS.DASHBOARD]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.TIMESHEET_RECORD]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.TIMESHEET_HISTORY]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.COMPANY_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.USER_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.PROCESS_MANAGEMENT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.SUPERVISOR_APPROVAL]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.SECTION_CHIEF_APPROVAL]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.REPORTS]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.HISTORY]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.ROLE_LIST]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.ROLE_EDIT]: {
+      isLoaded: true,
+      loadedAt: Date.now(),
+      isHighlighted: false
+    },
+    [MODULE_IDS.ROLE_CREATE]: {
       isLoaded: true,
       loadedAt: Date.now(),
       isHighlighted: false

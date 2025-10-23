@@ -63,6 +63,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
   } = useSortable({ id: module.id })
 
   const { isModuleHighlighted, isModuleLoaded } = useModuleLoading()
+  const [isLongPressing, setIsLongPressing] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -81,6 +82,28 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
       e.preventDefault()
       e.stopPropagation()
     }
+  }
+
+  // 长按反馈效果
+  const handleTouchStart = () => {
+    const timer = setTimeout(() => {
+      setIsLongPressing(true)
+    }, 800) // 800ms后显示长按反馈
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      setIsLongPressing(false)
+    }
+
+    // 监听触摸结束事件
+    const handleTouchEnd = () => {
+      cleanup()
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchcancel', handleTouchEnd)
+    }
+
+    document.addEventListener('touchend', handleTouchEnd)
+    document.addEventListener('touchcancel', handleTouchEnd)
   }
 
   // 移除占位符显示逻辑
@@ -103,6 +126,7 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
       <div 
         {...attributes}
         {...listeners}
+        onTouchStart={handleTouchStart}
         className={`${
           isDragMode 
             ? 'cursor-grabbing' 
@@ -116,6 +140,8 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
         >
           <div className={`relative bg-gray-800 rounded-xl border transition-all duration-300 hover:transform hover:scale-[1.02] hover:shadow-xl min-h-[140px] backdrop-blur-sm ${
             isDragMode ? 'pointer-events-none' : ''
+          } ${
+            isLongPressing ? 'scale-105 border-yellow-400 shadow-lg shadow-yellow-400/30 bg-gradient-to-br from-gray-800 to-yellow-900/20' : ''
           } ${
             isHighlighted 
               ? 'border-green-400 shadow-lg shadow-green-400/20 bg-gradient-to-br from-gray-800 to-green-900/20' 
@@ -175,6 +201,13 @@ function SortableModule({ module, index, isDragMode }: SortableModuleProps) {
             {isDragMode && (
               <div className="absolute inset-0 bg-green-500/10 rounded-xl border-2 border-green-400/50 flex items-center justify-center backdrop-blur-sm">
                 <div className="text-green-400 font-mono text-sm font-bold">拖拽模式</div>
+              </div>
+            )}
+            
+            {/* 长按反馈指示 */}
+            {isLongPressing && !isDragMode && (
+              <div className="absolute inset-0 bg-yellow-500/10 rounded-xl border-2 border-yellow-400/50 flex items-center justify-center backdrop-blur-sm">
+                <div className="text-yellow-400 font-mono text-sm font-bold animate-pulse">即将激活拖拽...</div>
               </div>
             )}
             
@@ -261,17 +294,17 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 优化拖拽灵敏度，避免误触发
+  // 拖拽传感器配置 - 严格控制拖拽激活条件，避免手机端误触发
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10, // 需要移动10px才开始拖拽
+        distance: 15, // 需要移动15px才开始拖拽
       }
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 500, // 长按500ms后开始拖拽，避免误触发
-        tolerance: 8, // 容差8px
+        delay: 1000, // 长按1秒后开始拖拽，避免误触发
+        tolerance: 5, // 容差5px，更严格
       }
     }),
     useSensor(KeyboardSensor, {
@@ -413,13 +446,18 @@ export default function Dashboard() {
               {isDragMode ? (
                 <div className="bg-green-900/30 border border-green-500 rounded-lg p-3">
                   <p className="text-green-400 text-sm font-mono font-bold">
-                    🎯 拖拽模式已激活 - 松开鼠标完成排序
+                    🎯 拖拽模式已激活 - 松开手指完成排序
                   </p>
                 </div>
               ) : (
-                <p className="text-green-600 text-sm font-mono">
-                  💡 提示：长按模块或拖拽一定距离来重新排列顺序
-                </p>
+                <div className="space-y-2">
+                  <p className="text-green-600 text-sm font-mono">
+                    💡 提示：长按模块1秒钟来重新排列顺序
+                  </p>
+                  <p className="text-green-700 text-xs font-mono">
+                    手机端：长按1秒激活拖拽 | 桌面端：拖拽15px激活
+                  </p>
+                </div>
               )}
             </div>
           )}
