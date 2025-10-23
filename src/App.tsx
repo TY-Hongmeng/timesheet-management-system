@@ -39,11 +39,11 @@ const History = lazy(() => import('@/pages/History'))
 
 
 
-// 符合系统风格的加载组件
+// 符合系统风格的加载组件 - 移除容器框
 const EnhancedLoadingSpinner = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-      <div className="text-center p-8 bg-gray-900 border border-green-400 rounded-lg shadow-lg max-w-md mx-4">
+      <div className="text-center p-8 max-w-md mx-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
         <h3 className="text-lg font-semibold text-green-400 mb-2 font-mono">工时管理系统</h3>
         <p className="text-green-300 font-mono">正在加载...</p>

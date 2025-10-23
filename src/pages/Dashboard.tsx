@@ -309,25 +309,33 @@ export default function Dashboard() {
     }
   }
 
-  // 拖拽传感器配置 - 根据拖拽模式动态配置
+  // 拖拽传感器配置 - 始终创建所有传感器，但通过激活约束控制
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: dragModeEnabled ? {
+      distance: 8, // 桌面端需要移动8px才激活拖拽
+    } : {
+      distance: 999999, // 拖拽模式关闭时设置极大距离，实际禁用拖拽
+    }
+  })
+  
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: dragModeEnabled ? {
+      delay: 100, // 手机端延迟100ms，避免与滚动冲突
+      tolerance: 8, // 容忍度8px
+    } : {
+      delay: 999999, // 拖拽模式关闭时设置极大延迟，实际禁用拖拽
+      tolerance: 999999,
+    }
+  })
+  
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  })
+
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: dragModeEnabled ? {
-        distance: 8, // 桌面端需要移动8px才激活拖拽
-      } : undefined
-    }),
-    // 只有在拖拽模式开启时才启用TouchSensor，关闭时完全禁用长按功能
-    ...(dragModeEnabled ? [
-      useSensor(TouchSensor, {
-        activationConstraint: {
-          delay: 100, // 手机端延迟100ms，避免与滚动冲突
-          tolerance: 8, // 容忍度8px
-        }
-      })
-    ] : []),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    pointerSensor,
+    touchSensor,
+    keyboardSensor
   )
 
   // 处理拖拽开始
