@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/globals.css";
+import { performanceMonitor, startTimer, endTimer } from '@/utils/performanceMonitor'
+import { errorLogger, logError, logLoadingError } from '@/utils/errorLogger'
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills';
 import { mobileOptimization } from './utils/mobileOptimization.js';
 
@@ -62,11 +64,28 @@ class AppInitializer {
 
   private async checkNetworkConnection(): Promise<boolean> {
     try {
-      // 简化网络检测，只使用 navigator.onLine
-      return navigator.onLine;
+      // 多层网络检查策略
+      if (!navigator.onLine) {
+        console.log('📴 设备离线状态');
+        return false;
+      }
+      
+      // 检测网络质量
+      const connection = (navigator as any).connection;
+      if (connection) {
+        console.log(`🌐 网络类型: ${connection.effectiveType}, 下行速度: ${connection.downlink}Mbps`);
+        
+        // 如果是极慢的网络，给出警告但不阻止加载
+        if (connection.effectiveType === 'slow-2g') {
+          console.warn('⚠️ 检测到极慢网络，可能影响加载速度');
+        }
+      }
+      
+      return true;
     } catch (error) {
-      console.warn('网络连接检查失败:', error);
-      return navigator.onLine;
+      console.warn('⚠️ 网络检查失败:', error);
+      // 网络检查失败时假设网络可用，避免误判
+      return true;
     }
   }
 
@@ -88,6 +107,11 @@ class AppInitializer {
 
   private async initializeApp() {
     try {
+      console.log('🚀 开始应用初始化...')
+      
+      // 启动应用初始化监控
+      startTimer('应用初始化总耗时')
+      
       this.updateLoaderText('正在初始化兼容性支持...');
       
       // 初始化移动端兼容性
@@ -95,33 +119,61 @@ class AppInitializer {
         initMobileCompatibility();
       }
       
-      // 检查浏览器兼容性
+      // 1. 浏览器兼容性检测
+      startTimer('浏览器兼容性检测')
       if (typeof checkBrowserCompatibility === 'function') {
         const compatibility = checkBrowserCompatibility();
         console.log('浏览器兼容性检测完成:', compatibility);
+        if (!compatibility) {
+          endTimer('浏览器兼容性检测')
+          throw new Error('浏览器不兼容')
+        }
       }
+      endTimer('浏览器兼容性检测')
       
-      // 更新加载状态
-      this.updateLoaderText('正在初始化应用...');
+      // 2. 更新加载状态
+      this.updateLoaderText('正在检查系统环境...');
 
-      // 简单的网络状态检查
+      // 3. 简单的网络状态检查
+      startTimer('网络连接检查')
       if (!navigator.onLine) {
+        endTimer('网络连接检查')
         this.handleOfflineState();
         return;
       }
+      await this.checkNetworkConnection()
+      endTimer('网络连接检查')
 
-      // 预加载关键资源（简化版）
+      // 4. 预加载关键资源（简化版）
       await this.preloadCriticalResources();
 
-      // 注册 Service Worker
+      // 5. 注册 Service Worker
+      startTimer('Service Worker注册')
       await this.registerServiceWorker();
+      endTimer('Service Worker注册')
 
-      // 渲染应用
+      // 6. 渲染应用
+      startTimer('应用渲染')
       this.renderApp();
+      endTimer('应用渲染')
+      
+      // 完成初始化
+      const totalTime = endTimer('应用初始化总耗时')
+      console.log(`✅ 应用初始化完成，总耗时: ${Math.round(totalTime)}ms`)
+      
+      // 生成性能报告
+      performanceMonitor.generatePerformanceReport()
 
     } catch (error) {
-      console.error('应用初始化失败:', error);
-      this.handleInitializationError(error);
+      endTimer('应用初始化总耗时')
+      logError({
+        message: `应用初始化失败: ${(error as Error).message}`,
+        stack: (error as Error).stack,
+        timestamp: Date.now(),
+        context: '应用初始化'
+      })
+      console.error('❌ 应用初始化失败:', error);
+      this.handleInitializationError(error as Error);
     }
   }
 
@@ -129,20 +181,52 @@ class AppInitializer {
     try {
       this.updateLoaderText('正在加载核心资源...');
       
-      // 进一步简化预加载逻辑，减少性能开销
-      // 只在必要时预加载，避免影响首屏加载速度
-      if (navigator.connection && navigator.connection.effectiveType === '4g') {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = '/timesheet-management-system/favicon.svg';
-        document.head.appendChild(link);
+      // 启动预加载监控
+      startTimer('资源预加载');
+      
+      // 智能资源预加载策略
+      const connection = (navigator as any).connection;
+      const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
+      const isLowEndDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2;
+      
+      if (isSlowConnection || isLowEndDevice) {
+        console.log('⚡ 检测到低性能环境，跳过资源预加载');
+        endTimer('资源预加载');
+        return;
       }
       
-      // 减少等待时间
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // 高性能环境：预加载关键资源
+      console.log('🔥 检测到高性能环境，开始预加载关键资源');
+      
+      const preloadPromises = [];
+      
+      // 预加载图标
+      if (connection && (connection.effectiveType === '4g' || connection.effectiveType === '3g')) {
+        const iconLink = document.createElement('link');
+        iconLink.rel = 'prefetch';
+        iconLink.href = import.meta.env.DEV ? '/favicon.svg' : '/timesheet-management-system/favicon.svg';
+        document.head.appendChild(iconLink);
+        
+        // 预加载manifest
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'prefetch';
+        manifestLink.href = import.meta.env.DEV ? '/manifest.json' : '/timesheet-management-system/manifest.json';
+        document.head.appendChild(manifestLink);
+      }
+      
+      // 并行预加载，设置超时
+      await Promise.race([
+        Promise.all(preloadPromises),
+        new Promise(resolve => setTimeout(resolve, 200)) // 最多等待200ms
+      ]);
+      
+      endTimer('资源预加载');
+      console.log('✅ 关键资源预加载完成');
       
     } catch (error) {
-      console.warn('预加载资源失败:', error);
+      endTimer('资源预加载');
+      logLoadingError('资源预加载', error);
+      console.warn('⚠️ 预加载资源失败:', error);
       // 预加载失败不应该阻止应用启动
     }
   }
@@ -189,20 +273,33 @@ class AppInitializer {
         </StrictMode>
       );
 
-      // 隐藏加载屏幕 - 优化跳转时机，减少黑屏
-      // 检查加载是否已完成，如果是则立即跳转
+      // 智能跳转策略 - 进一步优化，几乎消除黑屏
+      console.log('🎯 React应用渲染完成，准备跳转');
+      
+      // 立即检查加载状态并跳转
+      const performJump = () => {
+        if (window.hideInitialLoader) {
+          console.log('✅ 执行立即跳转');
+          window.hideInitialLoader();
+        } else {
+          // 备用跳转方案 - 更快的响应
+          console.log('🔄 执行备用跳转方案');
+          const loader = document.getElementById('initial-loader');
+          if (loader && loader.style.display !== 'none') {
+            loader.style.display = 'none';
+          }
+        }
+      };
+      
+      // 检查加载进度状态
       if ((window as any).loadingComplete) {
         // 加载进度已经100%，立即跳转
-        if (window.hideInitialLoader) {
-          window.hideInitialLoader();
-        }
+        console.log('⚡ 加载已完成，立即跳转');
+        performJump();
       } else {
-        // 加载进度还没到100%，等待一小段时间
-        setTimeout(() => {
-          if (window.hideInitialLoader) {
-            window.hideInitialLoader();
-          }
-        }, 100); // 大幅减少延迟时间
+        // 加载进度还没到100%，但React已准备好，快速跳转
+        console.log('🚀 React就绪，快速跳转');
+        setTimeout(performJump, 30); // 进一步减少到30ms
       }
 
       console.log('应用启动成功');

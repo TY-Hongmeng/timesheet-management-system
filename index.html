@@ -485,40 +485,47 @@
           updateProgress(stage.progress, stage.text, stage.status);
           currentStageIndex++;
           
-          // 根据阶段设置不同的延迟时间
-          let delay = 600;
-          if (currentStageIndex === 1) delay = 300; // 快速启动
-          if (currentStageIndex === 2) delay = 800; // 数据库连接稍慢
-          if (currentStageIndex === 3) delay = 500; // UI 加载
-          if (currentStageIndex === 4) delay = 700; // 资源预加载
-          if (currentStageIndex === 5) delay = 400; // 完成初始化
-          if (currentStageIndex === 6) delay = 300; // 最终完成
+          // 智能延迟配置 - 根据网络条件动态调整
+          const connection = navigator.connection;
+          const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
+          
+          let delay = isSlowConnection ? 800 : 400; // 基础延迟
+          if (currentStageIndex === 1) delay = isSlowConnection ? 400 : 150; // 快速启动
+          if (currentStageIndex === 2) delay = isSlowConnection ? 1000 : 300; // 数据库连接
+          if (currentStageIndex === 3) delay = isSlowConnection ? 600 : 200; // UI 加载
+          if (currentStageIndex === 4) delay = isSlowConnection ? 800 : 250; // 资源预加载
+          if (currentStageIndex === 5) delay = isSlowConnection ? 500 : 150; // 完成初始化
+          if (currentStageIndex === 6) delay = isSlowConnection ? 400 : 100; // 最终完成
           
           // 检查是否到达100%进度
           if (stage.progress === 100) {
-            // 到达100%后，立即跳转，消除黑屏时间
-            setTimeout(() => {
-              // 确保React应用已经加载完成，如果没有则强制跳转
-              if (document.getElementById('initial-loader').style.display !== 'none') {
-                console.log('进度100%，立即跳转到应用');
-                // 设置一个标志，表示加载已完成，可以跳转
-                window.loadingComplete = true;
-                
-                // 如果React应用还没有调用hideInitialLoader，立即调用
-                if (window.hideInitialLoader) {
-                  window.hideInitialLoader();
-                } else {
-                  // 备用跳转方案，立即执行
-                  setTimeout(() => {
-                    const loader = document.getElementById('initial-loader');
-                    if (loader && loader.style.display !== 'none') {
-                      console.log('备用跳转方案激活');
-                      loader.style.display = 'none';
-                    }
-                  }, 50); // 减少到50ms
+            // 智能跳转策略 - 几乎消除黑屏时间
+            const performSmartJump = () => {
+              console.log('🎯 进度100%，执行智能跳转策略');
+              
+              // 设置加载完成标志
+              window.loadingComplete = true;
+              
+              // 立即尝试跳转
+              if (window.hideInitialLoader) {
+                console.log('✅ 立即执行主跳转方案');
+                window.hideInitialLoader();
+              } else {
+                // 备用跳转方案 - 更快响应
+                console.log('🔄 执行备用跳转方案');
+                const loader = document.getElementById('initial-loader');
+                if (loader && loader.style.display !== 'none') {
+                  loader.style.display = 'none';
                 }
               }
-            }, 50); // 100%后等待50ms，大幅减少黑屏时间
+            };
+            
+            // 检测网络条件决定跳转延迟
+            const connection = navigator.connection;
+            const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
+            const jumpDelay = isSlowConnection ? 30 : 10; // 慢网络稍微多等一点
+            
+            setTimeout(performSmartJump, jumpDelay); // 大幅减少延迟
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
           }

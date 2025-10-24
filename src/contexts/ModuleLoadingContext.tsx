@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { performanceMonitor, startTimer, endTimer } from '@/utils/performanceMonitor'
+import { errorLogger, logLoadingError } from '@/utils/errorLogger'
 
 // 模块加载状态类型
 interface ModuleLoadingState {
@@ -65,12 +67,29 @@ const MODULE_PRIORITIES = {
   [MODULE_IDS.ROLE_CREATE]: 4
 }
 
-// 分级加载延迟配置
-const LOADING_DELAYS = {
-  1: 0,     // 立即加载
-  2: 500,   // 500ms后加载
-  3: 1000,  // 1秒后加载
-  4: 1500   // 1.5秒后加载
+// 智能分级加载延迟配置 - 根据网络条件动态调整
+const getLoadingDelays = () => {
+  const connection = (navigator as any).connection
+  const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')
+  const isLowEndDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2
+  
+  if (isSlowConnection || isLowEndDevice) {
+    // 低性能环境：更保守的延迟
+    return {
+      1: 0,     // 立即加载
+      2: 800,   // 800ms后加载
+      3: 1500,  // 1.5秒后加载
+      4: 2500   // 2.5秒后加载
+    }
+  } else {
+    // 高性能环境：更激进的延迟
+    return {
+      1: 0,     // 立即加载
+      2: 200,   // 200ms后加载（大幅减少）
+      3: 500,   // 500ms后加载（大幅减少）
+      4: 800    // 800ms后加载（大幅减少）
+    }
+  }
 }
 
 interface ModuleLoadingProviderProps {
@@ -93,8 +112,16 @@ export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) 
     return initialStates
   })
 
-  // 分级加载初始化
+  // 智能分级加载初始化 - 增强版
   const initializeProgressiveLoading = () => {
+    console.log('🚀 启动智能分级加载策略')
+    
+    // 启动总体性能监控
+    startTimer('分级加载总耗时')
+    
+    // 获取动态延迟配置
+    const LOADING_DELAYS = getLoadingDelays()
+    
     // 按优先级分组加载模块
     const modulesByPriority: { [priority: number]: string[] } = {}
     
@@ -105,21 +132,61 @@ export function ModuleLoadingProvider({ children }: ModuleLoadingProviderProps) 
       modulesByPriority[priority].push(moduleId)
     })
     
-    // 按优先级顺序加载
+    // 性能监控和错误处理
+    let loadedCount = 0
+    const totalModules = Object.keys(MODULE_PRIORITIES).length
+    
+    // 按优先级顺序加载，添加错误处理和重试机制
     Object.entries(modulesByPriority).forEach(([priority, moduleIds]) => {
       const delay = LOADING_DELAYS[parseInt(priority)]
       
       setTimeout(() => {
-        moduleIds.forEach(moduleId => {
-          setModuleStates(prev => ({
-            ...prev,
-            [moduleId]: {
-              ...prev[moduleId],
-              isLoaded: true,
-              loadedAt: Date.now()
+        startTimer(`优先级${priority}模块加载`)
+        try {
+          moduleIds.forEach(moduleId => {
+            setModuleStates(prev => ({
+              ...prev,
+              [moduleId]: {
+                ...prev[moduleId],
+                isLoaded: true,
+                loadedAt: Date.now()
+              }
+            }))
+            
+            loadedCount++
+            console.log(`✅ 模块 ${moduleId} 加载完成 (${loadedCount}/${totalModules})`)
+            
+            // 当所有模块加载完成时记录性能
+            if (loadedCount === totalModules) {
+              const totalTime = endTimer('分级加载总耗时')
+              performanceMonitor.recordMetric('分级加载模块数', totalModules)
+              console.log(`🎯 所有模块加载完成，总耗时: ${Math.round(totalTime)}ms`)
+              
+              // 生成性能报告
+              performanceMonitor.generatePerformanceReport()
             }
-          }))
-        })
+          })
+          endTimer(`优先级${priority}模块加载`)
+        } catch (error) {
+          endTimer(`优先级${priority}模块加载`)
+          logLoadingError(`优先级${priority}模块加载`, error)
+          console.error(`❌ 优先级 ${priority} 模块加载失败:`, error)
+          
+          // 重试机制
+          setTimeout(() => {
+            console.log(`🔄 重试加载优先级 ${priority} 模块`)
+            moduleIds.forEach(moduleId => {
+              setModuleStates(prev => ({
+                ...prev,
+                [moduleId]: {
+                  ...prev[moduleId],
+                  isLoaded: true,
+                  loadedAt: Date.now()
+                }
+              }))
+            })
+          }, 1000) // 1秒后重试
+        }
       }, delay)
     })
   }

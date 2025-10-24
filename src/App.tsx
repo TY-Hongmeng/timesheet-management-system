@@ -5,6 +5,8 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import RoleProtectedRoute from '@/components/RoleProtectedRoute'
 import { Toaster } from 'sonner'
 import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
+import { performanceMonitor, startTimer, endTimer } from '@/utils/performanceMonitor'
+import { errorLogger, logError, logLoadingError } from '@/utils/errorLogger'
 
 
 
@@ -39,14 +41,81 @@ const History = lazy(() => import('@/pages/History'))
 
 
 
-// 符合系统风格的加载组件 - 移除容器框
+// 增强的加载组件 - 支持错误处理和重试
 const EnhancedLoadingSpinner = () => {
+  const [loadingText, setLoadingText] = useState('正在加载...')
+  const [showRetry, setShowRetry] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  
+  useEffect(() => {
+    // 启动加载监控
+    startTimer('组件加载时间')
+    
+    // 动态加载文本
+    const texts = [
+      '正在加载...',
+      '正在初始化组件...',
+      '正在建立连接...',
+      '即将完成...'
+    ]
+    
+    let index = 0
+    const interval = setInterval(() => {
+      index = (index + 1) % texts.length
+      setLoadingText(texts[index])
+    }, 2000)
+    
+    // 超时检测
+    const timeout = setTimeout(() => {
+      setShowRetry(true)
+      setLoadingText('加载时间较长，可能网络较慢')
+      
+      // 记录加载超时
+      logLoadingError('组件加载超时', new Error('组件加载超过10秒'), retryCount)
+      endTimer('组件加载时间')
+    }, 10000)
+    
+    return () => {
+      clearInterval(interval)
+      clearTimeout(timeout)
+      endTimer('组件加载时间')
+    }
+  }, [])
+  
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1)
+    setShowRetry(false)
+    setLoadingText('正在重试加载...')
+    
+    // 记录重试操作
+    logLoadingError('用户手动重试', new Error('用户点击重试按钮'), retryCount)
+    
+    // 刷新页面重试
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+  }
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black">
       <div className="text-center p-8 max-w-md mx-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
         <h3 className="text-lg font-semibold text-green-400 mb-2 font-mono">工时管理系统</h3>
-        <p className="text-green-300 font-mono">正在加载...</p>
+        <p className="text-green-300 font-mono mb-4">{loadingText}</p>
+        
+        {showRetry && (
+          <div className="space-y-3">
+            <p className="text-yellow-400 text-sm font-mono">
+              {retryCount > 0 ? `重试次数: ${retryCount}` : '网络连接可能较慢'}
+            </p>
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-mono text-sm rounded transition-colors"
+            >
+              重新加载
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -74,6 +143,19 @@ class AppErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('应用错误边界捕获到错误:', error, errorInfo)
+    
+    // 记录错误到错误日志系统
+    logError({
+      message: error.message,
+      stack: error.stack,
+      timestamp: Date.now(),
+      context: '应用错误边界',
+      url: window.location.href
+    })
+    
+    // 生成错误报告
+    errorLogger.generateErrorReport()
+    
     this.setState({ error, errorInfo })
   }
 
@@ -130,41 +212,152 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 智能分层预加载策略
+// 深度优化的预加载策略 - 根据网络和设备性能动态调整
 const preloadComponents = () => {
-  // 优化预加载策略 - 只预加载最核心的组件，减少首屏加载时间
-  // 第一层：仅预加载Dashboard（用户登录后的首页）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      Dashboard.preload?.()
-    }, { timeout: 2000 }) // 增加延迟，确保首屏加载完成
-  } else {
+  console.log('🚀 启动深度优化预加载策略...')
+  
+  // 启动性能监控
+  startTimer('预加载总耗时')
+  let loadedModules = 0
+  
+  // 检测网络和设备性能
+  const connection = (navigator as any).connection
+  const isSlowNetwork = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')
+  const isLowEndDevice = navigator.hardwareConcurrency <= 2
+  const isLowPerformance = isSlowNetwork || isLowEndDevice
+  
+  console.log(`📊 性能检测: 网络=${connection?.effectiveType || 'unknown'}, CPU核心=${navigator.hardwareConcurrency}, 低性能模式=${isLowPerformance}`)
+  
+  if (isLowPerformance) {
+    console.log('⚡ 检测到低性能环境，采用保守预加载策略')
+    
+    // 低性能环境：只预加载最关键的组件
     setTimeout(() => {
-      Dashboard.preload?.()
-    }, 2000)
-  }
-
-  // 第二层：延迟预加载最常用的工时记录功能
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      TimesheetRecord.preload?.()
-    }, { timeout: 5000 })
-  } else {
+      startTimer('Dashboard预加载')
+      Dashboard().then(() => {
+        endTimer('Dashboard预加载')
+        loadedModules++
+        console.log('✅ Dashboard 预加载完成')
+      }).catch(err => {
+        endTimer('Dashboard预加载')
+        logLoadingError('Dashboard预加载', err)
+        console.warn('⚠️ Dashboard 预加载失败:', err)
+      })
+    }, 100)
+    
     setTimeout(() => {
-      TimesheetRecord.preload?.()
-    }, 5000)
-  }
-
-  // 第三层：其他组件仅在网络条件良好时预加载
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      const connection = navigator.connection
-      const isGoodConnection = !connection || connection.effectiveType === '4g'
-      
-      if (isGoodConnection) {
-        TimesheetHistory.preload?.()
-      }
-    }, { timeout: 10000 })
+      startTimer('TimesheetRecord预加载')
+      TimesheetRecord().then(() => {
+        endTimer('TimesheetRecord预加载')
+        loadedModules++
+        console.log('✅ TimesheetRecord 预加载完成')
+        
+        // 低性能环境预加载完成
+        endTimer('预加载总耗时')
+        performanceMonitor.recordMetric('低性能预加载模块数', loadedModules)
+      }).catch(err => {
+        endTimer('TimesheetRecord预加载')
+        logLoadingError('TimesheetRecord预加载', err)
+        console.warn('⚠️ TimesheetRecord 预加载失败:', err)
+      })
+    }, 300)
+    
+  } else {
+    console.log('🚀 高性能环境，采用积极分层预加载策略')
+    
+    // 第一层：核心功能（立即开始）
+    setTimeout(() => {
+      startTimer('第一层预加载')
+      Promise.all([
+        Dashboard().then(() => console.log('✅ Dashboard 预加载完成')),
+        TimesheetRecord().then(() => console.log('✅ TimesheetRecord 预加载完成'))
+      ]).then(() => {
+        endTimer('第一层预加载')
+        loadedModules += 2
+        console.log('🎯 第一层预加载完成')
+      }).catch(err => {
+        endTimer('第一层预加载')
+        logLoadingError('第一层预加载', err)
+        console.warn('⚠️ 第一层预加载部分失败:', err)
+      })
+    }, 50)
+    
+    // 第二层：常用功能
+    setTimeout(() => {
+      startTimer('第二层预加载')
+      Promise.all([
+        TimesheetHistory().then(() => console.log('✅ TimesheetHistory 预加载完成')),
+        CompanyManagement().then(() => console.log('✅ CompanyManagement 预加载完成')),
+        UserManagement().then(() => console.log('✅ UserManagement 预加载完成'))
+      ]).then(() => {
+        endTimer('第二层预加载')
+        loadedModules += 3
+        console.log('🎯 第二层预加载完成')
+      }).catch(err => {
+        endTimer('第二层预加载')
+        logLoadingError('第二层预加载', err)
+        console.warn('⚠️ 第二层预加载部分失败:', err)
+      })
+    }, 200)
+    
+    // 第三层：管理功能
+    setTimeout(() => {
+      startTimer('第三层预加载')
+      Promise.all([
+        ProcessManagement().then(() => console.log('✅ ProcessManagement 预加载完成')),
+        RoleList().then(() => console.log('✅ RoleList 预加载完成'))
+      ]).then(() => {
+        endTimer('第三层预加载')
+        loadedModules += 2
+        console.log('🎯 第三层预加载完成')
+      }).catch(err => {
+        endTimer('第三层预加载')
+        logLoadingError('第三层预加载', err)
+        console.warn('⚠️ 第三层预加载部分失败:', err)
+      })
+    }, 500)
+    
+    // 第四层：审批功能
+    setTimeout(() => {
+      startTimer('第四层预加载')
+      Promise.all([
+        SupervisorApproval().then(() => console.log('✅ SupervisorApproval 预加载完成')),
+        SectionChiefApproval().then(() => console.log('✅ SectionChiefApproval 预加载完成'))
+      ]).then(() => {
+        endTimer('第四层预加载')
+        loadedModules += 2
+        console.log('🎯 第四层预加载完成')
+      }).catch(err => {
+        endTimer('第四层预加载')
+        logLoadingError('第四层预加载', err)
+        console.warn('⚠️ 第四层预加载部分失败:', err)
+      })
+    }, 800)
+    
+    // 第五层：报表功能（最后加载，包含大型库）
+    setTimeout(() => {
+      startTimer('第五层预加载')
+      Promise.all([
+        Reports().then(() => console.log('✅ Reports 预加载完成')),
+        History().then(() => console.log('✅ History 预加载完成'))
+      ]).then(() => {
+        endTimer('第五层预加载')
+        loadedModules += 2
+        console.log('🎯 第五层预加载完成')
+        
+        // 输出总体性能报告
+        const totalTime = endTimer('预加载总耗时')
+        performanceMonitor.recordMetric('高性能预加载模块数', loadedModules)
+        console.log(`📊 预加载完成统计: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
+        
+        // 生成性能报告
+        performanceMonitor.generatePerformanceReport()
+      }).catch(err => {
+        endTimer('第五层预加载')
+        logLoadingError('第五层预加载', err)
+        console.warn('⚠️ 第五层预加载部分失败:', err)
+      })
+    }, 1200)
   }
 }
 
@@ -282,6 +475,34 @@ function AppInner() {
 
 // 主App组件
 function App() {
+  useEffect(() => {
+    // 启动应用监控
+    startTimer('应用启动时间')
+    console.log('🚀 应用开始启动...')
+    
+    // 记录应用启动信息
+    performanceMonitor.recordMetric('应用启动时间戳', Date.now())
+    
+    // 启动预加载
+    preloadComponents()
+    
+    // 检查是否有严重错误
+    if (errorLogger.hasCriticalErrors()) {
+      console.warn('⚠️ 检测到严重错误，可能影响应用性能')
+      errorLogger.generateErrorReport()
+    }
+    
+    // 应用启动完成
+    setTimeout(() => {
+      endTimer('应用启动时间')
+      console.log('✅ 应用启动完成')
+    }, 100)
+    
+    return () => {
+      endTimer('应用启动时间')
+    }
+  }, [])
+
   return (
     <AppErrorBoundary>
       <AuthProvider>
