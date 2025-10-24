@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络连接错误 - 工时管理系统</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .error-container {
+            max-width: 500px;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #ef4444;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #00ff41;
+        }
+        
+        .error-message {
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            color: #a3a3a3;
+        }
+        
+        .retry-button {
+            background: #16a34a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-button:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+        }
+        
+        .error-details {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h1 class="error-title">网络连接错误</h1>
+        <div class="error-message">
+            <p>很抱歉，系统无法正常加载。这可能是由于以下原因：</p>
+            <ul style="text-align: left; margin: 1rem 0;">
+                <li>网络连接不稳定</li>
+                <li>服务器暂时不可用</li>
+                <li>浏览器缓存问题</li>
+            </ul>
+        </div>
+        
+        <button class="retry-button" onclick="retryLoad()">重新加载</button>
+        <button class="retry-button" onclick="clearCacheAndReload()">清除缓存并重新加载</button>
+        
+        <div class="error-details" id="error-details" style="display: none;">
+            <strong>错误详情：</strong>
+            <div id="error-info"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
+        const originalUrl = urlParams.get('url');
+        
+        // 显示错误详情
+        if (error || message) {
+            const errorDetails = document.getElementById('error-details');
+            const errorInfo = document.getElementById('error-info');
+            
+            errorDetails.style.display = 'block';
+            errorInfo.innerHTML = `
+                <p><strong>错误类型：</strong> ${error || '未知错误'}</p>
+                <p><strong>错误信息：</strong> ${message || '无详细信息'}</p>
+                <p><strong>原始页面：</strong> ${originalUrl || '/'}</p>
+            `;
+        }
+        
+        function retryLoad() {
+            // 返回原始页面或首页
+            const targetUrl = originalUrl || '/';
+            window.location.href = targetUrl;
+        }
+        
+        function clearCacheAndReload() {
+            // 清除缓存并重新加载
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                }).then(() => {
+                    retryLoad();
+                });
+            } else {
+                // 如果不支持Cache API，直接重新加载
+                retryLoad();
+            }
+        }
+        
+        // 自动重试机制
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        function autoRetry() {
+            if (retryCount < maxRetries && navigator.onLine) {
+                retryCount++;
+                console.log(`自动重试 ${retryCount}/${maxRetries}`);
+                setTimeout(retryLoad, 3000 * retryCount); // 递增延迟
+            }
+        }
+        
+        // 监听网络状态变化
+        window.addEventListener('online', () => {
+            console.log('网络已恢复，自动重试');
+            setTimeout(retryLoad, 1000);
+        });
+        
+        // 页面加载后启动自动重试
+        setTimeout(autoRetry, 5000);
+    </script>
+</body>
+</html>

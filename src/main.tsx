@@ -352,7 +352,7 @@ class AppInitializer {
           await waitForReactMount();
           
           // 最小等待时间，确保渲染稳定
-          await new Promise(resolve => setTimeout(resolve, 20));
+          await new Promise(resolve => setTimeout(resolve, 50));
           
           // 立即执行跳转
           executeJump();
@@ -363,6 +363,9 @@ class AppInitializer {
           executeJump();
         }
       };
+      
+      // 确保跳转函数立即可用
+      console.log('✅ triggerReactJump 函数已注册到全局');
       
       // 备用自动跳转机制 - 如果index.html没有触发
       setTimeout(async () => {
@@ -379,7 +382,16 @@ class AppInitializer {
             // 继续等待
           }
         }
-      }, 100); // 100ms后检查
+      }, 200); // 增加到200ms后检查
+      
+      // 最终保护机制 - 确保应用一定会显示
+      setTimeout(() => {
+        const loader = document.getElementById('initial-loader');
+        if (loader && loader.style.display !== 'none') {
+          console.log('🚨 最终保护机制：强制显示应用');
+          executeJump();
+        }
+      }, 5000); // 5秒后强制显示
 
       console.log('应用启动成功');
       

@@ -503,13 +503,29 @@
             console.log('🎯 进度100%，设置加载完成标志');
             window.loadingComplete = true;
             
-            // 立即通知React应用可以开始跳转
-            console.log('📢 通知React应用开始跳转');
-            if (window.triggerReactJump) {
-              window.triggerReactJump();
-            }
+            // 等待一小段时间确保React应用已准备好
+            setTimeout(() => {
+              console.log('📢 通知React应用开始跳转');
+              if (window.triggerReactJump) {
+                window.triggerReactJump();
+              } else {
+                console.log('⚠️ triggerReactJump 不可用，使用备用跳转');
+                if (window.hideInitialLoader) {
+                  window.hideInitialLoader();
+                } else {
+                  const loader = document.getElementById('initial-loader');
+                  if (loader) {
+                    loader.style.opacity = '0';
+                    loader.style.transition = 'opacity 0.3s ease-out';
+                    setTimeout(() => {
+                      loader.style.display = 'none';
+                    }, 300);
+                  }
+                }
+              }
+            }, 500); // 给React应用500ms准备时间
             
-            // 设置快速超时保护，如果React应用1.5秒内没有跳转，则强制跳转
+            // 设置快速超时保护，如果React应用2秒内没有跳转，则强制跳转
             setTimeout(() => {
               const loader = document.getElementById('initial-loader');
               if (loader && loader.style.display !== 'none') {
@@ -524,7 +540,7 @@
                   }, 300);
                 }
               }
-            }, 1500); // 从5秒减少到1.5秒
+            }, 2000); // 增加到2秒，给更多时间
             
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
@@ -611,11 +627,24 @@
           try {
             // 检测环境并设置正确的 SW 路径
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const swPath = isLocal ? '/sw.js' : '/timesheet-management-system/sw.js';
+            const isGitHubPages = window.location.hostname.includes('github.io');
             
-            const registration = await navigator.serviceWorker.register(swPath, {
-              scope: isLocal ? '/' : '/timesheet-management-system/'
-            });
+            let swPath, scope;
+            if (isLocal) {
+              swPath = '/sw.js';
+              scope = '/';
+            } else if (isGitHubPages) {
+              swPath = '/timesheet-management-system/sw.js';
+              scope = '/timesheet-management-system/';
+            } else {
+              // 其他部署环境，尝试根路径
+              swPath = '/sw.js';
+              scope = '/';
+            }
+            
+            console.log(`[SW] 尝试注册 Service Worker: ${swPath}, scope: ${scope}`);
+            
+            const registration = await navigator.serviceWorker.register(swPath, { scope });
             
             console.log('[SW] Service Worker 注册成功:', registration.scope);
             
@@ -678,7 +707,7 @@
       // 启动超时保护
       startLoadingTimeout();
       
-      // 增强的错误处理 - 支持网络错误重定向
+      // 增强的错误处理 - 支持网络错误恢复
       window.addEventListener('error', (event) => {
         console.error('页面加载错误:', event.error);
         clearLoadingTimeout();
@@ -687,15 +716,27 @@
         const errorMessage = event.error?.message || '';
         if (errorMessage.includes('CONNECTION_RESET') || 
             errorMessage.includes('ERR_CONNECTION_RESET') ||
-            errorMessage.includes('net::ERR_')) {
+            errorMessage.includes('net::ERR_') ||
+            errorMessage.includes('ERR_FAILED')) {
           
-          // 重定向到错误处理页面
-          const errorUrl = new URL('/error-handler.html', window.location.origin);
-          errorUrl.searchParams.set('error', 'ERR_CONNECTION_RESET');
-          errorUrl.searchParams.set('message', errorMessage);
-          errorUrl.searchParams.set('url', window.location.pathname);
+          console.log('🔄 检测到网络错误，启动恢复机制');
           
-          window.location.href = errorUrl.toString();
+          // 显示网络错误提示
+          const textEl = document.getElementById('loader-text');
+          const statusEl = document.getElementById('loader-status');
+          if (textEl) textEl.textContent = '网络连接异常，正在尝试恢复...';
+          if (statusEl) statusEl.textContent = '请检查网络连接';
+          
+          // 尝试自动恢复
+          setTimeout(() => {
+            if (navigator.onLine) {
+              console.log('🌐 网络已恢复，重新加载页面');
+              window.location.reload();
+            } else {
+              showRetryButton('网络连接失败，请检查网络后点击重试');
+            }
+          }, 3000);
+          
           return;
         }
         
