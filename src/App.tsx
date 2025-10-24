@@ -232,132 +232,132 @@ const preloadComponents = () => {
     console.log('⚡ 检测到低性能环境，采用保守预加载策略')
     
     // 低性能环境：只预加载最关键的组件
-    setTimeout(() => {
-      startTimer('Dashboard预加载')
-      Dashboard().then(() => {
-        endTimer('Dashboard预加载')
-        loadedModules++
-        console.log('✅ Dashboard 预加载完成')
-      }).catch(err => {
-        endTimer('Dashboard预加载')
-        logLoadingError('Dashboard预加载', err)
-        console.warn('⚠️ Dashboard 预加载失败:', err)
-      })
-    }, 100)
-    
-    setTimeout(() => {
-      startTimer('TimesheetRecord预加载')
-      TimesheetRecord().then(() => {
-        endTimer('TimesheetRecord预加载')
-        loadedModules++
-        console.log('✅ TimesheetRecord 预加载完成')
-        
-        // 低性能环境预加载完成
-        endTimer('预加载总耗时')
-        performanceMonitor.recordMetric('低性能预加载模块数', loadedModules)
-      }).catch(err => {
-        endTimer('TimesheetRecord预加载')
-        logLoadingError('TimesheetRecord预加载', err)
-        console.warn('⚠️ TimesheetRecord 预加载失败:', err)
-      })
-    }, 300)
+     setTimeout(() => {
+       startTimer('Dashboard预加载')
+       import('@/pages/Dashboard').then(() => {
+         endTimer('Dashboard预加载')
+         loadedModules++
+         console.log('✅ Dashboard 预加载完成')
+       }).catch(err => {
+         endTimer('Dashboard预加载')
+         logLoadingError('Dashboard预加载', err)
+         console.warn('⚠️ Dashboard 预加载失败:', err)
+       })
+     }, 100)
+     
+     setTimeout(() => {
+       startTimer('TimesheetRecord预加载')
+       import('@/pages/TimesheetRecord').then(() => {
+         endTimer('TimesheetRecord预加载')
+         loadedModules++
+         console.log('✅ TimesheetRecord 预加载完成')
+         
+         // 低性能环境预加载完成
+         endTimer('预加载总耗时')
+         performanceMonitor.recordMetric('低性能预加载模块数', loadedModules)
+       }).catch(err => {
+         endTimer('TimesheetRecord预加载')
+         logLoadingError('TimesheetRecord预加载', err)
+         console.warn('⚠️ TimesheetRecord 预加载失败:', err)
+       })
+     }, 300)
     
   } else {
     console.log('🚀 高性能环境，采用积极分层预加载策略')
     
     // 第一层：核心功能（立即开始）
-    setTimeout(() => {
-      startTimer('第一层预加载')
-      Promise.all([
-        Dashboard().then(() => console.log('✅ Dashboard 预加载完成')),
-        TimesheetRecord().then(() => console.log('✅ TimesheetRecord 预加载完成'))
-      ]).then(() => {
-        endTimer('第一层预加载')
-        loadedModules += 2
-        console.log('🎯 第一层预加载完成')
-      }).catch(err => {
-        endTimer('第一层预加载')
-        logLoadingError('第一层预加载', err)
-        console.warn('⚠️ 第一层预加载部分失败:', err)
-      })
-    }, 50)
-    
-    // 第二层：常用功能
-    setTimeout(() => {
-      startTimer('第二层预加载')
-      Promise.all([
-        TimesheetHistory().then(() => console.log('✅ TimesheetHistory 预加载完成')),
-        CompanyManagement().then(() => console.log('✅ CompanyManagement 预加载完成')),
-        UserManagement().then(() => console.log('✅ UserManagement 预加载完成'))
-      ]).then(() => {
-        endTimer('第二层预加载')
-        loadedModules += 3
-        console.log('🎯 第二层预加载完成')
-      }).catch(err => {
-        endTimer('第二层预加载')
-        logLoadingError('第二层预加载', err)
-        console.warn('⚠️ 第二层预加载部分失败:', err)
-      })
-    }, 200)
-    
-    // 第三层：管理功能
-    setTimeout(() => {
-      startTimer('第三层预加载')
-      Promise.all([
-        ProcessManagement().then(() => console.log('✅ ProcessManagement 预加载完成')),
-        RoleList().then(() => console.log('✅ RoleList 预加载完成'))
-      ]).then(() => {
-        endTimer('第三层预加载')
-        loadedModules += 2
-        console.log('🎯 第三层预加载完成')
-      }).catch(err => {
-        endTimer('第三层预加载')
-        logLoadingError('第三层预加载', err)
-        console.warn('⚠️ 第三层预加载部分失败:', err)
-      })
-    }, 500)
-    
-    // 第四层：审批功能
-    setTimeout(() => {
-      startTimer('第四层预加载')
-      Promise.all([
-        SupervisorApproval().then(() => console.log('✅ SupervisorApproval 预加载完成')),
-        SectionChiefApproval().then(() => console.log('✅ SectionChiefApproval 预加载完成'))
-      ]).then(() => {
-        endTimer('第四层预加载')
-        loadedModules += 2
-        console.log('🎯 第四层预加载完成')
-      }).catch(err => {
-        endTimer('第四层预加载')
-        logLoadingError('第四层预加载', err)
-        console.warn('⚠️ 第四层预加载部分失败:', err)
-      })
-    }, 800)
-    
-    // 第五层：报表功能（最后加载，包含大型库）
-    setTimeout(() => {
-      startTimer('第五层预加载')
-      Promise.all([
-        Reports().then(() => console.log('✅ Reports 预加载完成')),
-        History().then(() => console.log('✅ History 预加载完成'))
-      ]).then(() => {
-        endTimer('第五层预加载')
-        loadedModules += 2
-        console.log('🎯 第五层预加载完成')
-        
-        // 输出总体性能报告
-        const totalTime = endTimer('预加载总耗时')
-        performanceMonitor.recordMetric('高性能预加载模块数', loadedModules)
-        console.log(`📊 预加载完成统计: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
-        
-        // 生成性能报告
-        performanceMonitor.generatePerformanceReport()
-      }).catch(err => {
-        endTimer('第五层预加载')
-        logLoadingError('第五层预加载', err)
-        console.warn('⚠️ 第五层预加载部分失败:', err)
-      })
-    }, 1200)
+     setTimeout(() => {
+       startTimer('第一层预加载')
+       Promise.all([
+         import('@/pages/Dashboard').then(() => console.log('✅ Dashboard 预加载完成')),
+         import('@/pages/TimesheetRecord').then(() => console.log('✅ TimesheetRecord 预加载完成'))
+       ]).then(() => {
+         endTimer('第一层预加载')
+         loadedModules += 2
+         console.log('🎯 第一层预加载完成')
+       }).catch(err => {
+         endTimer('第一层预加载')
+         logLoadingError('第一层预加载', err)
+         console.warn('⚠️ 第一层预加载部分失败:', err)
+       })
+     }, 50)
+     
+     // 第二层：常用功能
+     setTimeout(() => {
+       startTimer('第二层预加载')
+       Promise.all([
+         import('@/pages/TimesheetHistory').then(() => console.log('✅ TimesheetHistory 预加载完成')),
+         import('@/pages/CompanyManagement').then(() => console.log('✅ CompanyManagement 预加载完成')),
+         import('@/pages/UserManagement').then(() => console.log('✅ UserManagement 预加载完成'))
+       ]).then(() => {
+         endTimer('第二层预加载')
+         loadedModules += 3
+         console.log('🎯 第二层预加载完成')
+       }).catch(err => {
+         endTimer('第二层预加载')
+         logLoadingError('第二层预加载', err)
+         console.warn('⚠️ 第二层预加载部分失败:', err)
+       })
+     }, 200)
+     
+     // 第三层：管理功能
+     setTimeout(() => {
+       startTimer('第三层预加载')
+       Promise.all([
+         import('@/pages/ProcessManagement').then(() => console.log('✅ ProcessManagement 预加载完成')),
+         import('@/pages/RoleList').then(() => console.log('✅ RoleList 预加载完成'))
+       ]).then(() => {
+         endTimer('第三层预加载')
+         loadedModules += 2
+         console.log('🎯 第三层预加载完成')
+       }).catch(err => {
+         endTimer('第三层预加载')
+         logLoadingError('第三层预加载', err)
+         console.warn('⚠️ 第三层预加载部分失败:', err)
+       })
+     }, 500)
+     
+     // 第四层：审批功能
+     setTimeout(() => {
+       startTimer('第四层预加载')
+       Promise.all([
+         import('@/pages/SupervisorApproval').then(() => console.log('✅ SupervisorApproval 预加载完成')),
+         import('@/pages/SectionChiefApproval').then(() => console.log('✅ SectionChiefApproval 预加载完成'))
+       ]).then(() => {
+         endTimer('第四层预加载')
+         loadedModules += 2
+         console.log('🎯 第四层预加载完成')
+       }).catch(err => {
+         endTimer('第四层预加载')
+         logLoadingError('第四层预加载', err)
+         console.warn('⚠️ 第四层预加载部分失败:', err)
+       })
+     }, 800)
+     
+     // 第五层：报表功能（最后加载，包含大型库）
+     setTimeout(() => {
+       startTimer('第五层预加载')
+       Promise.all([
+         import('@/pages/Reports').then(() => console.log('✅ Reports 预加载完成')),
+         import('@/pages/History').then(() => console.log('✅ History 预加载完成'))
+       ]).then(() => {
+         endTimer('第五层预加载')
+         loadedModules += 2
+         console.log('🎯 第五层预加载完成')
+         
+         // 输出总体性能报告
+         const totalTime = endTimer('预加载总耗时')
+         performanceMonitor.recordMetric('高性能预加载模块数', loadedModules)
+         console.log(`📊 预加载完成统计: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
+         
+         // 生成性能报告
+         performanceMonitor.generatePerformanceReport()
+       }).catch(err => {
+         endTimer('第五层预加载')
+         logLoadingError('第五层预加载', err)
+         console.warn('⚠️ 第五层预加载部分失败:', err)
+       })
+     }, 1200)
   }
 }
 
