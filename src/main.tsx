@@ -273,34 +273,90 @@ class AppInitializer {
         </StrictMode>
       );
 
-      // 智能跳转策略 - 进一步优化，几乎消除黑屏
-      console.log('🎯 React应用渲染完成，准备跳转');
+      // 优化的跳转策略 - 确保React组件完全挂载后再跳转
+      console.log('🎯 React应用渲染完成，等待组件挂载');
       
-      // 立即检查加载状态并跳转
-      const performJump = () => {
-        if (window.hideInitialLoader) {
-          console.log('✅ 执行立即跳转');
-          window.hideInitialLoader();
-        } else {
-          // 备用跳转方案 - 更快的响应
-          console.log('🔄 执行备用跳转方案');
+      // 等待React组件完全挂载的智能检测
+      const waitForReactMount = () => {
+        return new Promise<void>((resolve) => {
+          // 检查DOM是否已经有React渲染的内容
+          const checkMount = () => {
+            const rootElement = document.getElementById('root');
+            if (rootElement && rootElement.children.length > 0) {
+              // 进一步检查是否有实际的应用内容
+              const hasAppContent = rootElement.querySelector('[data-testid], .App, main, nav, header') || 
+                                   rootElement.textContent?.trim().length > 0;
+              
+              if (hasAppContent) {
+                console.log('✅ React组件已完全挂载');
+                resolve();
+                return;
+              }
+            }
+            
+            // 如果还没挂载，继续检查
+            requestAnimationFrame(checkMount);
+          };
+          
+          // 开始检查，但设置最大等待时间
+          checkMount();
+          
+          // 最大等待500ms，防止无限等待
+          setTimeout(() => {
+            console.log('⏰ 达到最大等待时间，强制继续');
+            resolve();
+          }, 500);
+        });
+      };
+      
+      // 执行智能跳转
+      const performSmartJump = async () => {
+        try {
+          // 等待React组件完全挂载
+          await waitForReactMount();
+          
+          // 额外等待一个渲染周期，确保所有组件都已稳定
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          console.log('🚀 开始执行跳转');
+          
+          // 检查加载进度状态
+          if ((window as any).loadingComplete) {
+            console.log('⚡ 加载进度已完成，执行跳转');
+          } else {
+            console.log('🔄 React已就绪，执行跳转');
+            // 标记加载完成，避免index.html中的跳转逻辑冲突
+            (window as any).loadingComplete = true;
+          }
+          
+          // 执行跳转
+          if (window.hideInitialLoader) {
+            console.log('✅ 执行主跳转方案');
+            window.hideInitialLoader();
+          } else {
+            console.log('🔄 执行备用跳转方案');
+            const loader = document.getElementById('initial-loader');
+            if (loader && loader.style.display !== 'none') {
+              loader.style.opacity = '0';
+              loader.style.transition = 'opacity 0.3s ease-out';
+              setTimeout(() => {
+                loader.style.display = 'none';
+              }, 300);
+            }
+          }
+          
+        } catch (error) {
+          console.error('跳转过程中出错:', error);
+          // 出错时强制跳转
           const loader = document.getElementById('initial-loader');
-          if (loader && loader.style.display !== 'none') {
+          if (loader) {
             loader.style.display = 'none';
           }
         }
       };
       
-      // 检查加载进度状态
-      if ((window as any).loadingComplete) {
-        // 加载进度已经100%，立即跳转
-        console.log('⚡ 加载已完成，立即跳转');
-        performJump();
-      } else {
-        // 加载进度还没到100%，但React已准备好，快速跳转
-        console.log('🚀 React就绪，快速跳转');
-        setTimeout(performJump, 30); // 进一步减少到30ms
-      }
+      // 立即开始智能跳转流程
+      performSmartJump();
 
       console.log('应用启动成功');
       

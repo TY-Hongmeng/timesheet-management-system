@@ -212,9 +212,9 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 深度优化的预加载策略 - 根据网络和设备性能动态调整
+// 简化的智能预加载策略 - 减少资源竞争，确保稳定性
 const preloadComponents = () => {
-  console.log('🚀 启动深度优化预加载策略...')
+  console.log('🚀 启动简化智能预加载策略...')
   
   // 启动性能监控
   startTimer('预加载总耗时')
@@ -228,136 +228,104 @@ const preloadComponents = () => {
   
   console.log(`📊 性能检测: 网络=${connection?.effectiveType || 'unknown'}, CPU核心=${navigator.hardwareConcurrency}, 低性能模式=${isLowPerformance}`)
   
+  // 简化的两阶段预加载策略
   if (isLowPerformance) {
-    console.log('⚡ 检测到低性能环境，采用保守预加载策略')
-    
     // 低性能环境：只预加载最关键的组件
-     setTimeout(() => {
-       startTimer('Dashboard预加载')
-       import('@/pages/Dashboard').then(() => {
-         endTimer('Dashboard预加载')
-         loadedModules++
-         console.log('✅ Dashboard 预加载完成')
-       }).catch(err => {
-         endTimer('Dashboard预加载')
-         logLoadingError('Dashboard预加载', err)
-         console.warn('⚠️ Dashboard 预加载失败:', err)
-       })
-     }, 100)
-     
-     setTimeout(() => {
-       startTimer('TimesheetRecord预加载')
-       import('@/pages/TimesheetRecord').then(() => {
-         endTimer('TimesheetRecord预加载')
-         loadedModules++
-         console.log('✅ TimesheetRecord 预加载完成')
-         
-         // 低性能环境预加载完成
-         endTimer('预加载总耗时')
-         performanceMonitor.recordMetric('低性能预加载模块数', loadedModules)
-       }).catch(err => {
-         endTimer('TimesheetRecord预加载')
-         logLoadingError('TimesheetRecord预加载', err)
-         console.warn('⚠️ TimesheetRecord 预加载失败:', err)
-       })
-     }, 300)
+    console.log('⚡ 低性能模式：仅预加载核心组件')
+    
+    setTimeout(() => {
+      startTimer('核心组件预加载')
+      Promise.all([
+        import('@/pages/Dashboard').then(() => console.log('✅ Dashboard 预加载完成')),
+        import('@/pages/TimesheetRecord').then(() => console.log('✅ TimesheetRecord 预加载完成'))
+      ]).then(() => {
+        endTimer('核心组件预加载')
+        loadedModules += 2
+        console.log('🎯 核心组件预加载完成')
+        
+        // 完成预加载
+        const totalTime = endTimer('预加载总耗时')
+        performanceMonitor.recordMetric('低性能预加载模块数', loadedModules)
+        console.log(`📊 低性能预加载完成: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
+      }).catch(err => {
+        endTimer('核心组件预加载')
+        endTimer('预加载总耗时')
+        logLoadingError('核心组件预加载', err)
+        console.warn('⚠️ 核心组件预加载失败:', err)
+      })
+    }, 200)
     
   } else {
-    console.log('🚀 高性能环境，采用积极分层预加载策略')
+    // 高性能环境：两阶段预加载
+    console.log('🚀 高性能模式：启动两阶段预加载')
     
-    // 第一层：核心功能（立即开始）
-     setTimeout(() => {
-       startTimer('第一层预加载')
-       Promise.all([
-         import('@/pages/Dashboard').then(() => console.log('✅ Dashboard 预加载完成')),
-         import('@/pages/TimesheetRecord').then(() => console.log('✅ TimesheetRecord 预加载完成'))
-       ]).then(() => {
-         endTimer('第一层预加载')
-         loadedModules += 2
-         console.log('🎯 第一层预加载完成')
-       }).catch(err => {
-         endTimer('第一层预加载')
-         logLoadingError('第一层预加载', err)
-         console.warn('⚠️ 第一层预加载部分失败:', err)
-       })
-     }, 50)
-     
-     // 第二层：常用功能
-     setTimeout(() => {
-       startTimer('第二层预加载')
-       Promise.all([
-         import('@/pages/TimesheetHistory').then(() => console.log('✅ TimesheetHistory 预加载完成')),
-         import('@/pages/CompanyManagement').then(() => console.log('✅ CompanyManagement 预加载完成')),
-         import('@/pages/UserManagement').then(() => console.log('✅ UserManagement 预加载完成'))
-       ]).then(() => {
-         endTimer('第二层预加载')
-         loadedModules += 3
-         console.log('🎯 第二层预加载完成')
-       }).catch(err => {
-         endTimer('第二层预加载')
-         logLoadingError('第二层预加载', err)
-         console.warn('⚠️ 第二层预加载部分失败:', err)
-       })
-     }, 200)
-     
-     // 第三层：管理功能
-     setTimeout(() => {
-       startTimer('第三层预加载')
-       Promise.all([
-         import('@/pages/ProcessManagement').then(() => console.log('✅ ProcessManagement 预加载完成')),
-         import('@/pages/RoleList').then(() => console.log('✅ RoleList 预加载完成'))
-       ]).then(() => {
-         endTimer('第三层预加载')
-         loadedModules += 2
-         console.log('🎯 第三层预加载完成')
-       }).catch(err => {
-         endTimer('第三层预加载')
-         logLoadingError('第三层预加载', err)
-         console.warn('⚠️ 第三层预加载部分失败:', err)
-       })
-     }, 500)
-     
-     // 第四层：审批功能
-     setTimeout(() => {
-       startTimer('第四层预加载')
-       Promise.all([
-         import('@/pages/SupervisorApproval').then(() => console.log('✅ SupervisorApproval 预加载完成')),
-         import('@/pages/SectionChiefApproval').then(() => console.log('✅ SectionChiefApproval 预加载完成'))
-       ]).then(() => {
-         endTimer('第四层预加载')
-         loadedModules += 2
-         console.log('🎯 第四层预加载完成')
-       }).catch(err => {
-         endTimer('第四层预加载')
-         logLoadingError('第四层预加载', err)
-         console.warn('⚠️ 第四层预加载部分失败:', err)
-       })
-     }, 800)
-     
-     // 第五层：报表功能（最后加载，包含大型库）
-     setTimeout(() => {
-       startTimer('第五层预加载')
-       Promise.all([
-         import('@/pages/Reports').then(() => console.log('✅ Reports 预加载完成')),
-         import('@/pages/History').then(() => console.log('✅ History 预加载完成'))
-       ]).then(() => {
-         endTimer('第五层预加载')
-         loadedModules += 2
-         console.log('🎯 第五层预加载完成')
-         
-         // 输出总体性能报告
-         const totalTime = endTimer('预加载总耗时')
-         performanceMonitor.recordMetric('高性能预加载模块数', loadedModules)
-         console.log(`📊 预加载完成统计: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
-         
-         // 生成性能报告
-         performanceMonitor.generatePerformanceReport()
-       }).catch(err => {
-         endTimer('第五层预加载')
-         logLoadingError('第五层预加载', err)
-         console.warn('⚠️ 第五层预加载部分失败:', err)
-       })
-     }, 1200)
+    // 第一阶段：核心功能（立即开始）
+    setTimeout(() => {
+      startTimer('第一阶段预加载')
+      Promise.all([
+        import('@/pages/Dashboard').then(() => console.log('✅ Dashboard 预加载完成')),
+        import('@/pages/TimesheetRecord').then(() => console.log('✅ TimesheetRecord 预加载完成')),
+        import('@/pages/TimesheetHistory').then(() => console.log('✅ TimesheetHistory 预加载完成'))
+      ]).then(() => {
+        endTimer('第一阶段预加载')
+        loadedModules += 3
+        console.log('🎯 第一阶段预加载完成')
+      }).catch(err => {
+        endTimer('第一阶段预加载')
+        logLoadingError('第一阶段预加载', err)
+        console.warn('⚠️ 第一阶段预加载部分失败:', err)
+      })
+    }, 100)
+    
+    // 第二阶段：管理和审批功能（延迟加载）
+    setTimeout(() => {
+      startTimer('第二阶段预加载')
+      Promise.all([
+        import('@/pages/CompanyManagement').then(() => console.log('✅ CompanyManagement 预加载完成')),
+        import('@/pages/UserManagement').then(() => console.log('✅ UserManagement 预加载完成')),
+        import('@/pages/RoleList').then(() => console.log('✅ RoleList 预加载完成')),
+        import('@/pages/ProcessManagement').then(() => console.log('✅ ProcessManagement 预加载完成')),
+        import('@/pages/SupervisorApproval').then(() => console.log('✅ SupervisorApproval 预加载完成')),
+        import('@/pages/SectionChiefApproval').then(() => console.log('✅ SectionChiefApproval 预加载完成'))
+      ]).then(() => {
+        endTimer('第二阶段预加载')
+        loadedModules += 6
+        console.log('🎯 第二阶段预加载完成')
+        
+        // 完成所有预加载
+        const totalTime = endTimer('预加载总耗时')
+        performanceMonitor.recordMetric('高性能预加载模块数', loadedModules)
+        console.log(`📊 高性能预加载完成: 模块数=${loadedModules}, 总耗时=${Math.round(totalTime)}ms`)
+        
+        // 生成性能报告
+        performanceMonitor.generatePerformanceReport()
+      }).catch(err => {
+        endTimer('第二阶段预加载')
+        endTimer('预加载总耗时')
+        logLoadingError('第二阶段预加载', err)
+        console.warn('⚠️ 第二阶段预加载部分失败:', err)
+      })
+    }, 500)
+    
+    // 第三阶段：报表功能（最后加载，可选）
+    setTimeout(() => {
+      startTimer('第三阶段预加载')
+      Promise.all([
+        import('@/pages/Reports').then(() => console.log('✅ Reports 预加载完成')),
+        import('@/pages/History').then(() => console.log('✅ History 预加载完成')),
+        import('@/pages/RoleEdit').then(() => console.log('✅ RoleEdit 预加载完成')),
+        import('@/pages/RoleCreate').then(() => console.log('✅ RoleCreate 预加载完成'))
+      ]).then(() => {
+        endTimer('第三阶段预加载')
+        loadedModules += 4
+        console.log('🎯 第三阶段预加载完成')
+        console.log(`📊 全部预加载完成: 总模块数=${loadedModules}`)
+      }).catch(err => {
+        endTimer('第三阶段预加载')
+        logLoadingError('第三阶段预加载', err)
+        console.warn('⚠️ 第三阶段预加载部分失败:', err)
+      })
+    }, 1000)
   }
 }
 

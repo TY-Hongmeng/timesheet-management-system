@@ -499,33 +499,26 @@
           
           // 检查是否到达100%进度
           if (stage.progress === 100) {
-            // 智能跳转策略 - 几乎消除黑屏时间
-            const performSmartJump = () => {
-              console.log('🎯 进度100%，执行智能跳转策略');
-              
-              // 设置加载完成标志
-              window.loadingComplete = true;
-              
-              // 立即尝试跳转
-              if (window.hideInitialLoader) {
-                console.log('✅ 立即执行主跳转方案');
-                window.hideInitialLoader();
-              } else {
-                // 备用跳转方案 - 更快响应
-                console.log('🔄 执行备用跳转方案');
-                const loader = document.getElementById('initial-loader');
-                if (loader && loader.style.display !== 'none') {
+            // 设置加载完成标志，但不立即跳转
+            console.log('🎯 进度100%，设置加载完成标志');
+            window.loadingComplete = true;
+            
+            // 等待React应用接管跳转逻辑，避免冲突
+            console.log('⏳ 等待React应用接管跳转...');
+            
+            // 设置超时保护，如果React应用5秒内没有跳转，则强制跳转
+            setTimeout(() => {
+              const loader = document.getElementById('initial-loader');
+              if (loader && loader.style.display !== 'none') {
+                console.log('⚠️ 超时保护：强制执行跳转');
+                if (window.hideInitialLoader) {
+                  window.hideInitialLoader();
+                } else {
                   loader.style.display = 'none';
                 }
               }
-            };
+            }, 5000);
             
-            // 检测网络条件决定跳转延迟
-            const connection = navigator.connection;
-            const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g');
-            const jumpDelay = isSlowConnection ? 30 : 10; // 慢网络稍微多等一点
-            
-            setTimeout(performSmartJump, jumpDelay); // 大幅减少延迟
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
           }
@@ -645,9 +638,43 @@
         });
       }
       
+      // 增强的错误处理和超时保护
+      let loadingTimeout;
+      let maxLoadingTime = 30000; // 30秒超时
+      
+      // 启动加载超时保护
+      function startLoadingTimeout() {
+        loadingTimeout = setTimeout(() => {
+          console.warn('⚠️ 加载超时，启动保护机制');
+          const loader = document.getElementById('initial-loader');
+          if (loader && loader.style.display !== 'none') {
+            showRetryButton('加载时间过长，请检查网络连接后刷新页面');
+            
+            // 提供重试按钮
+            const retryBtn = document.getElementById('retry-button');
+            if (retryBtn) {
+              retryBtn.style.display = 'block';
+              retryBtn.onclick = () => window.location.reload();
+            }
+          }
+        }, maxLoadingTime);
+      }
+      
+      // 清除加载超时
+      function clearLoadingTimeout() {
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+          loadingTimeout = null;
+        }
+      }
+      
+      // 启动超时保护
+      startLoadingTimeout();
+      
       // 增强的错误处理 - 支持网络错误重定向
       window.addEventListener('error', (event) => {
         console.error('页面加载错误:', event.error);
+        clearLoadingTimeout();
         
         // 检查是否是网络相关错误
         const errorMessage = event.error?.message || '';
@@ -665,11 +692,17 @@
           return;
         }
         
-        showRetryButton('应用加载失败，请重试');
+        // 如果是关键资源加载失败，显示错误信息
+        if (event.filename && (event.filename.includes('.js') || event.filename.includes('.css'))) {
+          showRetryButton('关键资源加载失败，请刷新页面重试');
+        } else {
+          showRetryButton('应用启动失败，请刷新页面重试');
+        }
       });
       
       window.addEventListener('unhandledrejection', (event) => {
         console.error('未处理的 Promise 错误:', event.reason);
+        clearLoadingTimeout();
         
         // 检查是否是网络相关的 Promise 错误
         const reason = event.reason?.message || event.reason || '';
@@ -689,7 +722,28 @@
         }
         
         showRetryButton('应用初始化失败，请重试');
+        event.preventDefault();
       });
+      
+      // 监听应用成功加载
+      window.addEventListener('load', function() {
+        // 页面资源加载完成，但React应用可能还在初始化
+        console.log('📦 页面资源加载完成');
+      });
+      
+      // 当React应用成功跳转时，清除超时保护
+      const originalHideLoader = window.hideInitialLoader;
+      window.hideInitialLoader = function() {
+        clearLoadingTimeout();
+        if (originalHideLoader) {
+          originalHideLoader();
+        } else {
+          const loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.style.display = 'none';
+          }
+        }
+      };
       
       // 导入增强的网络管理器
       let networkManager, resourceOptimizer, connectionDiagnostics;
