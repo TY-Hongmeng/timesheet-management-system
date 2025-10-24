@@ -276,87 +276,110 @@ class AppInitializer {
       // 优化的跳转策略 - 确保React组件完全挂载后再跳转
       console.log('🎯 React应用渲染完成，等待组件挂载');
       
-      // 等待React组件完全挂载的智能检测
+      // 增强的React组件挂载检测 - 更精确和快速
       const waitForReactMount = () => {
         return new Promise<void>((resolve) => {
-          // 检查DOM是否已经有React渲染的内容
+          let checkCount = 0;
+          const maxChecks = 20; // 最多检查20次
+          
           const checkMount = () => {
+            checkCount++;
             const rootElement = document.getElementById('root');
+            
             if (rootElement && rootElement.children.length > 0) {
-              // 进一步检查是否有实际的应用内容
-              const hasAppContent = rootElement.querySelector('[data-testid], .App, main, nav, header') || 
-                                   rootElement.textContent?.trim().length > 0;
+              // 多重验证确保React应用已就绪
+              const hasReactContent = rootElement.querySelector('div[data-reactroot], .App, main, nav, header, [class*="App"], [id*="app"]');
+              const hasTextContent = rootElement.textContent?.trim().length > 10; // 至少10个字符
+              const hasStyleElements = rootElement.querySelector('[class], [style]'); // 有样式的元素
               
-              if (hasAppContent) {
-                console.log('✅ React组件已完全挂载');
+              // 任何一个条件满足就认为React已挂载
+              if (hasReactContent || hasTextContent || hasStyleElements) {
+                console.log('✅ React组件已完全挂载 (检查次数:', checkCount, ')');
                 resolve();
                 return;
               }
             }
             
-            // 如果还没挂载，继续检查
-            requestAnimationFrame(checkMount);
+            // 如果检查次数过多，强制继续
+            if (checkCount >= maxChecks) {
+              console.log('⏰ 达到最大检查次数，强制继续');
+              resolve();
+              return;
+            }
+            
+            // 继续检查，使用更快的间隔
+            setTimeout(checkMount, 10); // 每10ms检查一次，更快响应
           };
           
-          // 开始检查，但设置最大等待时间
+          // 立即开始检查
           checkMount();
           
-          // 最大等待500ms，防止无限等待
+          // 设置绝对超时保护 - 减少到200ms
           setTimeout(() => {
-            console.log('⏰ 达到最大等待时间，强制继续');
+            console.log('⚠️ 绝对超时保护：强制继续');
             resolve();
-          }, 500);
+          }, 200);
         });
       };
       
-      // 执行智能跳转
-      const performSmartJump = async () => {
-        try {
-          // 等待React组件完全挂载
-          await waitForReactMount();
-          
-          // 额外等待一个渲染周期，确保所有组件都已稳定
-          await new Promise(resolve => setTimeout(resolve, 50));
-          
-          console.log('🚀 开始执行跳转');
-          
-          // 检查加载进度状态
-          if ((window as any).loadingComplete) {
-            console.log('⚡ 加载进度已完成，执行跳转');
-          } else {
-            console.log('🔄 React已就绪，执行跳转');
-            // 标记加载完成，避免index.html中的跳转逻辑冲突
-            (window as any).loadingComplete = true;
-          }
-          
-          // 执行跳转
-          if (window.hideInitialLoader) {
-            console.log('✅ 执行主跳转方案');
-            window.hideInitialLoader();
-          } else {
-            console.log('🔄 执行备用跳转方案');
-            const loader = document.getElementById('initial-loader');
-            if (loader && loader.style.display !== 'none') {
-              loader.style.opacity = '0';
-              loader.style.transition = 'opacity 0.3s ease-out';
-              setTimeout(() => {
-                loader.style.display = 'none';
-              }, 300);
-            }
-          }
-          
-        } catch (error) {
-          console.error('跳转过程中出错:', error);
-          // 出错时强制跳转
+      // 快速跳转执行器
+      const executeJump = () => {
+        console.log('🚀 执行快速跳转');
+        
+        // 执行跳转
+        if (window.hideInitialLoader) {
+          console.log('✅ 执行主跳转方案');
+          window.hideInitialLoader();
+        } else {
+          console.log('🔄 执行备用跳转方案');
           const loader = document.getElementById('initial-loader');
-          if (loader) {
-            loader.style.display = 'none';
+          if (loader && loader.style.display !== 'none') {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.2s ease-out';
+            setTimeout(() => {
+              loader.style.display = 'none';
+            }, 200);
           }
         }
       };
       
-      // 立即开始智能跳转流程
-      performSmartJump();
+      // 设置全局跳转触发器，供index.html调用
+      (window as any).triggerReactJump = async () => {
+        try {
+          console.log('📢 收到跳转信号，开始快速跳转流程');
+          
+          // 快速检查React是否已挂载
+          await waitForReactMount();
+          
+          // 最小等待时间，确保渲染稳定
+          await new Promise(resolve => setTimeout(resolve, 20));
+          
+          // 立即执行跳转
+          executeJump();
+          
+        } catch (error) {
+          console.error('快速跳转过程中出错:', error);
+          // 出错时立即强制跳转
+          executeJump();
+        }
+      };
+      
+      // 备用自动跳转机制 - 如果index.html没有触发
+      setTimeout(async () => {
+        const loader = document.getElementById('initial-loader');
+        if (loader && loader.style.display !== 'none') {
+          console.log('🔄 备用自动跳转机制启动');
+          
+          // 检查加载进度状态
+          if ((window as any).loadingComplete) {
+            console.log('⚡ 加载进度已完成，执行备用跳转');
+            await (window as any).triggerReactJump();
+          } else {
+            console.log('⏳ 等待加载完成...');
+            // 继续等待
+          }
+        }
+      }, 100); // 100ms后检查
 
       console.log('应用启动成功');
       

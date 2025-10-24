@@ -499,25 +499,32 @@
           
           // 检查是否到达100%进度
           if (stage.progress === 100) {
-            // 设置加载完成标志，但不立即跳转
+            // 设置加载完成标志
             console.log('🎯 进度100%，设置加载完成标志');
             window.loadingComplete = true;
             
-            // 等待React应用接管跳转逻辑，避免冲突
-            console.log('⏳ 等待React应用接管跳转...');
+            // 立即通知React应用可以开始跳转
+            console.log('📢 通知React应用开始跳转');
+            if (window.triggerReactJump) {
+              window.triggerReactJump();
+            }
             
-            // 设置超时保护，如果React应用5秒内没有跳转，则强制跳转
+            // 设置快速超时保护，如果React应用1.5秒内没有跳转，则强制跳转
             setTimeout(() => {
               const loader = document.getElementById('initial-loader');
               if (loader && loader.style.display !== 'none') {
-                console.log('⚠️ 超时保护：强制执行跳转');
+                console.log('⚠️ 快速超时保护：强制执行跳转');
                 if (window.hideInitialLoader) {
                   window.hideInitialLoader();
                 } else {
-                  loader.style.display = 'none';
+                  loader.style.opacity = '0';
+                  loader.style.transition = 'opacity 0.3s ease-out';
+                  setTimeout(() => {
+                    loader.style.display = 'none';
+                  }, 300);
                 }
               }
-            }, 5000);
+            }, 1500); // 从5秒减少到1.5秒
             
           } else if (currentStageIndex < loadingStages.length) {
             setTimeout(nextLoadingStage, delay);
