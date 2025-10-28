@@ -5,7 +5,6 @@ import "./index.css";
 import "./styles/globals.css";
 import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills';
 import { mobileOptimization } from './utils/mobileOptimization.js';
-import { log } from './utils/logger';
 
 // 网络状态检测和应用初始化
 class AppInitializer {
@@ -19,17 +18,16 @@ class AppInitializer {
     this.setupNetworkMonitoring();
     
     // 启动移动端稳定性增强器和资源加载优化
-    log.mobile('🌐 Starting mobile optimization systems');
-    mobileOptimization.init();
+    console.log('🌐 Starting mobile optimization systems');
     this.initializeMobileOptimizations();
   }
 
   private async initializeMobileOptimizations() {
     try {
       // 基本移动端优化
-      log.mobile('📱 移动端优化系统启动完成');
+      console.log('📱 移动端优化系统启动完成');
     } catch (error) {
-      log.warn('📱 移动端优化启动失败:', error);
+      console.warn('📱 移动端优化启动失败:', error);
     }
   }
 
@@ -41,7 +39,7 @@ class AppInitializer {
     // 监听移动端连接状态变化
     window.addEventListener('mobileConnectionChange', (event: any) => {
       const { type, networkState } = event.detail;
-      log.mobile(`📱 移动端连接状态变化: ${type}`, networkState);
+      console.log(`📱 移动端连接状态变化: ${type}`, networkState);
       
       switch (type) {
         case 'unstable':
@@ -64,67 +62,63 @@ class AppInitializer {
 
   private async checkNetworkConnection(): Promise<boolean> {
     try {
-      const response = await fetch('/manifest.json', { 
-        method: 'HEAD',
-        cache: 'no-cache'
-      });
-      return response.ok;
+      // 简化网络检测，只使用 navigator.onLine
+      return navigator.onLine;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.warn('网络连接检查失败:', error);
-      }
-      return false;
+      console.warn('网络连接检查失败:', error);
+      return navigator.onLine;
     }
   }
 
   private handleOnline() {
-    if (import.meta.env.DEV) {
-      console.log('网络连接已恢复');
-    }
-    this.updateLoaderText('网络连接已恢复');
-    
-    // 清除重试计数
+    console.log('网络连接已恢复');
+    this.updateLoaderText('网络连接已恢复，正在重新初始化...');
+    // 重置重试计数并重新初始化
     this.retryCount = 0;
-    
-    // 重新初始化应用
-    this.initializeApp();
+    setTimeout(() => {
+      this.initializeApp();
+    }, 1000);
   }
 
   private handleOffline() {
-    if (import.meta.env.DEV) {
-      console.log('网络连接已断开');
-    }
-    this.updateLoaderText('网络连接已断开，正在尝试离线模式...');
+    console.log('网络连接已断开');
+    this.updateLoaderText('网络连接已断开，请检查网络设置');
+    this.showNetworkError();
   }
 
   private async initializeApp() {
     try {
       this.updateLoaderText('正在初始化兼容性支持...');
       
-      // 检查浏览器兼容性
-      const compatibility = await checkBrowserCompatibility();
-      log.debug('浏览器兼容性检测完成:', compatibility);
-      
       // 初始化移动端兼容性
-      await initMobileCompatibility();
+      if (typeof initMobileCompatibility === 'function') {
+        initMobileCompatibility();
+      }
       
+      // 检查浏览器兼容性
+      if (typeof checkBrowserCompatibility === 'function') {
+        const compatibility = checkBrowserCompatibility();
+        console.log('浏览器兼容性检测完成:', compatibility);
+      }
+      
+      // 更新加载状态
       this.updateLoaderText('正在初始化应用...');
-      
-      // 预加载关键资源
+
+      // 简单的网络状态检查
+      if (!navigator.onLine) {
+        this.handleOfflineState();
+        return;
+      }
+
+      // 预加载关键资源（简化版）
       await this.preloadCriticalResources();
-      
-      this.updateLoaderText('正在加载核心资源...');
-      
+
       // 注册 Service Worker
       await this.registerServiceWorker();
-      
-      this.updateLoaderText('正在注册服务工作者...');
-      
-      // 启动应用
-      this.updateLoaderText('正在启动应用...');
-      
-      await this.startApp();
-      
+
+      // 渲染应用
+      this.renderApp();
+
     } catch (error) {
       console.error('应用初始化失败:', error);
       this.handleInitializationError(error);
@@ -133,70 +127,85 @@ class AppInitializer {
 
   private async preloadCriticalResources() {
     try {
-      // 预加载关键资源
-      const criticalResources = [
-        '/src/contexts/AuthContext.tsx',
-        '/src/lib/supabase.ts'
-      ];
+      this.updateLoaderText('正在加载核心资源...');
       
-      await Promise.all(
-        criticalResources.map(resource => 
-          import(resource).catch(() => {})
-        )
-      );
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.warn('预加载资源失败:', error);
+      // 进一步简化预加载逻辑，减少性能开销
+      // 只在必要时预加载，避免影响首屏加载速度
+      if (navigator.connection && navigator.connection.effectiveType === '4g') {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = '/timesheet-management-system/favicon.svg';
+        document.head.appendChild(link);
       }
+      
+      // 减少等待时间
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+    } catch (error) {
+      console.warn('预加载资源失败:', error);
+      // 预加载失败不应该阻止应用启动
     }
   }
 
   private async registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
       try {
+        this.updateLoaderText('正在注册服务工作者...');
+        
         const registration = await navigator.serviceWorker.register('/timesheet-management-system/sw.js', {
           scope: '/timesheet-management-system/'
         });
         
-        log.sw('Service Worker 注册成功:', registration);
+        console.log('Service Worker 注册成功:', registration);
         
+        // 监听更新
         registration.addEventListener('updatefound', () => {
-          log.sw('发现 Service Worker 更新');
+          console.log('发现 Service Worker 更新');
         });
         
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('Service Worker 注册失败:', error);
-        }
+        console.warn('Service Worker 注册失败:', error);
+        // Service Worker 注册失败不应该阻止应用启动
       }
     }
   }
 
-  private async startApp() {
+  private renderApp() {
     try {
-      // 获取移动端优化状态
-      log.mobile('📱 Mobile optimization status:', mobileOptimization.getStatus());
+      this.updateLoaderText('正在启动应用...');
       
-      // 渲染应用
+      // 初始化移动端优化
+      console.log('📱 Mobile optimization status:', mobileOptimization.getStatus());
+      
       const container = document.getElementById("root");
       if (!container) {
-        throw new Error('Root container not found');
+        throw new Error('找不到根容器元素');
       }
 
       const root = createRoot(container);
-      
       root.render(
         <StrictMode>
           <App />
         </StrictMode>
       );
 
-      // 隐藏加载器
-      this.hideLoader();
-      
-      if (import.meta.env.DEV) {
-        console.log('应用启动成功');
+      // 隐藏加载屏幕 - 优化跳转时机，减少黑屏
+      // 检查加载是否已完成，如果是则立即跳转
+      if ((window as any).loadingComplete) {
+        // 加载进度已经100%，立即跳转
+        if (window.hideInitialLoader) {
+          window.hideInitialLoader();
+        }
+      } else {
+        // 加载进度还没到100%，等待一小段时间
+        setTimeout(() => {
+          if (window.hideInitialLoader) {
+            window.hideInitialLoader();
+          }
+        }, 100); // 大幅减少延迟时间
       }
+
+      console.log('应用启动成功');
       
     } catch (error) {
       console.error('应用渲染失败:', error);
@@ -204,79 +213,106 @@ class AppInitializer {
     }
   }
 
-  private async handleInitializationError(error: any) {
+  private handleOfflineState() {
+    this.updateLoaderText('当前处于离线状态');
+    this.showNetworkError();
+    
+    // 在离线状态下，仍然尝试渲染应用（可能有缓存的资源）
+    setTimeout(() => {
+      try {
+        this.renderApp();
+      } catch (error) {
+        console.error('离线模式下应用启动失败:', error);
+      }
+    }, 2000);
+  }
+
+  private handleInitializationError(error: any) {
     this.retryCount++;
     
-    if (this.retryCount <= this.maxRetries) {
+    const isNetworkError = error.message?.includes('fetch') || 
+                          error.message?.includes('network') ||
+                          error.message?.includes('Failed to import');
+
+    if (isNetworkError && this.retryCount <= this.maxRetries) {
+      this.updateLoaderText(`网络连接失败，正在重试... (${this.retryCount}/${this.maxRetries})`);
+      
+      // 指数退避重试
+      const delay = this.retryDelay * Math.pow(1.5, this.retryCount - 1);
+      setTimeout(() => {
+        this.initializeApp();
+      }, delay);
+      
+    } else if (this.retryCount <= this.maxRetries) {
       this.updateLoaderText(`初始化失败，正在重试... (${this.retryCount}/${this.maxRetries})`);
       
       setTimeout(() => {
         this.initializeApp();
-      }, this.retryDelay * this.retryCount);
+      }, this.retryDelay);
+      
     } else {
-      // 尝试离线模式
-      try {
-        this.updateLoaderText('正在尝试离线模式...');
-        await this.startOfflineMode();
-      } catch (offlineError) {
-        console.error('离线模式下应用启动失败:', offlineError);
-        this.showErrorMessage('应用启动失败，请检查网络连接后刷新页面');
-      }
+      this.updateLoaderText('应用启动失败');
+      this.showFinalError(error);
     }
-  }
-
-  private async startOfflineMode() {
-    // 简化的离线模式启动
-    const container = document.getElementById("root");
-    if (!container) {
-      throw new Error('Root container not found');
-    }
-
-    const root = createRoot(container);
-    
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>
-    );
-
-    this.hideLoader();
   }
 
   private updateLoaderText(text: string) {
-    const loaderText = document.querySelector('.loader-text');
-    if (loaderText) {
-      loaderText.textContent = text;
-    }
+    // 新的加载系统会自动管理文本更新，这里只记录日志
+    console.log('加载状态:', text);
+  }
+
+  private showNetworkError() {
+    const errorMessage = document.getElementById('error-message');
+    const retryButton = document.getElementById('retry-button');
     
-    log.debug('加载状态:', text);
-  }
-
-  private hideLoader() {
-    const loader = document.querySelector('.app-loader');
-    if (loader) {
-      loader.classList.add('fade-out');
-      setTimeout(() => {
-        loader.remove();
-      }, 500);
+    if (errorMessage && retryButton) {
+      errorMessage.textContent = '网络连接异常，请检查网络设置后重试';
+      errorMessage.style.display = 'block';
+      retryButton.style.display = 'inline-block';
+      
+      // 添加重试按钮事件
+      retryButton.onclick = () => {
+        this.retryCount = 0;
+        errorMessage.style.display = 'none';
+        retryButton.style.display = 'none';
+        this.initializeApp();
+      };
     }
   }
 
-  private showErrorMessage(message: string) {
-    const loader = document.querySelector('.app-loader');
-    if (loader) {
-      loader.innerHTML = `
-        <div class="error-container">
-          <div class="error-icon">⚠️</div>
-          <div class="error-message">${message}</div>
-          <button onclick="window.location.reload()" class="retry-button">
-            重新加载
-          </button>
-        </div>
-      `;
+  private showFinalError(error: any) {
+    const errorMessage = document.getElementById('error-message');
+    const retryButton = document.getElementById('retry-button');
+    
+    if (errorMessage && retryButton) {
+      errorMessage.textContent = `应用启动失败: ${error.message || '未知错误'}。请刷新页面重试。`;
+      errorMessage.style.display = 'block';
+      retryButton.textContent = '刷新页面';
+      retryButton.style.display = 'inline-block';
+      
+      retryButton.onclick = () => {
+        window.location.reload();
+      };
     }
+  }
+
+  // 清理资源
+  public cleanup() {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval);
+    }
+    window.removeEventListener('online', this.handleOnline.bind(this));
+    window.removeEventListener('offline', this.handleOffline.bind(this));
   }
 }
+
+// 初始化应用
+const appInitializer = new AppInitializer();
+
+// 页面卸载时清理资源
+window.addEventListener('beforeunload', () => {
+  appInitializer.cleanup();
+});
 
 // 全局错误处理
 window.addEventListener('error', (event) => {
@@ -286,6 +322,3 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   console.error('未处理的 Promise 错误:', event.reason);
 });
-
-// 启动应用
-new AppInitializer();

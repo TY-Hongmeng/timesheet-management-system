@@ -98,13 +98,11 @@ class MobileOptimization {
     init() {
         if (!this.isMobile) return;
         
-        if (import.meta.env.DEV) {
-            console.log('🔧 Initializing mobile optimization:', {
-                level: this.optimizationLevel,
-                networkType: this.networkType.type,
-                isLowEnd: this.isLowEndDevice
-            });
-        }
+        console.log('🔧 Initializing mobile optimization:', {
+            level: this.optimizationLevel,
+            networkType: this.networkType.type,
+            isLowEnd: this.isLowEndDevice
+        });
         
         this.applyOptimizations();
         this.setupNetworkListeners();
