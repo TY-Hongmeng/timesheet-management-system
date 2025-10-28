@@ -1,60 +1,122 @@
-# GitHub Pages MIME Type Configuration
-# This file configures proper MIME types for JavaScript modules
+# 🔧 彻底修复 MIME 类型错误 - 多层保障机制
 
-# JavaScript files
+# JavaScript 模块文件 - 强制正确的 MIME 类型
 /assets/*.js
   Content-Type: text/javascript; charset=utf-8
-  Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
-
-# TypeScript compiled files
-/assets/*.tsx
-  Content-Type: text/javascript; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
-  X-Content-Type-Options: nosniff
 
-# ES Modules
 /assets/*.mjs
   Content-Type: text/javascript; charset=utf-8
-  Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
 
-# CSS files
+/assets/*.jsx
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# TypeScript 编译后的文件 - 强制 JavaScript MIME 类型
+/assets/*.ts
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.tsx
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# 特殊处理：任何包含 tsx 的文件都强制为 JavaScript
+/assets/*tsx*
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS 文件
 /assets/*.css
   Content-Type: text/css; charset=utf-8
+  X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML files
+# JSON 文件
+/assets/*.json
+  Content-Type: application/json; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# SVG 文件
+/assets/*.svg
+  Content-Type: image/svg+xml; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# 字体文件
+/assets/*.woff2
+  Content-Type: font/woff2
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.woff
+  Content-Type: font/woff
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# 图片文件
+/assets/*.png
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.jpg
+  Content-Type: image/jpeg
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.jpeg
+  Content-Type: image/jpeg
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.gif
+  Content-Type: image/gif
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.webp
+  Content-Type: image/webp
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML 文件
 /*.html
   Content-Type: text/html; charset=utf-8
-  Cache-Control: no-cache
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: no-cache, no-store, must-revalidate
 
-# Root HTML
+# 根目录文件
 /
   Content-Type: text/html; charset=utf-8
-  Cache-Control: no-cache
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: no-cache, no-store, must-revalidate
 
 # Service Worker
 /sw.js
   Content-Type: text/javascript; charset=utf-8
-  Cache-Control: no-cache
   X-Content-Type-Options: nosniff
+  Cache-Control: no-cache, no-store, must-revalidate
 
 # Manifest
 /manifest.json
-  Content-Type: application/manifest+json; charset=utf-8
+  Content-Type: application/json; charset=utf-8
+  X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=86400
-
-# SVG files
-/assets/*.svg
-  Content-Type: image/svg+xml; charset=utf-8
-  Cache-Control: public, max-age=31536000, immutable
 
 # Favicon
 /favicon.svg
