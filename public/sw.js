@@ -3,6 +3,9 @@ const CACHE_NAME = 'timesheet-v1.3.0'
 const STATIC_CACHE = 'static-v1.3.0'
 const DYNAMIC_CACHE = 'dynamic-v1.3.0'
 
+// 开发环境检测
+const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+
 // Safari 兼容性检测
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -34,11 +37,15 @@ const NETWORK_TIMEOUT = isSafari ? 8000 : 5000
 const CACHE_TIMEOUT = 3000
 
 self.addEventListener('install', event => {
-  console.log('Service Worker installing...')
+  if (isDev) {
+    console.log('Service Worker installing...')
+  }
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then(cache => {
-        console.log('Caching static assets')
+        if (isDev) {
+          console.log('Caching static assets')
+        }
         return cache.addAll(STATIC_ASSETS)
       })
       .then(() => self.skipWaiting())
@@ -46,14 +53,18 @@ self.addEventListener('install', event => {
 })
 
 self.addEventListener('activate', event => {
-  console.log('Service Worker activating...')
+  if (isDev) {
+    console.log('Service Worker activating...')
+  }
   event.waitUntil(
     caches.keys()
       .then(cacheNames => {
         return Promise.all(
           cacheNames.map(cacheName => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('Deleting old cache:', cacheName)
+              if (isDev) {
+                console.log('Deleting old cache:', cacheName)
+              }
               return caches.delete(cacheName)
             }
           })
@@ -114,17 +125,21 @@ async function networkFirst(request) {
       const cache = await caches.open(DYNAMIC_CACHE)
       // Safari 异步缓存，避免阻塞
       cache.put(request, networkResponse.clone()).catch(err => {
-        console.warn('Cache put failed:', err)
+        if (isDev) {
+          console.warn('Cache put failed:', err)
+        }
       })
     }
     
     return networkResponse
   } catch (error) {
-    console.log('Network failed, trying cache:', request.url, error.message)
-    
-    // Safari 特殊错误处理
-    if (error.name === 'AbortError') {
-      console.log('Request timeout, falling back to cache')
+    if (isDev) {
+      console.log('Network failed, trying cache:', request.url, error.message)
+      
+      // Safari 特殊错误处理
+      if (error.name === 'AbortError') {
+        console.log('Request timeout, falling back to cache')
+      }
     }
     
     const cachedResponse = await caches.match(request)
@@ -187,8 +202,10 @@ async function cacheFirst(request) {
         if (response.status === 200) {
           caches.open(DYNAMIC_CACHE).then(cache => {
             cache.put(request, response).catch(err => {
-              console.warn('Background cache update failed:', err)
-            })
+          if (isDev) {
+            console.warn('Background cache update failed:', err)
+          }
+        })
           })
         }
       }).catch(() => {
@@ -222,7 +239,9 @@ async function cacheFirst(request) {
     
     return networkResponse
   } catch (error) {
-    console.log('Cache and network both failed for:', request.url, error.message)
+    if (isDev) {
+      console.log('Cache and network both failed for:', request.url, error.message)
+    }
     
     // Safari 特殊处理 - 返回基础响应而不是抛出错误
     if (isSafari && (request.destination === 'script' || request.destination === 'style')) {

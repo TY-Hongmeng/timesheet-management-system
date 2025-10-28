@@ -1,5 +1,5 @@
 // 权限管理工具函数
-import { supabase, safeQuery } from '@/lib/supabase'
+import { supabase, dbQuery } from '@/lib/supabase'
 
 // 权限常量定义
 export const PERMISSIONS = {
@@ -216,7 +216,7 @@ export async function getUserPermissions(userId: string): Promise<Permission[]> 
     }
 
     // 使用安全查询获取用户信息和角色
-    const { data: userData, error: userError } = await safeQuery(async () => {
+    const { data: userData, error: userError } = await dbQuery(async () => {
       return await supabase
         .from('users')
         .select(`

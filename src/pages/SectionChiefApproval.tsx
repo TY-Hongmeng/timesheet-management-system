@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, safeQuery } from '../lib/supabase';
+import { supabase, dbQuery } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, ArrowLeft, Edit2, Trash2, Save, X, Shield, Crown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -509,7 +509,7 @@ const SectionChiefApproval: React.FC = () => {
   const fetchApprovalHistory = async (recordId: string) => {
     try {
       // 使用JOIN语句一次性获取审核历史和审核人信息，同时获取冗余姓名字段
-      const { data, error } = await safeQuery(async () => {
+      const { data, error } = await dbQuery(async () => {
         return await supabase
           .from('approval_history')
           .select(`

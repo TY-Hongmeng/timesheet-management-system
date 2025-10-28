@@ -223,11 +223,13 @@ export const mobilePerformanceMonitor = {
         const entries = list.getEntries()
         entries.forEach(entry => {
           if (entry.name === 'first-contentful-paint') {
-            console.log(`移动端首屏加载时间: ${entry.startTime}ms`)
-            
-            // 如果加载时间过长，显示提示
-            if (entry.startTime > 3000) {
-              console.warn('移动端加载时间较长，建议优化')
+            if (import.meta.env.DEV) {
+              console.log(`移动端首屏加载时间: ${entry.startTime}ms`)
+              
+              // 如果加载时间过长，显示提示
+              if (entry.startTime > 3000) {
+                console.warn('移动端加载时间较长，建议优化')
+              }
             }
           }
         })
@@ -247,11 +249,17 @@ export const mobilePerformanceMonitor = {
         limit: Math.round(memory.jsHeapSizeLimit / 1048576) // MB
       }
       
-      console.log('移动端内存使用情况:', memoryInfo)
+      if (import.meta.env.DEV) {
+        console.log('移动端内存使用情况:', memoryInfo)
+        
+        // 内存使用过高时的警告
+        if (memoryInfo.used / memoryInfo.limit > 0.8) {
+          console.warn('移动端内存使用过高，建议清理')
+        }
+      }
       
-      // 内存使用过高时的警告
+      // 内存使用过高时的清理（生产环境也需要）
       if (memoryInfo.used / memoryInfo.limit > 0.8) {
-        console.warn('移动端内存使用过高，建议清理')
         mobileMemoryOptimization.cleanupUnusedComponents()
       }
     }

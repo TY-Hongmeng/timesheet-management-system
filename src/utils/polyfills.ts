@@ -391,27 +391,126 @@ export const initMobileCompatibility = () => {
   }
 };
 
-// 导出兼容性检测函数
-export const checkBrowserCompatibility = () => {
-  const compatibility = {
-    es6: true,
-    fetch: typeof fetch !== 'undefined',
-    promise: typeof Promise !== 'undefined',
-    intersectionObserver: typeof IntersectionObserver !== 'undefined',
-    serviceWorker: 'serviceWorker' in navigator,
-    localStorage: (() => {
-      try {
-        localStorage.setItem('test', 'test');
-        localStorage.removeItem('test');
-        return true;
-      } catch {
-        return false;
-      }
-    })(),
-    flexbox: CSS.supports('display', 'flex'),
-    grid: CSS.supports('display', 'grid')
-  };
-  
-  console.log('浏览器兼容性检测结果:', compatibility);
-  return compatibility;
+// 兼容性检测接口
+export interface BrowserCompatibility {
+  es6: boolean;
+  fetch: boolean;
+  promise: boolean;
+  intersectionObserver: boolean;
+  serviceWorker: boolean;
+  webWorker: boolean;
+  localStorage: boolean;
+  sessionStorage: boolean;
+  indexedDB: boolean;
+  webGL: boolean;
+  touchEvents: boolean;
+  geolocation: boolean;
+  deviceOrientation: boolean;
+  vibration: boolean;
+  battery: boolean;
+  networkInformation: boolean;
+  userAgent: string;
+  platform: string;
+  language: string;
+  cookieEnabled: boolean;
+  onLine: boolean;
+  hardwareConcurrency: number;
+  maxTouchPoints: number;
+  deviceMemory: number;
+  connection: any;
+}
+
+// 各种兼容性检测函数
+const checkES6Support = (): boolean => {
+  try {
+    return typeof Symbol !== 'undefined' && typeof Promise !== 'undefined';
+  } catch {
+    return false;
+  }
 };
+
+const checkFetchSupport = (): boolean => typeof fetch !== 'undefined';
+const checkPromiseSupport = (): boolean => typeof Promise !== 'undefined';
+const checkIntersectionObserverSupport = (): boolean => typeof IntersectionObserver !== 'undefined';
+const checkServiceWorkerSupport = (): boolean => 'serviceWorker' in navigator;
+const checkWebWorkerSupport = (): boolean => typeof Worker !== 'undefined';
+
+const checkLocalStorageSupport = (): boolean => {
+  try {
+    localStorage.setItem('test', 'test');
+    localStorage.removeItem('test');
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const checkSessionStorageSupport = (): boolean => {
+  try {
+    sessionStorage.setItem('test', 'test');
+    sessionStorage.removeItem('test');
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const checkIndexedDBSupport = (): boolean => 'indexedDB' in window;
+const checkWebGLSupport = (): boolean => {
+  try {
+    const canvas = document.createElement('canvas');
+    return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+  } catch {
+    return false;
+  }
+};
+
+const checkTouchEventsSupport = (): boolean => 'ontouchstart' in window;
+const checkGeolocationSupport = (): boolean => 'geolocation' in navigator;
+const checkDeviceOrientationSupport = (): boolean => 'DeviceOrientationEvent' in window;
+const checkVibrationSupport = (): boolean => 'vibrate' in navigator;
+const checkBatterySupport = (): boolean => 'getBattery' in navigator;
+const checkNetworkInformationSupport = (): boolean => 'connection' in navigator;
+
+// 导出兼容性检测函数
+export async function checkBrowserCompatibility(): Promise<BrowserCompatibility> {
+  const compatibility: BrowserCompatibility = {
+    es6: checkES6Support(),
+    fetch: checkFetchSupport(),
+    promise: checkPromiseSupport(),
+    intersectionObserver: checkIntersectionObserverSupport(),
+    serviceWorker: checkServiceWorkerSupport(),
+    webWorker: checkWebWorkerSupport(),
+    localStorage: checkLocalStorageSupport(),
+    sessionStorage: checkSessionStorageSupport(),
+    indexedDB: checkIndexedDBSupport(),
+    webGL: checkWebGLSupport(),
+    touchEvents: checkTouchEventsSupport(),
+    geolocation: checkGeolocationSupport(),
+    deviceOrientation: checkDeviceOrientationSupport(),
+    vibration: checkVibrationSupport(),
+    battery: checkBatterySupport(),
+    networkInformation: checkNetworkInformationSupport(),
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    cookieEnabled: navigator.cookieEnabled,
+    onLine: navigator.onLine,
+    hardwareConcurrency: navigator.hardwareConcurrency || 1,
+    maxTouchPoints: navigator.maxTouchPoints || 0,
+    deviceMemory: (navigator as any).deviceMemory || 0,
+    connection: (navigator as any).connection ? {
+      effectiveType: (navigator as any).connection.effectiveType,
+      downlink: (navigator as any).connection.downlink,
+      rtt: (navigator as any).connection.rtt,
+      saveData: (navigator as any).connection.saveData
+    } : null
+  };
+
+  // 只在开发环境显示兼容性检测结果
+  if (import.meta.env.DEV) {
+    console.log('浏览器兼容性检测结果:', compatibility);
+  }
+
+  return compatibility;
+}
