@@ -2,12 +2,70 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 
+// 强制性 MIME 类型插件 - 确保正确的 Content-Type 头部
+const forceMimeTypePlugin = () => {
+  return {
+    name: 'force-mime-type',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || '';
+        
+        // 为不同文件类型设置正确的 MIME 类型
+        if (url.endsWith('.js') || url.endsWith('.mjs') || url.endsWith('.jsx')) {
+          res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.ts') || url.endsWith('.tsx')) {
+          res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        }
+        
+        next();
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url || '';
+        
+        // 为不同文件类型设置正确的 MIME 类型
+        if (url.endsWith('.js') || url.endsWith('.mjs') || url.endsWith('.jsx')) {
+          res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.ts') || url.endsWith('.tsx')) {
+          res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (url.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        }
+        
+        next();
+      });
+    }
+  };
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/timesheet-management-system/' : '/',
   plugins: [
     react(),
     tsconfigPaths(),
+    forceMimeTypePlugin(),
   ],
   server: {
     host: '0.0.0.0',
