@@ -15,7 +15,12 @@ export default defineConfig({
     cors: true,
     hmr: true,
     headers: {
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/javascript; charset=utf-8'
+    },
+    middlewareMode: false,
+    fs: {
+      strict: false
     },
     proxy: {
       '/api': {
@@ -30,7 +35,9 @@ export default defineConfig({
     port: 4173,
     cors: true,
     headers: {
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: ws:;"
     }
   },
   build: {
@@ -44,7 +51,20 @@ export default defineConfig({
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          const ext = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
+            return `assets/images/[name]-[hash].[ext]`;
+          }
+          if (/css/i.test(ext)) {
+            return `assets/css/[name]-[hash].[ext]`;
+          }
+          if (/js|mjs|ts|tsx/i.test(ext)) {
+            return `assets/js/[name]-[hash].[ext]`;
+          }
+          return `assets/[name]-[hash].[ext]`;
+        },
         manualChunks: (id) => {
           if (id.includes('react') || id.includes('react-dom')) {
             return 'react-core';
@@ -76,5 +96,10 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis'
+  },
+  esbuild: {
+    target: 'es2015',
+    format: 'esm',
+    platform: 'browser'
   }
 })

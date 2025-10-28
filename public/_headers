@@ -1,0 +1,62 @@
+# GitHub Pages MIME Type Configuration
+# This file configures proper MIME types for JavaScript modules
+
+# JavaScript files
+/assets/*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# TypeScript compiled files
+/assets/*.tsx
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# ES Modules
+/assets/*.mjs
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# CSS files
+/assets/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML files
+/*.html
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+
+# Root HTML
+/
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+
+# Service Worker
+/sw.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+# Manifest
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+# SVG files
+/assets/*.svg
+  Content-Type: image/svg+xml; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+# Favicon
+/favicon.svg
+  Content-Type: image/svg+xml; charset=utf-8
+  Cache-Control: public, max-age=86400
