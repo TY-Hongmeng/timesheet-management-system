@@ -148,12 +148,37 @@ class AppInitializer {
   }
 
   private async registerServiceWorker() {
-    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    // 移动端和生产环境才注册 Service Worker
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isProduction = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    
+    if ('serviceWorker' in navigator && (isMobile || isProduction)) {
       try {
         this.updateLoaderText('正在注册服务工作者...');
         
+        // 先清理旧的 Service Worker
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          if (registration.scope.includes('timesheet-management-system')) {
+            console.log('清理旧的 Service Worker:', registration.scope);
+            await registration.unregister();
+          }
+        }
+        
+        // 清理缓存
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (const cacheName of cacheNames) {
+            if (cacheName.includes('timesheet-v1.3') || cacheName.includes('static-v1.3') || cacheName.includes('dynamic-v1.3')) {
+              console.log('清理旧缓存:', cacheName);
+              await caches.delete(cacheName);
+            }
+          }
+        }
+        
         const registration = await navigator.serviceWorker.register('/timesheet-management-system/sw.js', {
-          scope: '/timesheet-management-system/'
+          scope: '/timesheet-management-system/',
+          updateViaCache: 'none' // 强制更新
         });
         
         console.log('Service Worker 注册成功:', registration);
@@ -161,12 +186,29 @@ class AppInitializer {
         // 监听更新
         registration.addEventListener('updatefound', () => {
           console.log('发现 Service Worker 更新');
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // 新的 Service Worker 已安装，提示用户刷新
+                console.log('新版本可用，建议刷新页面');
+                if (isMobile) {
+                  // 移动端自动刷新
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+                }
+              }
+            });
+          }
         });
         
       } catch (error) {
         console.warn('Service Worker 注册失败:', error);
         // Service Worker 注册失败不应该阻止应用启动
       }
+    } else {
+      console.log('跳过 Service Worker 注册 - 非移动端或非生产环境');
     }
   }
 
