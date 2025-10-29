@@ -16,13 +16,7 @@
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
     <!-- 移动端性能优化 - 关键资源预加载 -->
-    <link rel="modulepreload" href="/timesheet-management-system/src/main.tsx" />
-    <link rel="modulepreload" href="/timesheet-management-system/src/App.tsx" />
-    <link rel="modulepreload" href="/timesheet-management-system/src/contexts/AuthContext.tsx" />
-    
-    <!-- 移动端CSS优化 - 预加载关键样式 -->
-    <link rel="preload" href="/timesheet-management-system/src/index.css" as="style" />
-    <link rel="preload" href="/timesheet-management-system/src/styles/globals.css" as="style" />
+    <!-- 注意：具体的资源文件将在构建时自动生成和注入 -->
     
     <!-- 移动端字体优化 - 使用系统字体，避免网络依赖 -->
     <style>
@@ -138,16 +132,19 @@
           }
         }
         
-        // 监听资源加载错误
+        // 监听关键资源加载错误（仅针对主要脚本文件）
         window.addEventListener('error', function(e) {
-          if (isMobile && retryCount < maxRetries) {
-            retryCount++;
-            console.log('移动端资源加载失败，重试中... (' + retryCount + '/' + maxRetries + ')');
-            setTimeout(function() {
-              location.reload();
-            }, 2000);
-          } else if (isMobile && retryCount >= maxRetries) {
-            showMobileError('网络连接不稳定，请检查网络后重试');
+          // 只对关键的JavaScript文件加载错误进行重试
+          if (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('assets/index-')) {
+            if (isMobile && retryCount < maxRetries) {
+              retryCount++;
+              console.log('关键资源加载失败，重试中... (' + retryCount + '/' + maxRetries + ')');
+              setTimeout(function() {
+                location.reload();
+              }, 3000);
+            } else if (isMobile && retryCount >= maxRetries) {
+              showMobileError('应用加载失败，请检查网络连接后重试');
+            }
           }
         });
         
