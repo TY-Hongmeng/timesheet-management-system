@@ -119,7 +119,7 @@ export default defineConfig({
             return `assets/css/[name]-[hash].[ext]`;
           }
           if (/js|mjs|ts|tsx/i.test(ext)) {
-            return `assets/js/[name]-[hash].js`;
+            return `assets/js/[name]-[hash].[ext]`;
           }
           return `assets/[name]-[hash].[ext]`;
         },
