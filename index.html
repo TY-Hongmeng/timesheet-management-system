@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 移动端优化viewport配置 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>工时管理系统</title>
     <meta name="description" content="JT工时管理系统 - 高效的工时记录和审核管理平台" />
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
@@ -26,15 +27,22 @@
       }
     </style>
     
-    <!-- 性能优化 -->
-    <meta name="theme-color" content="#ffffff" />
+    <!-- 移动端优化和PWA配置 -->
+    <meta name="theme-color" content="#22c55e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="工时管理" />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#22c55e" />
+    <meta name="msapplication-tap-highlight" content="no" />
     
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- 移动端图标 -->
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.svg" />
   </head>
   <body>
     <div id="root"></div>

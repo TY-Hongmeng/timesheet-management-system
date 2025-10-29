@@ -71,10 +71,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     cors: true,
-    hmr: true,
+    hmr: {
+      port: 5173,
+      host: '0.0.0.0'
+    },
     headers: {
-      'Cache-Control': 'no-cache',
-      'Content-Type': 'text/javascript; charset=utf-8'
+      'Cache-Control': 'no-cache'
     },
     middlewareMode: false,
     fs: {
