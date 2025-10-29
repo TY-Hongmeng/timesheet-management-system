@@ -1,65 +1,134 @@
-# 强制设置正确的 MIME 类型
+# 移动端优化 - 强制设置正确的 MIME 类型和缓存策略
 /assets/*.js
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Accept, Range
 
 /assets/*.tsx
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
+  Access-Control-Allow-Origin: *
 
 /assets/*.ts
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
+  Access-Control-Allow-Origin: *
 
 /assets/*.mjs
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
 
 /assets/*.jsx
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
+  Access-Control-Allow-Origin: *
 
 /assets/*.css
   Content-Type: text/css; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
 
 /assets/*.json
   Content-Type: application/json; charset=utf-8
   X-Content-Type-Options: nosniff
+  Access-Control-Allow-Origin: *
 
 /assets/*.svg
   Content-Type: image/svg+xml; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
 
-# 主页面和HTML文件
+# 移动端主页面优化 - HTML文件
 /
   Content-Type: text/html; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: no-cache, no-store, must-revalidate
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 /*.html
   Content-Type: text/html; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: no-cache, no-store, must-revalidate
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
 
-# PWA 相关文件
+# 移动端PWA优化 - PWA 相关文件
 /manifest.json
   Content-Type: application/manifest+json; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=86400
+  Access-Control-Allow-Origin: *
 
 /sw.js
   Content-Type: text/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
   Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
 
-# 通用规则
-/*
-  X-Frame-Options: DENY
+# 移动端字体和图标优化
+/favicon.svg
+  Content-Type: image/svg+xml; charset=utf-8
   X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.woff2
+  Content-Type: font/woff2
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.woff
+  Content-Type: font/woff
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.ttf
+  Content-Type: font/ttf
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# 移动端图片优化
+/*.png
+  Content-Type: image/png
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.jpg
+  Content-Type: image/jpeg
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.jpeg
+  Content-Type: image/jpeg
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/*.webp
+  Content-Type: image/webp
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# 移动端通用安全规则
+/*
   X-XSS-Protection: 1; mode=block
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: ws:;

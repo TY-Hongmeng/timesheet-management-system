@@ -2,63 +2,210 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工时管理系统</title>
-    <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // MIT License
-      // https://github.com/rafgraph/spa-github-pages
-      // This script takes the current url and converts the path and query
-      // string into just a query string, and then redirects the browser
-      // to the new url with only a query string and hash fragment,
-      // e.g. https://www.foo.tld/one/two?a=b&c=d#qwe, becomes
-      // https://www.foo.tld/?/one/two&a=b~and~c=d#qwe
-      // Note: this 404.html file must be at least 512 bytes for it to work
-      // with Internet Explorer (it is currently > 512 bytes)
-
-      // If you're creating a Project Pages site and NOT using a custom domain,
-      // then set pathSegmentsToKeep to 1 (enterprise users may need to set it to > 1).
-      // This way the code will only replace the route part and not the real directory.
-      // For GitHub Pages project: https://username.github.io/timesheet-management-system/route
-      // Should become: https://username.github.io/timesheet-management-system/?/route
-      // We need pathSegmentsToKeep = 2 for our project structure
-      var pathSegmentsToKeep = 2;
-
-      var l = window.location;
-      var pathname = l.pathname;
-      
-      // 检查是否已经在正确的基础路径下
-      if (pathname.indexOf('/timesheet-management-system/') === 0) {
-        // 移除基础路径，获取实际的路由路径
-        var routePath = pathname.replace('/timesheet-management-system/', '');
-        
-        // 如果有路由路径，则重定向到带查询参数的形式
-        if (routePath && routePath !== '/') {
-          l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            '/timesheet-management-system/?/' + routePath +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-          );
-        } else {
-          // 如果没有路由路径，直接重定向到主页
-          l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            '/timesheet-management-system/'
-          );
-        }
-      } else {
-        // 如果不在正确的基础路径下，重定向到主页
-        l.replace(
-          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-          '/timesheet-management-system/'
-        );
+    <style>
+      /* 移动端加载样式 */
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        text-align: center;
       }
+      
+      .loading-container {
+        max-width: 400px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #22c55e;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      h1 {
+        color: #22c55e;
+        margin-bottom: 10px;
+        font-size: 24px;
+      }
+      
+      p {
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      
+      .retry-btn {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        display: none;
+      }
+      
+      .retry-btn:hover {
+        background: #16a34a;
+      }
+    </style>
+    <script type="text/javascript">
+      // 移动端优化的 SPA 路由处理
+      (function() {
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        var retryCount = 0;
+        var maxRetries = 3;
+        
+        // 显示加载状态
+        function showLoading(message) {
+          document.body.innerHTML = 
+            '<div class="loading-container">' +
+            '<div class="loading-spinner"></div>' +
+            '<h1>工时管理系统</h1>' +
+            '<p>' + message + '</p>' +
+            '<button class="retry-btn" onclick="handleRetry()">重试</button>' +
+            '</div>';
+        }
+        
+        // 显示错误状态
+        function showError(message) {
+          document.body.innerHTML = 
+            '<div class="loading-container">' +
+            '<h1>工时管理系统</h1>' +
+            '<p>' + message + '</p>' +
+            '<button class="retry-btn" style="display:block" onclick="handleRetry()">重试</button>' +
+            '</div>';
+        }
+        
+        // 重试处理
+        window.handleRetry = function() {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            showLoading('正在重新加载... (' + retryCount + '/' + maxRetries + ')');
+            setTimeout(function() {
+              location.reload();
+            }, 1000);
+          } else {
+            showError('多次重试失败，请检查网络连接后手动刷新页面');
+          }
+        };
+        
+        // 移动端优化的路由重定向
+        function handleRouting() {
+          var l = window.location;
+          var pathname = l.pathname;
+          
+          // 显示加载状态
+          if (isMobile) {
+            showLoading('正在加载应用...');
+          }
+          
+          try {
+            // 检查是否已经在正确的基础路径下
+            if (pathname.indexOf('/timesheet-management-system/') === 0) {
+              // 移除基础路径，获取实际的路由路径
+              var routePath = pathname.replace('/timesheet-management-system/', '');
+              
+              // 如果有路由路径，则重定向到带查询参数的形式
+              if (routePath && routePath !== '/') {
+                var newUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                  '/timesheet-management-system/?/' + routePath +
+                  (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+                  l.hash;
+                
+                if (isMobile) {
+                  // 移动端延迟重定向，确保用户看到加载状态
+                  setTimeout(function() {
+                    l.replace(newUrl);
+                  }, 500);
+                } else {
+                  l.replace(newUrl);
+                }
+              } else {
+                // 如果没有路由路径，直接重定向到主页
+                var homeUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                  '/timesheet-management-system/';
+                
+                if (isMobile) {
+                  setTimeout(function() {
+                    l.replace(homeUrl);
+                  }, 500);
+                } else {
+                  l.replace(homeUrl);
+                }
+              }
+            } else {
+              // 如果不在正确的基础路径下，重定向到主页
+              var homeUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                '/timesheet-management-system/';
+              
+              if (isMobile) {
+                setTimeout(function() {
+                  l.replace(homeUrl);
+                }, 500);
+              } else {
+                l.replace(homeUrl);
+              }
+            }
+          } catch (error) {
+            console.error('路由处理错误:', error);
+            if (isMobile) {
+              showError('页面加载失败，请重试');
+            } else {
+              // 桌面端直接重定向
+              l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/timesheet-management-system/');
+            }
+          }
+        }
+        
+        // 网络状态监听
+        if (isMobile) {
+          window.addEventListener('online', function() {
+            showLoading('网络已恢复，正在重新加载...');
+            setTimeout(function() {
+              location.reload();
+            }, 1000);
+          });
+          
+          window.addEventListener('offline', function() {
+            showError('网络连接已断开，请检查网络连接');
+          });
+        }
+        
+        // 启动路由处理
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', handleRouting);
+        } else {
+          handleRouting();
+        }
+      })();
     </script>
   </head>
   <body>
-    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-      <h1>正在重定向...</h1>
-      <p>如果页面没有自动跳转，请<a href="/timesheet-management-system/">点击这里</a>返回主页。</p>
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <h1>工时管理系统</h1>
+      <p>正在加载应用...</p>
+      <button class="retry-btn" onclick="handleRetry()">重试</button>
     </div>
   </body>
 </html>

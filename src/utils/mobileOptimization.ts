@@ -37,7 +37,86 @@ const getCurrentAssets = () => {
   }
 }
 
-// 移动端资源预加载策略
+// 移动端网络状态监控和重试机制
+export const mobileNetworkManager = {
+  retryCount: 0,
+  maxRetries: 3,
+  retryDelay: 2000,
+  
+  // 检测网络状态
+  checkNetworkStatus: () => {
+    return {
+      online: navigator.onLine,
+      connection: (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection,
+      effectiveType: ((navigator as any).connection || {}).effectiveType || 'unknown'
+    }
+  },
+  
+  // 网络重试机制
+  retryWithBackoff: async (fn: () => Promise<any>, context: string = 'operation') => {
+    for (let attempt = 1; attempt <= mobileNetworkManager.maxRetries; attempt++) {
+      try {
+        console.log(`🔄 移动端网络重试 ${attempt}/${mobileNetworkManager.maxRetries} - ${context}`)
+        const result = await fn()
+        mobileNetworkManager.retryCount = 0 // 重置计数器
+        return result
+      } catch (error) {
+        console.warn(`❌ 移动端网络重试失败 ${attempt}/${mobileNetworkManager.maxRetries}:`, error)
+        
+        if (attempt === mobileNetworkManager.maxRetries) {
+          throw new Error(`移动端网络操作失败，已重试 ${mobileNetworkManager.maxRetries} 次: ${error}`)
+        }
+        
+        // 指数退避延迟
+        const delay = mobileNetworkManager.retryDelay * Math.pow(2, attempt - 1)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  },
+  
+  // 网络状态变化监听
+  setupNetworkMonitoring: () => {
+    if (!isMobileDevice()) return
+    
+    window.addEventListener('online', () => {
+      console.log('📶 移动端网络已恢复')
+      mobileNetworkManager.retryCount = 0
+      
+      // 触发自定义事件
+      window.dispatchEvent(new CustomEvent('mobileNetworkRestored', {
+        detail: { timestamp: Date.now(), networkStatus: mobileNetworkManager.checkNetworkStatus() }
+      }))
+    })
+    
+    window.addEventListener('offline', () => {
+      console.log('📵 移动端网络已断开')
+      
+      // 触发自定义事件
+      window.dispatchEvent(new CustomEvent('mobileNetworkLost', {
+        detail: { timestamp: Date.now() }
+      }))
+    })
+    
+    // 监听连接变化
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+    if (connection) {
+      connection.addEventListener('change', () => {
+        const status = mobileNetworkManager.checkNetworkStatus()
+        console.log('📡 移动端网络状态变化:', status)
+        
+        window.dispatchEvent(new CustomEvent('mobileConnectionChange', {
+          detail: { 
+            type: status.effectiveType === 'slow-2g' || status.effectiveType === '2g' ? 'slow' : 'fast',
+            networkStatus: status,
+            timestamp: Date.now()
+          }
+        }))
+      })
+    }
+  }
+}
+
+// 移动端资源预加载策略 - 增强版
 export const mobilePreloadStrategy = {
   // 关键资源立即预加载
   critical: () => {
@@ -50,6 +129,8 @@ export const mobilePreloadStrategy = {
         criticalCSS.rel = 'preload'
         criticalCSS.as = 'style'
         criticalCSS.href = assets.mainCSS
+        criticalCSS.onload = () => console.log('✅ 移动端关键CSS预加载完成')
+        criticalCSS.onerror = () => console.warn('❌ 移动端关键CSS预加载失败')
         document.head.appendChild(criticalCSS)
       }
       
@@ -58,6 +139,8 @@ export const mobilePreloadStrategy = {
         const vendorJS = document.createElement('link')
         vendorJS.rel = 'modulepreload'
         vendorJS.href = assets.vendor
+        vendorJS.onload = () => console.log('✅ 移动端Vendor JS预加载完成')
+        vendorJS.onerror = () => console.warn('❌ 移动端Vendor JS预加载失败')
         document.head.appendChild(vendorJS)
       }
     }
@@ -74,6 +157,8 @@ export const mobilePreloadStrategy = {
         iconFont.type = 'font/woff2'
         iconFont.crossOrigin = 'anonymous'
         iconFont.href = '/timesheet-management-system/fonts/icons.woff2'
+        iconFont.onload = () => console.log('✅ 移动端图标字体预加载完成')
+        iconFont.onerror = () => console.warn('❌ 移动端图标字体预加载失败')
         document.head.appendChild(iconFont)
       }, 2000)
     }
@@ -106,7 +191,7 @@ export const mobilePreloadStrategy = {
   }
 }
 
-// 移动端图片优化
+// 移动端图片优化 - 增强版
 export const optimizeImages = () => {
   if (isMobileDevice()) {
     // 懒加载图片
@@ -117,19 +202,57 @@ export const optimizeImages = () => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target as HTMLImageElement
-            img.src = img.dataset.src || ''
-            img.classList.remove('lazy')
+            
+            // 使用网络重试机制加载图片
+            mobileNetworkManager.retryWithBackoff(async () => {
+              return new Promise((resolve, reject) => {
+                const tempImg = new Image()
+                tempImg.onload = () => {
+                  img.src = img.dataset.src!
+                  img.removeAttribute('data-src')
+                  console.log('✅ 移动端图片加载成功:', img.dataset.src)
+                  resolve(tempImg)
+                }
+                tempImg.onerror = () => {
+                  console.warn('❌ 移动端图片加载失败:', img.dataset.src)
+                  reject(new Error(`图片加载失败: ${img.dataset.src}`))
+                }
+                tempImg.src = img.dataset.src!
+              })
+            }, `图片加载: ${img.dataset.src}`).catch(error => {
+              console.error('移动端图片最终加载失败:', error)
+              // 设置占位图片
+              img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4='
+            })
+            
             imageObserver.unobserve(img)
           }
         })
+      }, { 
+        rootMargin: '50px',
+        threshold: 0.1
       })
       
       images.forEach(img => imageObserver.observe(img))
     } else {
-      // 降级方案
+      // 降级方案 - 也使用重试机制
       images.forEach(img => {
-        const imgElement = img as HTMLImageElement
-        imgElement.src = imgElement.dataset.src || ''
+        const image = img as HTMLImageElement
+        mobileNetworkManager.retryWithBackoff(async () => {
+          return new Promise((resolve, reject) => {
+            const tempImg = new Image()
+            tempImg.onload = () => {
+              image.src = image.dataset.src!
+              image.removeAttribute('data-src')
+              resolve(tempImg)
+            }
+            tempImg.onerror = () => reject(new Error(`图片加载失败: ${image.dataset.src}`))
+            tempImg.src = image.dataset.src!
+          })
+        }, `降级图片加载: ${image.dataset.src}`).catch(() => {
+          // 设置占位图片
+          image.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4='
+        })
       })
     }
   }
@@ -258,9 +381,77 @@ export const mobilePerformanceMonitor = {
   }
 }
 
-// 初始化移动端优化
+// 移动端错误监控和恢复机制
+export const mobileErrorRecovery = {
+  errorCount: 0,
+  maxErrors: 5,
+  
+  // 错误处理和恢复
+  handleError: (error: Error, context: string) => {
+    mobileErrorRecovery.errorCount++
+    console.error(`🚨 移动端错误 [${mobileErrorRecovery.errorCount}/${mobileErrorRecovery.maxErrors}] - ${context}:`, error)
+    
+    // 触发错误事件
+    window.dispatchEvent(new CustomEvent('mobileError', {
+      detail: { 
+        error: error.message,
+        context,
+        count: mobileErrorRecovery.errorCount,
+        timestamp: Date.now()
+      }
+    }))
+    
+    // 如果错误过多，尝试重载页面
+    if (mobileErrorRecovery.errorCount >= mobileErrorRecovery.maxErrors) {
+      console.warn('🔄 移动端错误过多，尝试重载页面...')
+      setTimeout(() => {
+        window.location.reload()
+      }, 3000)
+    }
+  },
+  
+  // 重置错误计数
+  resetErrorCount: () => {
+    mobileErrorRecovery.errorCount = 0
+    console.log('✅ 移动端错误计数已重置')
+  },
+  
+  // 设置全局错误处理
+  setupGlobalErrorHandling: () => {
+    if (!isMobileDevice()) return
+    
+    // 捕获未处理的Promise错误
+    window.addEventListener('unhandledrejection', (event) => {
+      mobileErrorRecovery.handleError(new Error(event.reason), 'Promise rejection')
+      event.preventDefault()
+    })
+    
+    // 捕获JavaScript错误
+    window.addEventListener('error', (event) => {
+      mobileErrorRecovery.handleError(new Error(event.message), `JavaScript error at ${event.filename}:${event.lineno}`)
+    })
+    
+    // 捕获资源加载错误
+    window.addEventListener('error', (event) => {
+      if (event.target && event.target !== window) {
+        const target = event.target as HTMLElement
+        mobileErrorRecovery.handleError(new Error(`资源加载失败: ${target.tagName}`), 'Resource loading')
+      }
+    }, true)
+  }
+}
+
+// 初始化移动端优化 - 增强版
 export const initMobileOptimization = () => {
   if (isMobileDevice()) {
+    console.log('🚀 初始化移动端优化...')
+    
+    // 设置网络监控
+    mobileNetworkManager.setupNetworkMonitoring()
+    
+    // 设置全局错误处理
+    mobileErrorRecovery.setupGlobalErrorHandling()
+    
     // 启动关键资源预加载
     mobilePreloadStrategy.critical()
     
@@ -273,9 +464,26 @@ export const initMobileOptimization = () => {
       mobilePerformanceMonitor.monitorMemoryUsage()
     }, 1000)
     
+    // 启用内存优化
+    mobileMemoryOptimization.cleanupUnusedComponents()
+    mobileMemoryOptimization.limitConcurrentRequests()
+    
     // 清理过期缓存
     setTimeout(() => {
       mobileCacheStrategy.cleanExpiredCache()
     }, 5000)
+    
+    // 监听网络状态变化
+    window.addEventListener('mobileNetworkRestored', () => {
+      console.log('📶 网络恢复，重置错误计数')
+      mobileErrorRecovery.resetErrorCount()
+    })
+    
+    window.addEventListener('mobileNetworkLost', () => {
+      console.log('📵 网络断开，显示离线提示')
+      // 可以在这里显示离线提示UI
+    })
+    
+    console.log('✅ 移动端优化初始化完成')
   }
 }

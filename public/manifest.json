@@ -2,9 +2,10 @@
   "name": "工时管理系统",
   "short_name": "工时管理",
   "description": "高效的工时管理和项目跟踪系统",
-  "start_url": "/timesheet-management-system/",
+  "start_url": "/timesheet-management-system/?utm_source=pwa",
   "display": "standalone",
-  "background_color": "#000000",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#ffffff",
   "theme_color": "#22c55e",
   "orientation": "portrait-primary",
   "icons": [
@@ -13,10 +14,64 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "categories": ["productivity", "business"],
   "lang": "zh-CN",
   "scope": "/timesheet-management-system/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [],
+  "shortcuts": [
+    {
+      "name": "新建工时记录",
+      "short_name": "新建记录",
+      "description": "快速创建新的工时记录",
+      "url": "/timesheet-management-system/timesheet?action=new",
+      "icons": [
+        {
+          "src": "./favicon.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "查看统计",
+      "short_name": "统计",
+      "description": "查看工时统计报告",
+      "url": "/timesheet-management-system/reports",
+      "icons": [
+        {
+          "src": "./favicon.svg",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "dir": "ltr",
+  "iarc_rating_id": "",
+  "screenshots": [],
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate"
 }

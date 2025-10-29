@@ -3,46 +3,175 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- 移动端优化viewport配置 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- 移动端优化viewport配置 - 防止缩放和优化显示 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    
+    <!-- 移动端网络优化 - DNS预解析和预连接 -->
+    <link rel="dns-prefetch" href="//ty-hongmeng.github.io" />
+    <link rel="preconnect" href="https://ty-hongmeng.github.io" crossorigin />
+    
     <title>工时管理系统</title>
     <meta name="description" content="JT工时管理系统 - 高效的工时记录和审核管理平台" />
     <meta name="keywords" content="工时管理,工时记录,审核系统,企业管理" />
     
-    <!-- 关键资源预加载 -->
-    <link rel="modulepreload" href="/src/main.tsx" />
-    <link rel="modulepreload" href="/src/App.tsx" />
-    <link rel="modulepreload" href="/src/contexts/AuthContext.tsx" />
+    <!-- 移动端性能优化 - 关键资源预加载 -->
+    <link rel="modulepreload" href="/timesheet-management-system/src/main.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/src/App.tsx" />
+    <link rel="modulepreload" href="/timesheet-management-system/src/contexts/AuthContext.tsx" />
     
-    <!-- 预加载关键 CSS -->
-    <link rel="preload" href="/src/index.css" as="style" />
-    <link rel="preload" href="/src/styles/globals.css" as="style" />
+    <!-- 移动端CSS优化 - 预加载关键样式 -->
+    <link rel="preload" href="/timesheet-management-system/src/index.css" as="style" />
+    <link rel="preload" href="/timesheet-management-system/src/styles/globals.css" as="style" />
     
-    <!-- 使用系统字体，移除Google字体依赖 -->
+    <!-- 移动端字体优化 - 使用系统字体，避免网络依赖 -->
     <style>
       :root {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
           'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
           sans-serif;
       }
+      
+      /* 移动端加载优化 */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      
+      /* 移动端错误页面样式 */
+      .mobile-error {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #f8f9fa;
+        z-index: 9999;
+        padding: 20px;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      
+      .mobile-error.show {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .mobile-error h1 {
+        color: #22c55e;
+        margin-bottom: 20px;
+      }
+      
+      .mobile-error p {
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      
+      .mobile-error button {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+      }
     </style>
     
-    <!-- 移动端优化和PWA配置 -->
+    <!-- 移动端PWA配置 - 完整的移动端支持 -->
     <meta name="theme-color" content="#22c55e" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#22c55e" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#16a34a" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="工时管理" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-TileColor" content="#22c55e" />
     <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="msapplication-navbutton-color" content="#22c55e" />
     
-    <!-- Web App Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <!-- 移动端安全和性能优化 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="robots" content="index,follow" />
     
-    <!-- 移动端图标 -->
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.svg" />
+    <!-- Web App Manifest - 移动端PWA支持 -->
+    <link rel="manifest" href="/timesheet-management-system/manifest.json" />
+    
+    <!-- 移动端图标优化 - 多尺寸支持 -->
+    <link rel="apple-touch-icon" href="/timesheet-management-system/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/timesheet-management-system/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/timesheet-management-system/favicon.svg" />
+    <link rel="shortcut icon" href="/timesheet-management-system/favicon.svg" />
+    
+    <!-- 移动端网络错误处理脚本 -->
+    <script>
+      // 移动端网络错误检测和处理
+      (function() {
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        var retryCount = 0;
+        var maxRetries = 3;
+        
+        function showMobileError(message) {
+          if (!isMobile) return;
+          
+          var errorDiv = document.createElement('div');
+          errorDiv.className = 'mobile-error show';
+          errorDiv.innerHTML = 
+            '<h1>工时管理系统</h1>' +
+            '<p>' + message + '</p>' +
+            '<button onclick="location.reload()">重新加载</button>';
+          document.body.appendChild(errorDiv);
+        }
+        
+        function hideMobileError() {
+          var errorDiv = document.querySelector('.mobile-error');
+          if (errorDiv) {
+            errorDiv.remove();
+          }
+        }
+        
+        // 监听资源加载错误
+        window.addEventListener('error', function(e) {
+          if (isMobile && retryCount < maxRetries) {
+            retryCount++;
+            console.log('移动端资源加载失败，重试中... (' + retryCount + '/' + maxRetries + ')');
+            setTimeout(function() {
+              location.reload();
+            }, 2000);
+          } else if (isMobile && retryCount >= maxRetries) {
+            showMobileError('网络连接不稳定，请检查网络后重试');
+          }
+        });
+        
+        // 监听网络状态
+        if (isMobile) {
+          window.addEventListener('online', function() {
+            hideMobileError();
+            if (retryCount > 0) {
+              location.reload();
+            }
+          });
+          
+          window.addEventListener('offline', function() {
+            showMobileError('网络连接已断开，请检查网络连接');
+          });
+        }
+        
+        // 页面加载完成后隐藏错误提示
+        window.addEventListener('load', function() {
+          hideMobileError();
+          retryCount = 0;
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
