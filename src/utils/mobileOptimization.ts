@@ -116,78 +116,188 @@ export const mobileNetworkManager = {
   }
 }
 
-// 移动端资源预加载策略 - 增强版
+// 移动端预加载策略 - 增强版
 export const mobilePreloadStrategy = {
-  // 关键资源立即预加载
+  // 关键资源立即预加载 - 智能优先级
   critical: () => {
-    if (isMobileDevice() && !isSlowConnection()) {
-      const assets = getCurrentAssets()
-      
-      // 预加载关键 CSS
-      if (assets.mainCSS) {
-        const criticalCSS = document.createElement('link')
-        criticalCSS.rel = 'preload'
-        criticalCSS.as = 'style'
-        criticalCSS.href = assets.mainCSS
-        criticalCSS.onload = () => console.log('✅ 移动端关键CSS预加载完成')
-        criticalCSS.onerror = () => console.warn('❌ 移动端关键CSS预加载失败')
-        document.head.appendChild(criticalCSS)
+    if (!isMobileDevice()) return
+    
+    const assets = getCurrentAssets()
+    const networkStatus = mobileNetworkManager.checkNetworkStatus()
+    const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(networkStatus.effectiveType)
+    
+    // 根据网络状况调整预加载策略
+    const preloadPriority = isSlowNetwork ? ['mainCSS'] : ['mainCSS', 'vendor', 'react']
+    
+    preloadPriority.forEach(assetType => {
+      const assetUrl = assets[assetType as keyof typeof assets]
+      if (assetUrl) {
+        const link = document.createElement('link')
+        link.rel = 'preload'
+        link.as = assetType === 'mainCSS' ? 'style' : 'script'
+        link.href = assetUrl
+        
+        // 添加错误处理和重试
+        link.onerror = () => {
+          console.warn(`❌ 预加载失败: ${assetType}`)
+          // 使用网络重试机制
+          mobileNetworkManager.retryWithBackoff(async () => {
+            const retryLink = document.createElement('link')
+            retryLink.rel = 'preload'
+            retryLink.as = link.as
+            retryLink.href = link.href
+            document.head.appendChild(retryLink)
+            return retryLink
+          }, `预加载${assetType}`)
+        }
+        
+        document.head.appendChild(link)
       }
-      
-      // 预加载 vendor JS
-      if (assets.vendor) {
-        const vendorJS = document.createElement('link')
-        vendorJS.rel = 'modulepreload'
-        vendorJS.href = assets.vendor
-        vendorJS.onload = () => console.log('✅ 移动端Vendor JS预加载完成')
-        vendorJS.onerror = () => console.warn('❌ 移动端Vendor JS预加载失败')
-        document.head.appendChild(vendorJS)
-      }
-    }
+    })
+    
+    console.log(`🚀 移动端关键资源预加载完成 (网络: ${networkStatus.effectiveType})`)
   },
-  
-  // 延迟预加载非关键资源
+
+  // 延迟预加载非关键资源 - 智能调度
   deferred: () => {
-    if (isMobileDevice() && !isSlowConnection()) {
-      setTimeout(() => {
-        // 预加载图标字体
-        const iconFont = document.createElement('link')
-        iconFont.rel = 'preload'
-        iconFont.as = 'font'
-        iconFont.type = 'font/woff2'
-        iconFont.crossOrigin = 'anonymous'
-        iconFont.href = '/timesheet-management-system/fonts/icons.woff2'
-        iconFont.onload = () => console.log('✅ 移动端图标字体预加载完成')
-        iconFont.onerror = () => console.warn('❌ 移动端图标字体预加载失败')
-        document.head.appendChild(iconFont)
-      }, 2000)
-    }
-  },
-  
-  // 智能预加载下一页面
-  smartPreload: (nextRoute: string) => {
-    if (isMobileDevice() && !isSlowConnection()) {
-      // 使用 Intersection Observer 检测用户意图
-      const preloadTrigger = document.createElement('div')
-      preloadTrigger.style.position = 'absolute'
-      preloadTrigger.style.bottom = '100px'
-      preloadTrigger.style.height = '1px'
-      preloadTrigger.style.width = '100%'
-      document.body.appendChild(preloadTrigger)
+    if (!isMobileDevice()) return
+    
+    const networkStatus = mobileNetworkManager.checkNetworkStatus()
+    const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(networkStatus.effectiveType)
+    
+    // 根据网络状况调整延迟时间
+    const delayTime = isSlowNetwork ? 5000 : 2000
+    
+    setTimeout(() => {
+      if (!navigator.onLine) return // 检查网络状态
       
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            // 用户接近页面底部，预加载下一页面
-            import(/* webpackChunkName: "next-page" */ `@/pages/${nextRoute}`)
-            observer.disconnect()
-            document.body.removeChild(preloadTrigger)
-          }
+      // 预加载图标字体
+      const iconFont = document.createElement('link')
+      iconFont.rel = 'preload'
+      iconFont.as = 'font'
+      iconFont.type = 'font/woff2'
+      iconFont.crossOrigin = 'anonymous'
+      iconFont.href = '/timesheet-management-system/fonts/icons.woff2'
+      
+      iconFont.onerror = () => {
+        console.warn('❌ 图标字体预加载失败')
+      }
+      
+      document.head.appendChild(iconFont)
+      
+      // 预加载常用页面组件
+      if (!isSlowNetwork) {
+        const commonRoutes = ['Dashboard', 'TimesheetRecord', 'Reports']
+        commonRoutes.forEach(route => {
+          mobilePreloadStrategy.smartPreload(route)
         })
-      }, { threshold: 0.1 })
-      
-      observer.observe(preloadTrigger)
+      }
+    }, delayTime)
+  },
+
+  // 智能预加载下一个可能访问的页面 - 增强版
+  smartPreload: (nextRoute: string) => {
+    if (!isMobileDevice()) return
+    
+    const networkStatus = mobileNetworkManager.checkNetworkStatus()
+    const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(networkStatus.effectiveType)
+    
+    if (isSlowNetwork) {
+      console.log(`⏸️ 慢速网络，跳过预加载: ${nextRoute}`)
+      return
     }
+    
+    // 使用 IntersectionObserver 预加载路由组件
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // 使用网络重试机制动态导入
+          mobileNetworkManager.retryWithBackoff(async () => {
+            return import(/* webpackChunkName: "next-page" */ `@/pages/${nextRoute}`)
+          }, `预加载路由${nextRoute}`).then(() => {
+            console.log(`✅ 成功预加载路由: ${nextRoute}`)
+          }).catch((error) => {
+            console.warn(`❌ 预加载路由失败: ${nextRoute}`, error)
+          })
+          
+          observer.disconnect()
+        }
+      })
+    }, { 
+      threshold: 0.1,
+      rootMargin: '50px' // 提前50px开始预加载
+    })
+    
+    // 使用 Intersection Observer 检测用户意图
+    const preloadTrigger = document.createElement('div')
+    preloadTrigger.style.position = 'absolute'
+    preloadTrigger.style.bottom = '100px'
+    preloadTrigger.style.height = '1px'
+    preloadTrigger.style.width = '100%'
+    document.body.appendChild(preloadTrigger)
+    
+    observer.observe(preloadTrigger)
+  },
+
+  // 微信环境特殊优化
+  wechatOptimization: () => {
+    const isWechat = /MicroMessenger/i.test(navigator.userAgent)
+    if (!isWechat) return
+    
+    console.log('🔧 检测到微信环境，启用特殊优化')
+    
+    // 微信内置浏览器特殊处理
+    // 1. 禁用某些可能导致问题的预加载
+    const metaTag = document.createElement('meta')
+    metaTag.name = 'format-detection'
+    metaTag.content = 'telephone=no'
+    document.head.appendChild(metaTag)
+    
+    // 2. 优化微信分享
+    const shareMetaTitle = document.createElement('meta')
+    shareMetaTitle.property = 'og:title'
+    shareMetaTitle.content = '工时管理系统'
+    document.head.appendChild(shareMetaTitle)
+    
+    // 3. 微信环境下的性能监控
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const loadTime = performance.now()
+        console.log(`📊 微信环境加载时间: ${loadTime.toFixed(2)}ms`)
+        
+        // 如果加载时间过长，触发优化
+        if (loadTime > 3000) {
+          console.warn('⚠️ 微信环境加载较慢，启用紧急优化')
+          mobilePreloadStrategy.emergencyOptimization()
+        }
+      }, 100)
+    })
+  },
+
+  // 紧急优化模式
+  emergencyOptimization: () => {
+    console.log('🚨 启用紧急优化模式')
+    
+    // 1. 清理不必要的预加载
+    document.querySelectorAll('link[rel="preload"]').forEach(link => {
+      if (!link.href.includes('index-') && !link.href.includes('react')) {
+        link.remove()
+      }
+    })
+    
+    // 2. 延迟非关键脚本
+    document.querySelectorAll('script[src]').forEach(script => {
+      if (!script.src.includes('react') && !script.src.includes('index-')) {
+        script.defer = true
+      }
+    })
+    
+    // 3. 启用激进的图片懒加载
+    document.querySelectorAll('img').forEach(img => {
+      if (!img.loading) {
+        img.loading = 'lazy'
+      }
+    })
   }
 }
 
@@ -446,37 +556,47 @@ export const initMobileOptimization = () => {
   if (isMobileDevice()) {
     console.log('🚀 初始化移动端优化...')
     
+    // 优先检测微信环境并启用特殊优化
+    mobilePreloadStrategy.wechatOptimization()
+    
     // 设置网络监控
     mobileNetworkManager.setupNetworkMonitoring()
     
     // 设置全局错误处理
     mobileErrorRecovery.setupGlobalErrorHandling()
     
-    // 启动关键资源预加载
+    // 启动关键资源预加载 - 立即执行
     mobilePreloadStrategy.critical()
     
-    // 延迟启动非关键优化
+    // 启用内存优化 - 立即执行
+    mobileMemoryOptimization.cleanupUnusedComponents()
+    mobileMemoryOptimization.limitConcurrentRequests(2) // 微信环境下降低并发数
+    
+    // 延迟启动非关键优化 - 根据网络状况调整延迟
+    const networkStatus = mobileNetworkManager.checkNetworkStatus()
+    const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(networkStatus.effectiveType)
+    const delayTime = isSlowNetwork ? 3000 : 1000
+    
     setTimeout(() => {
       mobilePreloadStrategy.deferred()
       optimizeImages()
       mobileCacheStrategy.setMobileCacheHeaders()
       mobilePerformanceMonitor.measureFirstContentfulPaint()
       mobilePerformanceMonitor.monitorMemoryUsage()
-    }, 1000)
+    }, delayTime)
     
-    // 启用内存优化
-    mobileMemoryOptimization.cleanupUnusedComponents()
-    mobileMemoryOptimization.limitConcurrentRequests()
-    
-    // 清理过期缓存
+    // 清理过期缓存 - 延迟更长时间
     setTimeout(() => {
       mobileCacheStrategy.cleanExpiredCache()
-    }, 5000)
+    }, 8000)
     
     // 监听网络状态变化
     window.addEventListener('mobileNetworkRestored', () => {
       console.log('📶 网络恢复，重置错误计数')
       mobileErrorRecovery.resetErrorCount()
+      
+      // 网络恢复后立即启动预加载
+      mobilePreloadStrategy.critical()
     })
     
     window.addEventListener('mobileNetworkLost', () => {
@@ -484,6 +604,18 @@ export const initMobileOptimization = () => {
       // 可以在这里显示离线提示UI
     })
     
-    console.log('✅ 移动端优化初始化完成')
+    // 页面可见性变化监听 - 优化后台性能
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('📱 页面进入后台，暂停非关键操作')
+        // 暂停一些非关键的定时器和请求
+      } else {
+        console.log('📱 页面回到前台，恢复操作')
+        // 恢复操作
+        mobilePerformanceMonitor.monitorMemoryUsage()
+      }
+    })
+    
+    console.log(`✅ 移动端优化初始化完成 (网络: ${networkStatus.effectiveType})`)
   }
 }
