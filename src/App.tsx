@@ -187,7 +187,7 @@ function AppInner() {
     preloadComponents()
   }, [])
 
-  const basename = import.meta.env.DEV ? '' : '/timesheet-management-system'
+  const basename = import.meta.env.PROD ? '/timesheet-management-system' : ''
   
   return (
     <Router basename={basename}>
