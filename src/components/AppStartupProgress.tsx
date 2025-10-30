@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Loader2, Smartphone, Wifi, CheckCircle, AlertTriangle, Router, Database, User } from 'lucide-react'
 import { performanceMonitor } from '@/utils/performanceMonitor'
-import { realProgressManager, type ProgressState } from '@/utils/realProgressManager'
+import { smoothProgressManager, type SmoothProgressState } from '@/utils/smoothProgressManager'
 
 interface AppStartupProgressProps {
   onComplete?: () => void
@@ -12,92 +12,64 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
   onComplete, 
   isVisible = true 
 }) => {
-  const [progressState, setProgressState] = useState<ProgressState>({
-    currentStep: 0,
-    totalProgress: 0,
-    steps: [],
+  const [progressState, setProgressState] = useState<SmoothProgressState>({
+    progress: 0,
     isCompleted: false,
-    hasError: false
+    hasError: false,
+    errorMessage: undefined,
+    currentPhase: '准备启动...'
   })
-  const [networkSpeed, setNetworkSpeed] = useState<'fast' | 'slow' | 'offline'>('fast')
+   const [networkSpeed, setNetworkSpeed] = useState<'fast' | 'slow' | 'offline'>('fast')
 
-  // 根据步骤ID获取对应的图标
-  const getStepIcon = (stepId: string, hasError: boolean = false) => {
-    if (hasError) {
+  // 根据进度获取对应的图标
+  const getCurrentIcon = () => {
+    if (progressState.hasError) {
       return <AlertTriangle className="w-6 h-6 text-red-400" />
     }
-
-    switch (stepId) {
-      case 'init':
-        return <Smartphone className="w-6 h-6" />
-      case 'router':
-        return <Router className="w-6 h-6" />
-      case 'auth':
-        return networkSpeed === 'offline' ? 
-          <AlertTriangle className="w-6 h-6 text-yellow-400" /> : 
-          <Database className="w-6 h-6" />
-      case 'data':
-        return <User className="w-6 h-6" />
-      case 'ready':
-        return <CheckCircle className="w-6 h-6 text-green-400" />
-      default:
-        return <Loader2 className="w-6 h-6 animate-spin" />
+    
+    if (progressState.isCompleted) {
+      return <CheckCircle className="w-6 h-6 text-green-400" />
+    }
+    
+    // 根据进度显示不同图标
+    if (progressState.progress < 30) {
+      return <Smartphone className="w-6 h-6 text-green-400" />
+    } else if (progressState.progress < 70) {
+      return <Router className="w-6 h-6 text-green-400" />
+    } else {
+      return <Database className="w-6 h-6 text-green-400" />
     }
   }
 
   useEffect(() => {
     if (!isVisible) return
 
-    console.log('🚀 AppStartupProgress 开始真实进度监控')
-
-    // 开始性能监控
+    console.log('🎯 启动丝滑进度监控')
     performanceMonitor.startTiming('app_startup')
-    performanceMonitor.recordNetworkInfo()
 
-    // 检测网络状态
-    const checkNetworkSpeed = () => {
-      if (!navigator.onLine) {
-        setNetworkSpeed('offline')
-        return
-      }
-
-      // 简单的网络速度检测
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
-      if (connection) {
-        const effectiveType = connection.effectiveType
-        if (effectiveType === 'slow-2g' || effectiveType === '2g') {
-          setNetworkSpeed('slow')
-        } else if (effectiveType === '3g') {
-          setNetworkSpeed('slow')
-        } else {
-          setNetworkSpeed('fast')
-        }
-      }
-    }
-
-    checkNetworkSpeed()
-
-    // 订阅真实进度管理器
-    const unsubscribe = realProgressManager.subscribe((state: ProgressState) => {
+    // 订阅进度更新
+    const unsubscribe = smoothProgressManager.subscribe((state) => {
       setProgressState(state)
       
-      // 当进度完成时，触发完成回调
-      if (state.isCompleted) {
-        console.log('✅ 真实进度完成，准备切换到主应用')
+      // 当进度完成时
+      if (state.isCompleted && !state.hasError) {
+        console.log('✅ 丝滑进度完成，准备切换到主应用')
         performanceMonitor.endTiming('app_startup')
+        
         setTimeout(() => {
           onComplete?.()
-        }, 1000)
+        }, 300) // 减少延迟
       }
     })
 
-    // 启动真实的加载流程
-    realProgressManager.start().catch((error) => {
-      console.error('❌ 真实进度管理器启动失败:', error)
-      // 即使出错也要完成启动
-      setTimeout(() => {
-        onComplete?.()
-      }, 2000)
+    // 启动丝滑进度管理器
+    smoothProgressManager.start().catch(error => {
+      console.error('进度管理器启动失败:', error)
+      setProgressState(prev => ({
+        ...prev,
+        hasError: true,
+        errorMessage: '启动失败，请刷新页面重试'
+      }))
     })
 
     return () => {
@@ -107,8 +79,7 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
 
   if (!isVisible) return null
 
-  const currentStepData = progressState.steps[progressState.currentStep]
-  const currentStepIcon = currentStepData ? getStepIcon(currentStepData.id, !!currentStepData.error) : <Loader2 className="w-6 h-6 animate-spin" />
+  const currentIcon = getCurrentIcon()
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
@@ -130,71 +101,64 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
 
         {/* 进度条容器 */}
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl">
-          {/* 当前步骤显示 */}
+          {/* 当前阶段显示 */}
           <div className="flex items-center mb-6">
             <div className="flex-shrink-0 mr-4">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                currentStepData?.error ? 'bg-red-700' : 'bg-gray-700'
+                progressState.hasError ? 'bg-red-700' : 'bg-gray-700'
               }`}>
-                {currentStepIcon}
+                {currentIcon}
               </div>
             </div>
             <div className="flex-1">
               <p className={`font-medium font-mono ${
-                currentStepData?.error ? 'text-red-400' : 'text-green-400'
+                progressState.hasError ? 'text-red-400' : 'text-green-400'
               }`}>
-                {currentStepData?.label || '准备中...'}
+                {progressState.currentPhase}
               </p>
               <p className="text-green-300 text-sm font-mono mt-1">
-                {Math.round(progressState.totalProgress)}% 完成
+                {progressState.progress}% 完成
               </p>
-              {currentStepData?.error && (
+              {progressState.hasError && progressState.errorMessage && (
                 <p className="text-red-300 text-xs font-mono mt-1">
-                  错误: {currentStepData.error}
+                  错误: {progressState.errorMessage}
                 </p>
               )}
             </div>
           </div>
 
-          {/* 进度条 */}
+          {/* 丝滑进度条 */}
           <div className="mb-6">
-            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden relative">
               <div 
-                className={`h-full rounded-full transition-all duration-300 ease-out relative ${
+                className={`h-full transition-all duration-500 ease-out relative ${
                   progressState.hasError 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                    : 'bg-gradient-to-r from-green-500 to-green-600'
+                    ? 'bg-gradient-to-r from-red-500 to-red-400' 
+                    : 'bg-gradient-to-r from-green-500 to-green-400'
                 }`}
-                style={{ width: `${progressState.totalProgress}%` }}
+                style={{ 
+                  width: `${progressState.progress}%`,
+                  transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
               >
-                {/* 进度条光效 */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                {/* 流动光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-300 to-transparent opacity-20 animate-ping"></div>
               </div>
             </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-green-300 text-sm font-mono">{Math.round(progressState.totalProgress)}%</span>
-              <span className="text-green-300 text-sm font-mono">
-                {progressState.currentStep + 1} / {progressState.steps.length}
-              </span>
+            <div className="flex justify-between text-xs text-green-300 font-mono mt-2">
+              <span>进度</span>
+              <span>{progressState.progress}%</span>
             </div>
           </div>
 
-          {/* 步骤指示器 */}
-          <div className="flex justify-center space-x-2 mb-6">
-            {progressState.steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  step.error
-                    ? 'bg-red-400'
-                    : step.completed
-                    ? 'bg-green-400'
-                    : index === progressState.currentStep
-                    ? 'bg-green-500 ring-2 ring-green-400 ring-opacity-50'
-                    : 'bg-gray-600'
-                }`}
-              />
-            ))}
+          {/* 丝滑加载指示 */}
+          <div className="flex justify-center mb-6">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+            </div>
           </div>
 
           {/* 错误状态显示 */}

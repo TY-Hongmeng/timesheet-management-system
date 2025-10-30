@@ -4,7 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { initMobileOptimization, mobileNetworkManager, mobileErrorRecovery } from './utils/mobileOptimization.ts'
 import AppStartupProgress from './components/AppStartupProgress.tsx'
-import { realProgressManager } from './utils/realProgressManager'
+import { smoothProgressManager } from './utils/smoothProgressManager'
 import { performanceMonitor } from './utils/performanceMonitor.ts'
 
 // 应用启动包装器组件
@@ -17,8 +17,8 @@ function AppLauncher() {
       try {
         console.log('开始React应用初始化流程')
         
-        // 启动真实的进度监控
-        await realProgressManager.start()
+        // 启动丝滑的进度监控
+        await smoothProgressManager.start()
         
         // 初始化移动端优化
         await initMobileOptimization()
