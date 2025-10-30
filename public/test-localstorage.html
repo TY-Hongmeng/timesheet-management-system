@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LocalStorage 功能测试</h1>
+        <p>此页面用于测试线上环境的 localStorage 功能是否正常工作。</p>
+        
+        <div>
+            <button onclick="testSetDefaultUserStatus(true)">设置默认状态为启用</button>
+            <button onclick="testSetDefaultUserStatus(false)">设置默认状态为禁用</button>
+            <button onclick="testGetDefaultUserStatus()">读取默认状态</button>
+            <button onclick="testClearDefaultUserStatus()">清除默认状态</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <h2>当前环境信息</h2>
+        <div class="result">
+            <strong>当前URL:</strong> <span id="currentUrl"></span><br>
+            <strong>User Agent:</strong> <span id="userAgent"></span><br>
+            <strong>LocalStorage 支持:</strong> <span id="localStorageSupport"></span>
+        </div>
+    </div>
+
+    <script>
+        // 显示环境信息
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('localStorageSupport').textContent = typeof(Storage) !== "undefined" ? "是" : "否";
+
+        function showResult(message, isError = false, isSuccess = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = message;
+            resultDiv.className = 'result';
+            if (isError) {
+                resultDiv.classList.add('error');
+            } else if (isSuccess) {
+                resultDiv.classList.add('success');
+            }
+        }
+
+        function testSetDefaultUserStatus(status) {
+            try {
+                localStorage.setItem('defaultUserStatus', JSON.stringify(status));
+                showResult(`✅ 成功设置 defaultUserStatus 为: ${status ? '启用' : '禁用'}`, false, true);
+            } catch (error) {
+                showResult(`❌ 设置失败: ${error.message}`, true);
+            }
+        }
+
+        function testGetDefaultUserStatus() {
+            try {
+                const saved = localStorage.getItem('defaultUserStatus');
+                if (saved === null) {
+                    showResult('⚠️ defaultUserStatus 未设置，将使用默认值: 禁用');
+                } else {
+                    const status = JSON.parse(saved);
+                    showResult(`✅ 读取到 defaultUserStatus: ${status ? '启用' : '禁用'}`, false, true);
+                }
+            } catch (error) {
+                showResult(`❌ 读取失败: ${error.message}`, true);
+            }
+        }
+
+        function testClearDefaultUserStatus() {
+            try {
+                localStorage.removeItem('defaultUserStatus');
+                showResult('✅ 成功清除 defaultUserStatus', false, true);
+            } catch (error) {
+                showResult(`❌ 清除失败: ${error.message}`, true);
+            }
+        }
+
+        // 页面加载时自动检查当前状态
+        window.onload = function() {
+            testGetDefaultUserStatus();
+        };
+    </script>
+</body>
+</html>
