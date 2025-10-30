@@ -47,14 +47,25 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
-  const [formData, setFormData] = useState<UserFormData>({
-    phone: '',
-    id_card: '',
-    name: '',
-    company_id: '',
-    role_id: '',
-    production_line: '',
-    is_active: false // 新用户默认为禁用状态
+  
+  // 注册默认状态控制 - 需要在formData之前初始化
+  const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(() => {
+    const saved = localStorage.getItem('defaultUserStatus')
+    return saved ? JSON.parse(saved) : false // 默认为禁用状态
+  })
+  
+  const [formData, setFormData] = useState<UserFormData>(() => {
+    const saved = localStorage.getItem('defaultUserStatus')
+    const defaultStatus = saved ? JSON.parse(saved) : false
+    return {
+      phone: '',
+      id_card: '',
+      name: '',
+      company_id: '',
+      role_id: '',
+      production_line: '',
+      is_active: defaultStatus // 使用localStorage中的默认状态
+    }
   })
   const [formLoading, setFormLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -82,11 +93,6 @@ export default function UserManagement() {
   const [selectedProductionLineChangeReceiver, setSelectedProductionLineChangeReceiver] = useState('')
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  // 注册默认状态控制
-  const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(() => {
-    const saved = localStorage.getItem('defaultUserStatus')
-    return saved ? JSON.parse(saved) : false // 默认为禁用状态
-  })
 
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -99,6 +105,14 @@ export default function UserManagement() {
       return
     }
   }, [user, authLoading, navigate])
+
+  // 当defaultUserStatus变化时，更新formData的is_active字段
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      is_active: defaultUserStatus
+    }))
+  }, [defaultUserStatus])
 
   // 如果正在加载认证状态，显示加载界面
   if (authLoading) {
