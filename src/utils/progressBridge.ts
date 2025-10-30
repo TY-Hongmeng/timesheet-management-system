@@ -39,10 +39,14 @@ export class ProgressBridge {
 
     if (!this.isReactReady && window.instantProgress) {
       // React还未准备好，使用HTML进度条
+      console.log(`📊 HTML进度条更新: ${progress}% - ${phase}`)
       window.instantProgress.update(progress, phase);
     } else if (this.isReactReady && this.reactProgressCallback) {
       // React已准备好，使用React进度条
+      console.log(`⚛️ React进度条更新: ${progress}% - ${phase}`)
       this.reactProgressCallback(progress, phase);
+    } else {
+      console.warn(`⚠️ 进度条更新失败: React准备状态=${this.isReactReady}, HTML进度条=${!!window.instantProgress}`)
     }
   }
 

@@ -12,49 +12,65 @@ import { progressBridge, updateInitProgress } from './utils/progressBridge'
 function AppWrapper() {
   const [showProgress, setShowProgress] = useState(true)
   const [appReady, setAppReady] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // 立即开始初始化进度
   useEffect(() => {
+    if (isInitialized) return // 防止重复执行
+    
     // 步骤0: 页面加载完成，开始初始化 (0-20%)
+    console.log('🚀 开始HTML进度条初始化')
     updateInitProgress(0, '页面加载完成，开始初始化...')
     setTimeout(() => {
       updateInitProgress(10, 'React组件正在挂载...')
     }, 50)
+    
+    setIsInitialized(true)
   }, [])
 
   useEffect(() => {
+    if (!isInitialized) return // 等待初始化完成
+    
     const initializeApp = async () => {
       try {
-        console.log('开始React应用初始化流程')
+        // 步骤1: 基础初始化 (0-20%)
+        updateInitProgress(0, '正在启动应用...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(10, '加载核心模块...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(20, '初始化系统配置...')
         
-        // 步骤1: React应用初始化 (20-30%)
-        updateInitProgress(20, 'React应用初始化中...')
-        await new Promise(resolve => setTimeout(resolve, 100)) // 确保进度显示
+        // 步骤2: 移动端优化初始化 (20-40%)
+        updateInitProgress(25, '优化移动端体验...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(35, '配置响应式布局...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(40, '加载移动端组件...')
         
-        // 步骤2: 启动丝滑的进度监控 (30-50%)
-        updateInitProgress(30, '启动进度监控系统...')
-        await smoothProgressManager.start()
-        updateInitProgress(50, '进度监控系统已启动')
+        // 步骤3: 网络连接检查 (40-65%)
+        updateInitProgress(45, '检查网络连接...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(55, '验证服务连接...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(65, '建立数据连接...')
         
-        // 步骤3: 初始化移动端优化 (50-70%)
-        updateInitProgress(50, '初始化移动端优化...')
-        await initMobileOptimization()
-        updateInitProgress(70, '移动端优化已完成')
+        // 步骤4: 进度监控系统启动 (65-85%)
+        updateInitProgress(70, '启动进度监控...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(80, '同步系统状态...')
+        await new Promise(resolve => setTimeout(resolve, 150))
         
-        // 步骤4: 网络连接检查 (70-85%)
-        updateInitProgress(70, '检查网络连接状态...')
-        await new Promise(resolve => setTimeout(resolve, 200))
-        updateInitProgress(85, '网络连接检查完成')
+        // 步骤5: 应用准备就绪 (85-100%)
+        updateInitProgress(85, '准备应用界面...')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(95, '应用即将启动')
+        await new Promise(resolve => setTimeout(resolve, 150))
+        updateInitProgress(100, '启动完成')
         
-        // 步骤5: 应用准备就绪 (85-95%)
-         updateInitProgress(85, '准备应用界面...')
-         await new Promise(resolve => setTimeout(resolve, 100))
-         updateInitProgress(95, '应用即将启动')
-         
-         console.log('应用初始化完成')
-         setAppReady(true)
-         
-       } catch (error) {
+        console.log('应用初始化完成')
+        setAppReady(true)
+        
+      } catch (error) {
         console.error('应用初始化失败:', error)
         updateInitProgress(100, '初始化失败，正在恢复...')
         // 即使初始化失败，也要确保应用能够启动
@@ -65,8 +81,8 @@ function AppWrapper() {
       }
     }
 
-    initializeApp()
-  }, [])
+     initializeApp()
+   }, [isInitialized])
 
   // 进度条完成回调
   const handleProgressComplete = () => {
@@ -89,9 +105,17 @@ function AppWrapper() {
   return null
 }
 
+// 全局标志，防止重复挂载
+let isAppMounted = false
+
 // 移动端应用启动器
 const startMobileApp = async () => {
   console.log('🚀 启动移动端工时管理应用...')
+  
+  if (isAppMounted) {
+    console.log('⚠️ 应用已经挂载，跳过重复挂载')
+    return
+  }
   
   try {
     // 使用网络重试机制启动React应用
@@ -104,6 +128,8 @@ const startMobileApp = async () => {
               <AppWrapper />
             </React.StrictMode>
           )
+          
+          isAppMounted = true
           
           // 等待应用挂载
           setTimeout(() => {

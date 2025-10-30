@@ -55,8 +55,16 @@ class SmoothProgressManager {
   }
 
   /**
+   * 检查是否正在运行
+   */
+  getIsRunning(): boolean {
+    return this.isRunning
+  }
+
+  /**
    * 开始丝滑进度
    */
+
   async start(): Promise<void> {
     if (this.isRunning) {
       console.warn('Smooth progress manager is already running')

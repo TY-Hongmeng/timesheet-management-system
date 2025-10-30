@@ -50,6 +50,7 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
 
     // 注册React进度回调到桥接器
     progressBridge.setReactProgressCallback((progress, phase) => {
+      console.log('⚛️ React进度回调被调用:', progress, phase)
       setProgressState(prev => ({
         ...prev,
         progress: Math.round(progress),
@@ -73,15 +74,15 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
       }
     })
 
-    // 启动丝滑进度管理器
-    smoothProgressManager.start().catch(error => {
-      console.error('进度管理器启动失败:', error)
-      setProgressState(prev => ({
-        ...prev,
-        hasError: true,
-        errorMessage: '启动失败，请刷新页面重试'
-      }))
-    })
+    // 启动进度监控 - 只有在还没有运行时才启动
+    if (!smoothProgressManager.getIsRunning()) {
+      console.log('🚀 启动smoothProgressManager')
+      smoothProgressManager.start().then(() => {
+        console.log('✅ 丝滑加载完成')
+      })
+    } else {
+      console.log('⚠️ smoothProgressManager已经在运行')
+    }
 
     return () => {
       unsubscribe()
