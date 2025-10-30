@@ -322,7 +322,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('创建用户账号，用户ID:', userId)
 
       // 从localStorage读取默认用户状态设置
-      const defaultUserStatus = localStorage.getItem('defaultUserStatus') === 'true'
+      const saved = localStorage.getItem('defaultUserStatus')
+      const defaultUserStatus = saved ? JSON.parse(saved) : false // 默认为禁用状态
       console.log('使用默认用户状态:', defaultUserStatus)
 
       // 创建用户信息记录
