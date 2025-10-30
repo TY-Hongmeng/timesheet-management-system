@@ -321,10 +321,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('创建用户账号，用户ID:', userId)
 
-      // 公开注册始终设置为禁用状态，需要管理员审核激活
-      // 这与管理员在UserManagement.tsx中创建用户的逻辑不同
-      const isActiveForPublicRegistration = false
-      console.log('公开注册用户状态设置为禁用，需要管理员激活')
+      // 从localStorage读取默认用户状态设置
+      const saved = localStorage.getItem('defaultUserStatus')
+      const defaultUserStatus = saved ? JSON.parse(saved) : false // 默认为禁用状态
+      console.log('使用默认用户状态:', defaultUserStatus)
 
       // 创建用户信息记录
       const { error: userError } = await supabase
@@ -338,7 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role_id: formData.role_id,
           password_hash: formData.password,
           production_line: formData.production_line,
-          is_active: isActiveForPublicRegistration
+          is_active: defaultUserStatus
         })
 
       if (userError) {
@@ -356,8 +356,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single()
 
-      // 注册成功，但不自动登录（账号默认为禁用状态，需要管理员激活）
-      console.log('用户注册成功，账号状态为禁用，需要管理员激活')
+      // 注册成功，但不自动登录
+      console.log(`用户注册成功，账号状态为${defaultUserStatus ? '启用' : '禁用'}${defaultUserStatus ? '' : '，需要管理员激活'}`)
 
       return { success: true }
     } catch (error: any) {
