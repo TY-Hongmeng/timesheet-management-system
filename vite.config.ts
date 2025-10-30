@@ -68,12 +68,12 @@ export default defineConfig({
     forceMimeTypePlugin(),
   ],
   server: {
-    host: '0.0.0.0',
+    host: 'localhost',
     port: 5173,
     cors: true,
     hmr: {
       port: 5173,
-      host: '0.0.0.0'
+      host: 'localhost'
     },
     headers: {
       'Cache-Control': 'no-cache'

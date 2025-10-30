@@ -82,6 +82,11 @@ export default function UserManagement() {
   const [selectedProductionLineChangeReceiver, setSelectedProductionLineChangeReceiver] = useState('')
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  // 注册默认状态控制
+  const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(() => {
+    const saved = localStorage.getItem('defaultUserStatus')
+    return saved ? JSON.parse(saved) : false // 默认为禁用状态
+  })
 
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -203,6 +208,13 @@ export default function UserManagement() {
     } finally {
       setRefreshing(false)
     }
+  }
+
+  // 处理注册默认状态切换
+  const handleDefaultStatusToggle = (newStatus: boolean) => {
+    setDefaultUserStatus(newStatus)
+    localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
+    toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1232,7 +1244,7 @@ export default function UserManagement() {
       company_id: '',
       role_id: '',
       production_line: '',
-      is_active: false // 新用户默认为禁用状态
+      is_active: defaultUserStatus // 使用全局默认状态设置
     }
     
     // 如果不是超级管理员，自动设置表单的公司为用户所属公司
@@ -1331,6 +1343,46 @@ export default function UserManagement() {
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>
 
+        {/* 注册默认状态控制开关 */}
+        <div className="mb-6 p-4 bg-gray-900/50 border border-green-400/30 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Shield className="w-5 h-5 text-green-400" />
+              <div>
+                <h3 className="text-green-400 font-mono font-bold">新用户注册默认状态</h3>
+                <p className="text-green-300/70 text-sm font-mono">
+                  控制新注册用户的默认激活状态，当前设置：
+                  <span className={`ml-1 font-bold ${defaultUserStatus ? 'text-green-400' : 'text-red-400'}`}>
+                    {defaultUserStatus ? '启用' : '禁用'}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => handleDefaultStatusToggle(false)}
+                className={`px-3 py-1 rounded font-mono text-sm transition-colors ${
+                  !defaultUserStatus 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                禁用
+              </button>
+              <button
+                onClick={() => handleDefaultStatusToggle(true)}
+                className={`px-3 py-1 rounded font-mono text-sm transition-colors ${
+                  defaultUserStatus 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                启用
+              </button>
+            </div>
+          </div>
+        </div>
+
         {error && (
           <div className="mb-6 p-4 bg-red-900/50 border border-red-400 rounded text-red-300">
             {error}
@@ -1353,11 +1405,11 @@ export default function UserManagement() {
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            {/* Refresh Button */}
+            {/* Refresh Button - 统一样式 */}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-bold rounded transition-colors font-mono"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-600 disabled:to-gray-800 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-mono"
               title="刷新数据"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
