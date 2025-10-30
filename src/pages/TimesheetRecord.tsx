@@ -888,16 +888,48 @@ export default function TimesheetRecord() {
         return
       }
       
-      // 查询该生产线下角色为段长的用户
+      console.log('loadSectionLeaders: 当前选择的生产线:', selectedLine.name)
+      
+      const isSuper = isSuperAdmin(user?.role)
+      let companyId: string
+      
+      if (isSuper) {
+        // 超级管理员使用选择的生产线对应的公司ID
+        if (!selectedLine.company_id) {
+          console.error('loadSectionLeaders: 生产线缺少company_id信息')
+          setSectionLeaders([])
+          return
+        }
+        companyId = selectedLine.company_id
+        console.log('loadSectionLeaders: 超级管理员使用生产线公司ID:', companyId)
+      } else {
+        // 普通用户使用自己的公司ID
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user?.id)
+          .single()
+        
+        if (userError) {
+          console.error('loadSectionLeaders: 获取用户公司信息失败:', userError)
+          throw userError
+        }
+        companyId = userData.company_id
+        console.log('loadSectionLeaders: 普通用户使用自己的公司ID:', companyId)
+      }
+      
+      // 查询该生产线下角色为段长的用户，添加公司过滤
       const { data, error } = await supabase
         .from('users')
         .select(`
           id, 
           name, 
           production_line,
+          company_id,
           role:user_roles!inner(name)
         `)
         .eq('production_line', selectedLine.name)
+        .eq('company_id', companyId)
         .eq('user_roles.name', '段长')
         .eq('is_active', true)
         .order('name')
@@ -906,6 +938,7 @@ export default function TimesheetRecord() {
         throw error
       }
       
+      console.log('loadSectionLeaders: 查询到的段长数据:', data)
       setSectionLeaders(data || [])
       
       // 自动填写功能：如果只有一个段长选项且用户未选择，则自动选择
@@ -914,6 +947,7 @@ export default function TimesheetRecord() {
       }
       
     } catch (error) {
+      console.error('loadSectionLeaders: 加载段长数据失败:', error)
       toast.error('加载段长数据失败')
       setSectionLeaders([])
     }
