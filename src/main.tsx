@@ -10,50 +10,60 @@ import { performanceMonitor } from './utils/performanceMonitor.ts'
 function AppLauncher() {
   const [showProgress, setShowProgress] = useState(true)
   const [appReady, setAppReady] = useState(false)
-
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // 通知HTML进度条React应用已准备就绪
-        window.dispatchEvent(new CustomEvent('react-app-ready'))
-        
-        // 等待HTML进度条完成并消失
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // 初始化移动端优化
-        await initMobileOptimization()
-        
-        // 模拟应用准备过程
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        setAppReady(true)
-        setShowProgress(false)
-      } catch (error) {
-        console.error('应用初始化失败:', error)
-        setAppReady(true)
-        setShowProgress(false)
-      }
-    }
-
-    initializeApp()
-  }, [])
+  const [htmlProgressGone, setHtmlProgressGone] = useState(false)
 
   // 检查HTML进度条是否还存在
   useEffect(() => {
     const checkInstantProgress = () => {
       const instantProgress = document.getElementById('instant-progress')
-      if (!instantProgress) {
-        // HTML进度条已消失，可以显示React进度条
-        setShowProgress(false)
+      if (!instantProgress && !htmlProgressGone) {
+        // HTML进度条已消失，现在可以显示React进度条
+        setHtmlProgressGone(true)
+        console.log('HTML进度条已消失，开始显示React进度条')
       }
     }
 
     const interval = setInterval(checkInstantProgress, 100)
     return () => clearInterval(interval)
-  }, [])
+  }, [htmlProgressGone])
 
+  useEffect(() => {
+    if (!htmlProgressGone) return
+
+    const initializeApp = async () => {
+      try {
+        console.log('开始React应用初始化流程')
+        
+        // 初始化移动端优化
+        await initMobileOptimization()
+        
+        // 模拟应用准备过程 - 这里不需要额外延时，让进度条组件自己控制
+        console.log('应用初始化完成')
+        
+        setAppReady(true)
+      } catch (error) {
+        console.error('应用初始化失败:', error)
+        setAppReady(true)
+      }
+    }
+
+    initializeApp()
+  }, [htmlProgressGone])
+
+  // 进度条完成回调
+  const handleProgressComplete = () => {
+    console.log('进度条完成，切换到主应用')
+    setShowProgress(false)
+  }
+
+  // 如果HTML进度条还在显示，不渲染任何内容
+  if (!htmlProgressGone) {
+    return null
+  }
+
+  // 如果需要显示React进度条
   if (showProgress) {
-    return <AppStartupProgress />
+    return <AppStartupProgress onComplete={handleProgressComplete} isVisible={true} />
   }
 
   return <App />
