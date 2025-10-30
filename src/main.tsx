@@ -8,34 +8,10 @@ import { performanceMonitor } from './utils/performanceMonitor.ts'
 
 // 应用启动包装器组件
 function AppLauncher() {
-  const [showProgress, setShowProgress] = useState(false)
+  const [showProgress, setShowProgress] = useState(true)
   const [appReady, setAppReady] = useState(false)
 
   useEffect(() => {
-    // 立即强制移除HTML进度条，避免冲突
-    const removeHtmlProgress = () => {
-      const instantProgress = document.getElementById('instant-progress')
-      if (instantProgress) {
-        console.log('强制移除HTML进度条，避免与React进度条冲突')
-        instantProgress.remove()
-      }
-    }
-
-    // 立即移除HTML进度条
-    removeHtmlProgress()
-    
-    // 短暂延迟后显示React进度条，确保HTML进度条完全移除
-    const timer = setTimeout(() => {
-      setShowProgress(true)
-      console.log('开始显示React进度条')
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    if (!showProgress) return
-
     const initializeApp = async () => {
       try {
         console.log('开始React应用初始化流程')
@@ -53,7 +29,7 @@ function AppLauncher() {
     }
 
     initializeApp()
-  }, [showProgress])
+  }, [])
 
   // 进度条完成回调
   const handleProgressComplete = () => {
