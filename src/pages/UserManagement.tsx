@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Company, UserRole } from '@/lib/supabase'
-import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
+import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, ArrowLeft, RefreshCw, Users, UserX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions'
@@ -610,6 +610,28 @@ export default function UserManagement() {
         toast.error('超级管理员角色不能被删除，这是系统保护机制')
         return
       }
+
+      // 🔥 新增：检查用户是否有任何工时记录（防止数据孤立）
+      console.log('检查用户是否有工时记录...')
+      const { data: timesheetRecords, error: timesheetError } = await supabase
+        .from('timesheet_records')
+        .select('id, work_date, status')
+        .eq('user_id', userData.id)
+        .limit(1) // 只需要检查是否存在，不需要获取所有记录
+
+      if (timesheetError) {
+        console.error('检查工时记录失败:', timesheetError)
+        toast.error('检查工时记录失败，请稍后重试')
+        return
+      }
+
+      if (timesheetRecords && timesheetRecords.length > 0) {
+        console.log('发现用户有工时记录，禁止删除')
+        toast.error(`无法删除用户 "${userData.name}"：该用户已有工时记录，删除后会造成数据孤立。如需停用该用户，请使用"禁用"功能。`)
+        return
+      }
+
+      console.log('用户没有工时记录，可以安全删除')
 
     // 对于班长和段长，需要检查是否有待审核的工时记录
     // 生产经理和财务角色直接删除，不需要特殊处理
@@ -1402,6 +1424,83 @@ export default function UserManagement() {
             {error}
           </div>
         )}
+
+        {/* User Statistics */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {isSuperAdmin(user?.role) ? (
+            // 超级管理员：显示所有公司的统计
+            <>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">总用户数</p>
+                    <p className="text-2xl font-bold text-green-300 font-mono">{users.length}</p>
+                  </div>
+                  <Users className="w-8 h-8 text-green-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">激活用户</p>
+                    <p className="text-2xl font-bold text-green-300 font-mono">
+                      {users.filter(u => u.is_active).length}
+                    </p>
+                  </div>
+                  <UserCheck className="w-8 h-8 text-green-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">禁用用户</p>
+                    <p className="text-2xl font-bold text-red-300 font-mono">
+                      {users.filter(u => !u.is_active).length}
+                    </p>
+                  </div>
+                  <UserX className="w-8 h-8 text-red-400" />
+                </div>
+              </div>
+            </>
+          ) : (
+            // 普通管理员：只显示本公司的统计
+            <>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">本公司用户</p>
+                    <p className="text-2xl font-bold text-green-300 font-mono">
+                      {users.filter(u => u.company_id === user?.company?.id).length}
+                    </p>
+                  </div>
+                  <Users className="w-8 h-8 text-green-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">激活用户</p>
+                    <p className="text-2xl font-bold text-green-300 font-mono">
+                      {users.filter(u => u.company_id === user?.company?.id && u.is_active).length}
+                    </p>
+                  </div>
+                  <UserCheck className="w-8 h-8 text-green-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-400 text-sm font-mono font-medium">禁用用户</p>
+                    <p className="text-2xl font-bold text-red-300 font-mono">
+                      {users.filter(u => u.company_id === user?.company?.id && !u.is_active).length}
+                    </p>
+                  </div>
+                  <UserX className="w-8 h-8 text-red-400" />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Controls */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
