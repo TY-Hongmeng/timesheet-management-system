@@ -1,17 +1,66 @@
-import React from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { initMobileOptimization, mobileNetworkManager, mobileErrorRecovery } from './utils/mobileOptimization.ts'
+import AppStartupProgress from './components/AppStartupProgress.tsx'
+import { performanceMonitor } from './utils/performanceMonitor.ts'
+
+// 应用启动包装器组件
+const AppLauncher: React.FC = () => {
+  const [showProgress, setShowProgress] = useState(true)
+  const [appReady, setAppReady] = useState(false)
+
+  const handleProgressComplete = async () => {
+    try {
+      // 开始应用初始化性能监控
+      performanceMonitor.startTiming('app_initialization')
+      
+      // 初始化移动端优化
+      initMobileOptimization()
+      
+      // 记录网络信息
+      performanceMonitor.recordNetworkInfo()
+      
+      // 模拟应用准备过程
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 结束性能监控
+      performanceMonitor.endTiming('app_initialization')
+      
+      setShowProgress(false)
+      setAppReady(true)
+      console.log('✅ 移动端React应用启动成功')
+      
+      // 记录应用启动完成
+      performanceMonitor.recordPageLoad('app_startup')
+    } catch (error) {
+      console.error('❌ 应用启动失败:', error)
+      performanceMonitor.endTiming('app_initialization')
+      mobileErrorRecovery.handleError(error as Error, '应用启动')
+      setShowProgress(false)
+      
+      // 显示错误恢复界面
+      setAppReady(true) // 仍然尝试启动应用
+    }
+  }
+
+  if (showProgress) {
+    return <AppStartupProgress onComplete={handleProgressComplete} />
+  }
+
+  if (appReady) {
+    return <App />
+  }
+
+  return null
+}
 
 // 移动端应用启动器
 const startMobileApp = async () => {
   console.log('🚀 启动移动端工时管理应用...')
   
   try {
-    // 初始化移动端优化
-    initMobileOptimization()
-    
     // 使用网络重试机制启动React应用
     await mobileNetworkManager.retryWithBackoff(async () => {
       return new Promise((resolve, reject) => {
@@ -19,14 +68,13 @@ const startMobileApp = async () => {
           const root = ReactDOM.createRoot(document.getElementById('root')!)
           root.render(
             <React.StrictMode>
-              <App />
+              <AppLauncher />
             </React.StrictMode>
           )
           
           // 等待应用挂载
           setTimeout(() => {
             if (document.querySelector('#root > *')) {
-              console.log('✅ 移动端React应用启动成功')
               resolve(true)
             } else {
               reject(new Error('React应用挂载失败'))
