@@ -1252,19 +1252,42 @@ export default function UserManagement() {
     }
   }
 
-  // 获取生产线数据
+  // 获取生产线数据 - 统一使用与Register.tsx和TimesheetRecord.tsx相同的逻辑
   const fetchProductionLines = async (companyId: string) => {
     try {
+      console.log('🔍 UserManagement.tsx - fetchProductionLines: 开始获取生产线数据，公司ID:', companyId)
+      
+      // 使用与ProcessManagement.tsx相同的查询逻辑：获取所有processes数据
       const { data, error } = await supabase
         .from('processes')
-        .select('production_line')
+        .select(`
+          *,
+          companies!inner(
+            name
+          )
+        `)
         .eq('company_id', companyId)
-        .not('production_line', 'is', null)
-
+        .order('created_at', { ascending: false })
+      
       if (error) throw error
-
-      // 去重并过滤空值
-      const uniqueLines = [...new Set(data?.map(item => item.production_line).filter(Boolean) || [])]
+      
+      console.log('📊 UserManagement.tsx - fetchProductionLines: 查询到的原始数据:', data)
+      console.log('📊 UserManagement.tsx - fetchProductionLines: 原始数据数量:', data?.length || 0)
+      
+      // 使用与ProcessManagement.tsx相同的生产线提取逻辑
+      const processesWithCompanyName = (data || []).map(process => ({
+        ...process,
+        company_name: process.companies?.name || '未知公司'
+      }))
+      
+      // 过滤当前公司的数据并提取唯一的生产线
+      const filteredProcesses = processesWithCompanyName.filter(p => p.company_id === companyId)
+      const uniqueLines = [...new Set(filteredProcesses.map(p => p.production_line).filter(Boolean))]
+      
+      console.log('🎯 UserManagement.tsx - fetchProductionLines: 过滤后的工序数据数量:', filteredProcesses.length)
+      console.log('🎯 UserManagement.tsx - fetchProductionLines: 去重后的生产线:', uniqueLines)
+      console.log('🎯 UserManagement.tsx - fetchProductionLines: 去重后的生产线数量:', uniqueLines.length)
+      
       setProductionLines(uniqueLines)
     } catch (error) {
       console.error('获取生产线数据失败:', error)
@@ -1425,82 +1448,42 @@ export default function UserManagement() {
           </div>
         )}
 
-        {/* User Statistics */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {isSuperAdmin(user?.role) ? (
-            // 超级管理员：显示所有公司的统计
-            <>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">总用户数</p>
-                    <p className="text-2xl font-bold text-green-300 font-mono">{users.length}</p>
-                  </div>
-                  <Users className="w-8 h-8 text-green-400" />
+        {/* User Statistics - 只在超级管理员显示 */}
+        {isSuperAdmin(user?.role) && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-400 text-sm font-mono font-medium">总用户数</p>
+                  <p className="text-2xl font-bold text-green-300 font-mono">{users.length}</p>
                 </div>
+                <Users className="w-8 h-8 text-green-400" />
               </div>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">激活用户</p>
-                    <p className="text-2xl font-bold text-green-300 font-mono">
-                      {users.filter(u => u.is_active).length}
-                    </p>
-                  </div>
-                  <UserCheck className="w-8 h-8 text-green-400" />
+            </div>
+            <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-400 text-sm font-mono font-medium">激活用户</p>
+                  <p className="text-2xl font-bold text-green-300 font-mono">
+                    {users.filter(u => u.is_active).length}
+                  </p>
                 </div>
+                <UserCheck className="w-8 h-8 text-green-400" />
               </div>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">禁用用户</p>
-                    <p className="text-2xl font-bold text-red-300 font-mono">
-                      {users.filter(u => !u.is_active).length}
-                    </p>
-                  </div>
-                  <UserX className="w-8 h-8 text-red-400" />
+            </div>
+            <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-400 text-sm font-mono font-medium">禁用用户</p>
+                  <p className="text-2xl font-bold text-red-300 font-mono">
+                    {users.filter(u => !u.is_active).length}
+                  </p>
                 </div>
+                <UserX className="w-8 h-8 text-red-400" />
               </div>
-            </>
-          ) : (
-            // 普通管理员：只显示本公司的统计
-            <>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">本公司用户</p>
-                    <p className="text-2xl font-bold text-green-300 font-mono">
-                      {users.filter(u => u.company_id === user?.company?.id).length}
-                    </p>
-                  </div>
-                  <Users className="w-8 h-8 text-green-400" />
-                </div>
-              </div>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">激活用户</p>
-                    <p className="text-2xl font-bold text-green-300 font-mono">
-                      {users.filter(u => u.company_id === user?.company?.id && u.is_active).length}
-                    </p>
-                  </div>
-                  <UserCheck className="w-8 h-8 text-green-400" />
-                </div>
-              </div>
-              <div className="bg-gray-900/50 border border-green-400/30 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-400 text-sm font-mono font-medium">禁用用户</p>
-                    <p className="text-2xl font-bold text-red-300 font-mono">
-                      {users.filter(u => u.company_id === user?.company?.id && !u.is_active).length}
-                    </p>
-                  </div>
-                  <UserX className="w-8 h-8 text-red-400" />
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* Controls */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -1748,6 +1731,7 @@ export default function UserManagement() {
           <div className="space-y-6">
             {sortedCompanyNames.map((companyName) => {
               const companyUsers = groupedUsers[companyName]
+              const activeUsers = companyUsers.filter(u => u.is_active).length
               return (
                 <CollapsibleSection
                   key={companyName}
@@ -1757,9 +1741,14 @@ export default function UserManagement() {
                         <Building className="w-5 h-5" />
                         {companyName}
                       </div>
-                      <span className="text-sm font-mono text-green-400 bg-green-900/30 px-2 py-1 rounded">
-                        {companyUsers.length} 名用户
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono text-green-400 bg-green-900/30 px-2 py-1 rounded">
+                          总计: {companyUsers.length}名用户
+                        </span>
+                        <span className="text-sm font-mono text-green-400 bg-green-900/30 px-2 py-1 rounded">
+                          激活: {activeUsers}名用户
+                        </span>
+                      </div>
                     </div>
                   }
                   defaultExpanded={true}
