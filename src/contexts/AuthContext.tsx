@@ -321,6 +321,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('创建用户账号，用户ID:', userId)
 
+      // 从localStorage读取默认用户状态设置
+      const defaultUserStatus = localStorage.getItem('defaultUserStatus') === 'true'
+      console.log('使用默认用户状态:', defaultUserStatus)
+
       // 创建用户信息记录
       const { error: userError } = await supabase
         .from('users')
@@ -333,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role_id: formData.role_id,
           password_hash: formData.password,
           production_line: formData.production_line,
-          is_active: false
+          is_active: defaultUserStatus
         })
 
       if (userError) {
