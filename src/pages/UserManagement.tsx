@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Company, UserRole } from '@/lib/supabase'
-import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions'
@@ -81,6 +81,7 @@ export default function UserManagement() {
   }>({ user: null, oldProductionLine: '', newProductionLine: '', role: null, pendingRecords: [], sameRoleUsers: [], userNames: [] })
   const [selectedProductionLineChangeReceiver, setSelectedProductionLineChangeReceiver] = useState('')
   const [error, setError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -188,6 +189,19 @@ export default function UserManagement() {
       setError('获取数据失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await fetchData()
+      toast.success('数据刷新成功')
+    } catch (error) {
+      console.error('刷新数据失败:', error)
+      toast.error('刷新数据失败')
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -1337,17 +1351,31 @@ export default function UserManagement() {
             />
           </div>
 
-          {/* Add Button */}
-          <button
-            onClick={() => {
-              resetForm() // 重置表单确保新用户默认状态正确
-              setShowForm(true)
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-black font-bold rounded transition-colors font-mono"
-          >
-            <Plus className="w-4 h-4" />
-            新增用户
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-bold rounded transition-colors font-mono"
+              title="刷新数据"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? '刷新中...' : '刷新'}
+            </button>
+
+            {/* Add Button */}
+            <button
+              onClick={() => {
+                resetForm() // 重置表单确保新用户默认状态正确
+                setShowForm(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-black font-bold rounded transition-colors font-mono"
+            >
+              <Plus className="w-4 h-4" />
+              新增用户
+            </button>
+          </div>
         </div>
 
         {/* User Form Modal */}
