@@ -1,82 +1,54 @@
 import React, { useState, useEffect } from 'react'
-import { Loader2, Smartphone, Wifi, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, Smartphone, Wifi, CheckCircle, AlertTriangle, Router, Database, User } from 'lucide-react'
 import { performanceMonitor } from '@/utils/performanceMonitor'
+import { realProgressManager, type ProgressState } from '@/utils/realProgressManager'
 
 interface AppStartupProgressProps {
   onComplete?: () => void
   isVisible?: boolean
 }
 
-interface ProgressStep {
-  id: string
-  label: string
-  icon: React.ReactNode
-  duration: number
-  progress: number
-}
-
 const AppStartupProgress: React.FC<AppStartupProgressProps> = ({ 
   onComplete, 
   isVisible = true 
 }) => {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [isCompleted, setIsCompleted] = useState(false)
-  const [hasError, setHasError] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
+  const [progressState, setProgressState] = useState<ProgressState>({
+    currentStep: 0,
+    totalProgress: 0,
+    steps: [],
+    isCompleted: false,
+    hasError: false
+  })
   const [networkSpeed, setNetworkSpeed] = useState<'fast' | 'slow' | 'offline'>('fast')
 
-  // 根据网络速度调整步骤时长
-  const getStepDuration = (baseDuration: number) => {
-    switch (networkSpeed) {
-      case 'slow': return baseDuration * 1.5
-      case 'offline': return baseDuration * 2
-      default: return baseDuration
+  // 根据步骤ID获取对应的图标
+  const getStepIcon = (stepId: string, hasError: boolean = false) => {
+    if (hasError) {
+      return <AlertTriangle className="w-6 h-6 text-red-400" />
+    }
+
+    switch (stepId) {
+      case 'init':
+        return <Smartphone className="w-6 h-6" />
+      case 'router':
+        return <Router className="w-6 h-6" />
+      case 'auth':
+        return networkSpeed === 'offline' ? 
+          <AlertTriangle className="w-6 h-6 text-yellow-400" /> : 
+          <Database className="w-6 h-6" />
+      case 'data':
+        return <User className="w-6 h-6" />
+      case 'ready':
+        return <CheckCircle className="w-6 h-6 text-green-400" />
+      default:
+        return <Loader2 className="w-6 h-6 animate-spin" />
     }
   }
-
-  const steps: ProgressStep[] = [
-    {
-      id: 'init',
-      label: '初始化应用...',
-      icon: <Smartphone className="w-6 h-6" />,
-      duration: getStepDuration(1200),
-      progress: 20
-    },
-    {
-      id: 'network',
-      label: networkSpeed === 'offline' ? '检测到离线模式...' : '检查网络连接...',
-      icon: networkSpeed === 'offline' ? <AlertTriangle className="w-6 h-6 text-yellow-400" /> : <Wifi className="w-6 h-6" />,
-      duration: getStepDuration(1000),
-      progress: 40
-    },
-    {
-      id: 'auth',
-      label: '加载认证模块...',
-      icon: <Loader2 className="w-6 h-6 animate-spin" />,
-      duration: getStepDuration(1200),
-      progress: 65
-    },
-    {
-      id: 'ui',
-      label: '加载用户界面...',
-      icon: <Loader2 className="w-6 h-6 animate-spin" />,
-      duration: getStepDuration(1300),
-      progress: 90
-    },
-    {
-      id: 'ready',
-      label: '准备就绪！',
-      icon: <CheckCircle className="w-6 h-6 text-green-400" />,
-      duration: getStepDuration(800),
-      progress: 100
-    }
-  ]
 
   useEffect(() => {
     if (!isVisible) return
 
-    console.log('🚀 AppStartupProgress 开始初始化')
+    console.log('🚀 AppStartupProgress 开始真实进度监控')
 
     // 开始性能监控
     performanceMonitor.startTiming('app_startup')
@@ -105,94 +77,38 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
 
     checkNetworkSpeed()
 
-    let timeoutId: NodeJS.Timeout
-    let intervalId: NodeJS.Timeout
-
-    const runStep = (stepIndex: number) => {
-      if (stepIndex >= steps.length) {
-        console.log('✅ 所有步骤完成，准备切换到主应用')
-        setIsCompleted(true)
+    // 订阅真实进度管理器
+    const unsubscribe = realProgressManager.subscribe((state: ProgressState) => {
+      setProgressState(state)
+      
+      // 当进度完成时，触发完成回调
+      if (state.isCompleted) {
+        console.log('✅ 真实进度完成，准备切换到主应用')
         performanceMonitor.endTiming('app_startup')
         setTimeout(() => {
           onComplete?.()
-        }, 1000) // 增加完成动画显示时间
-        return
+        }, 1000)
       }
+    })
 
-      const step = steps[stepIndex]
-      setCurrentStep(stepIndex)
-      
-      console.log(`📋 执行步骤 ${stepIndex + 1}/${steps.length}: ${step.label}`)
-      
-      // 记录每个步骤的性能
-      performanceMonitor.startTiming(`startup_step_${step.id}`)
-      
-      // 平滑进度动画 - 修复进度计算
-      const startProgress = stepIndex === 0 ? 0 : steps[stepIndex - 1].progress
-      const targetProgress = step.progress
-      const totalSteps = Math.ceil(step.duration / 50) // 每50ms更新一次
-      const progressIncrement = (targetProgress - startProgress) / totalSteps
-      
-      let currentProgressValue = startProgress
-      let stepCount = 0
-      
-      // 立即设置起始进度
-      setProgress(startProgress)
-      console.log(`📊 进度: ${startProgress}% -> ${targetProgress}%`)
-      
-      intervalId = setInterval(() => {
-        stepCount++
-        currentProgressValue = startProgress + (progressIncrement * stepCount)
-        
-        if (currentProgressValue >= targetProgress || stepCount >= totalSteps) {
-          currentProgressValue = targetProgress
-          clearInterval(intervalId)
-        }
-        
-        setProgress(Math.min(currentProgressValue, targetProgress))
-      }, 50)
-
-      timeoutId = setTimeout(() => {
-        clearInterval(intervalId)
-        setProgress(targetProgress)
-        performanceMonitor.endTiming(`startup_step_${step.id}`)
-        console.log(`✅ 步骤 ${stepIndex + 1} 完成: ${targetProgress}%`)
-        
-        // 在步骤之间添加短暂停顿，让用户看到进度变化
-        setTimeout(() => {
-          runStep(stepIndex + 1)
-        }, 300) // 增加步骤间停顿时间
-      }, step.duration)
-    }
-
-    // 添加初始延迟，确保组件完全渲染后再开始
-    const startDelay = setTimeout(() => {
-      try {
-        console.log('🎯 开始执行进度步骤')
-        runStep(0)
-      } catch (error) {
-        console.error('启动进度出错:', error)
-        setHasError(true)
-        setErrorMessage('应用启动过程中出现错误，正在尝试恢复...')
-        performanceMonitor.endTiming('app_startup')
-        
-        // 延迟后仍然完成启动
-        setTimeout(() => {
-          onComplete?.()
-        }, 2000)
-      }
-    }, 500) // 初始延迟500ms
+    // 启动真实的加载流程
+    realProgressManager.start().catch((error) => {
+      console.error('❌ 真实进度管理器启动失败:', error)
+      // 即使出错也要完成启动
+      setTimeout(() => {
+        onComplete?.()
+      }, 2000)
+    })
 
     return () => {
-      clearTimeout(startDelay)
-      clearTimeout(timeoutId)
-      clearInterval(intervalId)
+      unsubscribe()
     }
-  }, [isVisible, onComplete, networkSpeed])
+  }, [isVisible, onComplete])
 
   if (!isVisible) return null
 
-  const currentStepData = steps[currentStep]
+  const currentStepData = progressState.steps[progressState.currentStep]
+  const currentStepIcon = currentStepData ? getStepIcon(currentStepData.id, !!currentStepData.error) : <Loader2 className="w-6 h-6 animate-spin" />
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
@@ -217,17 +133,26 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
           {/* 当前步骤显示 */}
           <div className="flex items-center mb-6">
             <div className="flex-shrink-0 mr-4">
-              <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
-                {currentStepData?.icon}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                currentStepData?.error ? 'bg-red-700' : 'bg-gray-700'
+              }`}>
+                {currentStepIcon}
               </div>
             </div>
             <div className="flex-1">
-              <p className="text-green-400 font-medium font-mono">
-                {currentStepData?.label}
+              <p className={`font-medium font-mono ${
+                currentStepData?.error ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {currentStepData?.label || '准备中...'}
               </p>
               <p className="text-green-300 text-sm font-mono mt-1">
-                {Math.round(progress)}% 完成
+                {Math.round(progressState.totalProgress)}% 完成
               </p>
+              {currentStepData?.error && (
+                <p className="text-red-300 text-xs font-mono mt-1">
+                  错误: {currentStepData.error}
+                </p>
+              )}
             </div>
           </div>
 
@@ -235,41 +160,62 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
           <div className="mb-6">
             <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-300 ease-out relative"
-                style={{ width: `${progress}%` }}
+                className={`h-full rounded-full transition-all duration-300 ease-out relative ${
+                  progressState.hasError 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                    : 'bg-gradient-to-r from-green-500 to-green-600'
+                }`}
+                style={{ width: `${progressState.totalProgress}%` }}
               >
                 {/* 进度条光效 */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
               </div>
             </div>
             <div className="flex justify-between items-center mt-2">
-              <span className="text-green-300 text-sm font-mono">{Math.round(progress)}%</span>
+              <span className="text-green-300 text-sm font-mono">{Math.round(progressState.totalProgress)}%</span>
               <span className="text-green-300 text-sm font-mono">
-                {currentStep + 1} / {steps.length}
+                {progressState.currentStep + 1} / {progressState.steps.length}
               </span>
             </div>
           </div>
 
           {/* 步骤指示器 */}
           <div className="flex justify-center space-x-2 mb-6">
-            {steps.map((_, index) => (
+            {progressState.steps.map((step, index) => (
               <div
-                key={index}
+                key={step.id}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index <= currentStep 
-                    ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                  step.error
+                    ? 'bg-red-400'
+                    : step.completed
+                    ? 'bg-green-400'
+                    : index === progressState.currentStep
+                    ? 'bg-green-500 ring-2 ring-green-400 ring-opacity-50'
                     : 'bg-gray-600'
                 }`}
               />
             ))}
           </div>
 
+          {/* 错误状态显示 */}
+          {progressState.hasError && (
+            <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-red-400 mr-3" />
+                <div>
+                  <p className="text-red-400 font-medium font-mono">加载失败</p>
+                  <p className="text-red-300 text-sm font-mono mt-1">{progressState.errorMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 移动端友好提示 */}
           <div className="mt-6 text-center">
-            {hasError ? (
+            {progressState.hasError ? (
               <div className="text-yellow-400">
                 <AlertTriangle className="w-5 h-5 mx-auto mb-2" />
-                <p className="text-xs font-mono">{errorMessage}</p>
+                <p className="text-xs font-mono">{progressState.errorMessage}</p>
               </div>
             ) : (
               <>
@@ -295,7 +241,7 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
       </div>
 
       {/* 完成动画 */}
-      {isCompleted && (
+      {progressState.isCompleted && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
           <div className="text-center">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4 animate-bounce" />

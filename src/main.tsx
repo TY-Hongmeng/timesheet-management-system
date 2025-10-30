@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { initMobileOptimization, mobileNetworkManager, mobileErrorRecovery } from './utils/mobileOptimization.ts'
 import AppStartupProgress from './components/AppStartupProgress.tsx'
+import { realProgressManager } from './utils/realProgressManager'
 import { performanceMonitor } from './utils/performanceMonitor.ts'
 
 // 应用启动包装器组件
@@ -16,6 +17,9 @@ function AppLauncher() {
       try {
         console.log('开始React应用初始化流程')
         
+        // 启动真实的进度监控
+        await realProgressManager.start()
+        
         // 初始化移动端优化
         await initMobileOptimization()
         
@@ -24,7 +28,11 @@ function AppLauncher() {
         setAppReady(true)
       } catch (error) {
         console.error('应用初始化失败:', error)
-        setAppReady(true)
+        // 即使初始化失败，也允许应用继续运行
+        setTimeout(() => {
+          setAppReady(true)
+          setShowProgress(false)
+        }, 1000)
       }
     }
 
@@ -33,8 +41,9 @@ function AppLauncher() {
 
   // 进度条完成回调
   const handleProgressComplete = () => {
-    console.log('进度条完成，切换到主应用')
+    console.log('进度条完成，准备显示主应用')
     setShowProgress(false)
+    setAppReady(true)
   }
 
   // 如果需要显示React进度条
