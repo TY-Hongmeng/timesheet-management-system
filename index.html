@@ -172,8 +172,231 @@
     </script>
   </head>
   <body>
+    <!-- 即时显示的进度条 - 在React初始化之前就显示 -->
+    <div id="instant-progress" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <!-- Logo区域 -->
+      <div style="
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 32px rgba(34, 197, 94, 0.25);
+      ">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      
+      <!-- 标题 -->
+      <h1 style="
+        color: #22c55e;
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        font-family: monospace;
+      ">工时管理系统</h1>
+      
+      <!-- 当前阶段 -->
+      <p id="instant-phase" style="
+        color: #22c55e;
+        font-size: 16px;
+        margin: 0 0 24px 0;
+        font-family: monospace;
+      ">正在启动应用...</p>
+      
+      <!-- 进度条容器 -->
+      <div style="
+        width: 300px;
+        max-width: 80vw;
+        background: rgba(55, 65, 81, 0.5);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 12px;
+        padding: 32px;
+        backdrop-filter: blur(10px);
+      ">
+        <!-- 进度条 -->
+        <div style="
+          width: 100%;
+          height: 12px;
+          background: #374151;
+          border-radius: 6px;
+          overflow: hidden;
+          margin-bottom: 16px;
+          position: relative;
+        ">
+          <div id="instant-progress-bar" style="
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+          ">
+            <!-- 流动光效 -->
+            <div style="
+              position: absolute;
+              top: 0;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+              animation: shimmer 2s infinite;
+            "></div>
+          </div>
+        </div>
+        
+        <!-- 进度百分比 -->
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          color: #22c55e;
+          font-size: 14px;
+          font-family: monospace;
+        ">
+          <span>进度</span>
+          <span id="instant-progress-percent">0%</span>
+        </div>
+      </div>
+      
+      <!-- 加载指示点 -->
+      <div style="
+        display: flex;
+        gap: 4px;
+        margin-top: 24px;
+      ">
+        <div style="
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          animation: pulse 1.5s infinite;
+        "></div>
+        <div style="
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          animation: pulse 1.5s infinite 0.2s;
+        "></div>
+        <div style="
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          animation: pulse 1.5s infinite 0.4s;
+        "></div>
+      </div>
+    </div>
 
+    <!-- 动画样式 -->
+    <style>
+      @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
+      }
+    </style>
 
+    <!-- 即时进度管理脚本 -->
+    <script>
+      (function() {
+        let currentProgress = 0;
+        let targetProgress = 0;
+        
+        // 更新进度条的函数
+        function updateProgress(progress, phase) {
+          targetProgress = Math.min(100, Math.max(0, progress));
+          
+          if (phase) {
+            const phaseElement = document.getElementById('instant-phase');
+            if (phaseElement) {
+              phaseElement.textContent = phase;
+            }
+          }
+          
+          // 平滑动画到目标进度
+          const animate = () => {
+            if (Math.abs(currentProgress - targetProgress) > 0.5) {
+              currentProgress += (targetProgress - currentProgress) * 0.1;
+              
+              const progressBar = document.getElementById('instant-progress-bar');
+              const progressPercent = document.getElementById('instant-progress-percent');
+              
+              if (progressBar) {
+                progressBar.style.width = currentProgress + '%';
+              }
+              if (progressPercent) {
+                progressPercent.textContent = Math.round(currentProgress) + '%';
+              }
+              
+              requestAnimationFrame(animate);
+            } else {
+              currentProgress = targetProgress;
+              const progressBar = document.getElementById('instant-progress-bar');
+              const progressPercent = document.getElementById('instant-progress-percent');
+              
+              if (progressBar) {
+                progressBar.style.width = currentProgress + '%';
+              }
+              if (progressPercent) {
+                progressPercent.textContent = Math.round(currentProgress) + '%';
+              }
+            }
+          };
+          
+          requestAnimationFrame(animate);
+        }
+        
+        // 隐藏即时进度条
+        function hideInstantProgress() {
+          const instantProgress = document.getElementById('instant-progress');
+          if (instantProgress) {
+            instantProgress.style.opacity = '0';
+            instantProgress.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+              instantProgress.style.display = 'none';
+            }, 500);
+          }
+        }
+        
+        // 暴露全局函数供main.tsx使用
+        window.instantProgress = {
+          update: updateProgress,
+          hide: hideInstantProgress
+        };
+        
+        // 立即开始显示进度
+        updateProgress(5, '正在启动应用...');
+        
+        // 模拟初始加载进度
+        setTimeout(() => updateProgress(10, '正在加载核心模块...'), 100);
+        setTimeout(() => updateProgress(15, '正在初始化系统...'), 200);
+      })();
+    </script>
 
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

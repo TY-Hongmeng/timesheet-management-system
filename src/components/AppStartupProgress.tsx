@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Loader2, Smartphone, Wifi, CheckCircle, AlertTriangle, Router, Database, User } from 'lucide-react'
 import { performanceMonitor } from '@/utils/performanceMonitor'
 import { smoothProgressManager, type SmoothProgressState } from '@/utils/smoothProgressManager'
+import { progressBridge } from '@/utils/progressBridge'
 
 interface AppStartupProgressProps {
   onComplete?: () => void
@@ -47,6 +48,15 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
     console.log('🎯 启动丝滑进度监控')
     performanceMonitor.startTiming('app_startup')
 
+    // 注册React进度回调到桥接器
+    progressBridge.setReactProgressCallback((progress, phase) => {
+      setProgressState(prev => ({
+        ...prev,
+        progress: Math.round(progress),
+        currentPhase: phase
+      }))
+    })
+
     // 订阅进度更新
     const unsubscribe = smoothProgressManager.subscribe((state) => {
       setProgressState(state)
@@ -57,6 +67,7 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
         performanceMonitor.endTiming('app_startup')
         
         setTimeout(() => {
+          progressBridge.complete() // 完成所有进度条
           onComplete?.()
         }, 300) // 减少延迟
       }
