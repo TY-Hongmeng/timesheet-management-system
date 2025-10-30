@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
@@ -7,53 +7,56 @@ import AppStartupProgress from './components/AppStartupProgress.tsx'
 import { performanceMonitor } from './utils/performanceMonitor.ts'
 
 // 应用启动包装器组件
-const AppLauncher: React.FC = () => {
+function AppLauncher() {
   const [showProgress, setShowProgress] = useState(true)
   const [appReady, setAppReady] = useState(false)
 
-  const handleProgressComplete = async () => {
-    try {
-      // 开始应用初始化性能监控
-      performanceMonitor.startTiming('app_initialization')
-      
-      // 初始化移动端优化
-      initMobileOptimization()
-      
-      // 记录网络信息
-      performanceMonitor.recordNetworkInfo()
-      
-      // 模拟应用准备过程
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // 结束性能监控
-      performanceMonitor.endTiming('app_initialization')
-      
-      setShowProgress(false)
-      setAppReady(true)
-      console.log('✅ 移动端React应用启动成功')
-      
-      // 记录应用启动完成
-      performanceMonitor.recordPageLoad('app_startup')
-    } catch (error) {
-      console.error('❌ 应用启动失败:', error)
-      performanceMonitor.endTiming('app_initialization')
-      mobileErrorRecovery.handleError(error as Error, '应用启动')
-      setShowProgress(false)
-      
-      // 显示错误恢复界面
-      setAppReady(true) // 仍然尝试启动应用
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // 通知HTML进度条React应用已准备就绪
+        window.dispatchEvent(new CustomEvent('react-app-ready'))
+        
+        // 等待HTML进度条完成并消失
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // 初始化移动端优化
+        await initMobileOptimization()
+        
+        // 模拟应用准备过程
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        setAppReady(true)
+        setShowProgress(false)
+      } catch (error) {
+        console.error('应用初始化失败:', error)
+        setAppReady(true)
+        setShowProgress(false)
+      }
     }
-  }
+
+    initializeApp()
+  }, [])
+
+  // 检查HTML进度条是否还存在
+  useEffect(() => {
+    const checkInstantProgress = () => {
+      const instantProgress = document.getElementById('instant-progress')
+      if (!instantProgress) {
+        // HTML进度条已消失，可以显示React进度条
+        setShowProgress(false)
+      }
+    }
+
+    const interval = setInterval(checkInstantProgress, 100)
+    return () => clearInterval(interval)
+  }, [])
 
   if (showProgress) {
-    return <AppStartupProgress onComplete={handleProgressComplete} />
+    return <AppStartupProgress />
   }
 
-  if (appReady) {
-    return <App />
-  }
-
-  return null
+  return <App />
 }
 
 // 移动端应用启动器

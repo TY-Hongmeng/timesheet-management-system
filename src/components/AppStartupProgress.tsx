@@ -173,22 +173,18 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
       {/* 背景动画 */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(34,197,94,0.1),transparent_50%)]" />
       </div>
 
       <div className="relative z-10 max-w-md w-full mx-4">
         {/* Logo区域 */}
         <div className="text-center mb-12">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/25">
             <Smartphone className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 font-mono">
-            工时管理
-          </h1>
-          <p className="text-gray-400 text-sm font-mono">
-            移动端智能工时记录系统
-          </p>
+          <h1 className="text-2xl font-bold text-green-400 mb-2 font-mono">工时管理系统</h1>
+          <p className="text-green-300 text-sm font-mono">正在为您准备最佳体验</p>
         </div>
 
         {/* 进度条容器 */}
@@ -201,10 +197,10 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
               </div>
             </div>
             <div className="flex-1">
-              <p className="text-white font-medium font-mono">
+              <p className="text-green-400 font-medium font-mono">
                 {currentStepData?.label}
               </p>
-              <p className="text-gray-400 text-sm font-mono mt-1">
+              <p className="text-green-300 text-sm font-mono mt-1">
                 {Math.round(progress)}% 完成
               </p>
             </div>
@@ -212,25 +208,31 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
 
           {/* 进度条 */}
           <div className="mb-6">
-            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300 ease-out relative"
+                className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-300 ease-out relative"
                 style={{ width: `${progress}%` }}
               >
                 {/* 进度条光效 */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
               </div>
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-green-300 text-sm font-mono">{Math.round(progress)}%</span>
+              <span className="text-green-300 text-sm font-mono">
+                {currentStep + 1} / {steps.length}
+              </span>
             </div>
           </div>
 
           {/* 步骤指示器 */}
-          <div className="flex justify-between">
-            {steps.map((step, index) => (
-              <div 
-                key={step.id}
+          <div className="flex justify-center space-x-2 mb-6">
+            {steps.map((_, index) => (
+              <div
+                key={index}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index <= currentStep 
-                    ? 'bg-blue-500 shadow-lg shadow-blue-500/50' 
+                    ? 'bg-green-500 shadow-lg shadow-green-500/50'
                     : 'bg-gray-600'
                 }`}
               />
@@ -246,7 +248,7 @@ const AppStartupProgress: React.FC<AppStartupProgressProps> = ({
               </div>
             ) : (
               <>
-                <p className="text-gray-500 text-xs font-mono">
+                <p className="text-green-500 text-xs font-mono">
                   正在为您准备最佳体验，请稍候...
                 </p>
                 <p className="text-gray-600 text-xs font-mono mt-1">
