@@ -3,6 +3,8 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ModuleLoadingProvider, useModuleLoading } from '@/contexts/ModuleLoadingContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RoleProtectedRoute from '@/components/RoleProtectedRoute'
+import NetworkErrorHandler from '@/components/NetworkErrorHandler'
+import SkeletonLoader from '@/components/SkeletonLoader'
 import { Toaster } from 'sonner'
 import { lazy, Suspense, Component, ErrorInfo, ReactNode, useState, useEffect } from 'react'
 
@@ -34,29 +36,29 @@ const SupervisorApproval = lazy(() => import('@/pages/SupervisorApproval'))
 const SectionChiefApproval = lazy(() => import('@/pages/SectionChiefApproval'))
 
 // 报表相关 - 延迟加载（包含大型 Excel 库）
-const Reports = lazy(() => import('@/pages/Reports'))
-const History = lazy(() => import('@/pages/History'))
+const Reports = lazy(() => 
+  import('@/pages/Reports').then(module => {
+    console.log('📊 Reports页面已加载（包含Excel功能）')
+    return module
+  })
+)
+const History = lazy(() => 
+  import('@/pages/History').then(module => {
+    console.log('📚 History页面已加载')
+    return module
+  })
+)
 
 
 
-// 符合系统风格的加载组件 - 移除容器框
-const EnhancedLoadingSpinner = () => {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-      <div className="text-center p-8 max-w-md mx-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
-        <h3 className="text-lg font-semibold text-green-400 mb-2 font-mono">工时管理系统</h3>
-        <p className="text-green-300 font-mono">正在加载...</p>
-      </div>
-    </div>
-  )
-}
+
 
 // 错误边界组件
 interface ErrorBoundaryState {
   hasError: boolean
   error?: Error
   errorInfo?: ErrorInfo
+  isNetworkError: boolean
 }
 
 class AppErrorBoundary extends Component<
@@ -65,11 +67,17 @@ class AppErrorBoundary extends Component<
 > {
   constructor(props: { children: ReactNode }) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, isNetworkError: false }
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
+    // 检查是否为网络相关错误
+    const isNetworkError = error.message.includes('fetch') || 
+                          error.message.includes('network') || 
+                          error.message.includes('Failed to load') ||
+                          error.name === 'NetworkError'
+    
+    return { hasError: true, error, isNetworkError }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -79,48 +87,55 @@ class AppErrorBoundary extends Component<
 
   render() {
     if (this.state.hasError) {
+      const { isNetworkError } = this.state
+      
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-          <div className="max-w-md text-center">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+        <div className="min-h-screen bg-black flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="bg-gray-900 border border-red-400 rounded-lg p-8 shadow-lg shadow-red-400/20">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white text-2xl font-bold">
+                    {isNetworkError ? '📡' : '!'}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold text-red-400 mb-2 font-mono">
+                  {isNetworkError ? '网络错误' : '应用错误'}
+                </h2>
+                <p className="text-red-300 font-mono">
+                  {isNetworkError 
+                    ? '网络连接出现问题，请检查网络后重试'
+                    : '应用遇到了一个错误，请刷新页面重试'
+                  }
+                </p>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">应用出现错误</h2>
-              <p className="text-gray-600 mb-6">
-                抱歉，应用遇到了一个意外错误。请尝试刷新页面或稍后再试。
-              </p>
-            </div>
 
-            <div className="space-y-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                刷新页面
-              </button>
-              <button
-                onClick={() => this.setState({ hasError: false })}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                重试
-              </button>
-            </div>
+              <div className="space-y-4">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-colors duration-200 font-mono"
+                >
+                  {isNetworkError ? '重新连接' : '刷新页面'}
+                </button>
+                
+                <button
+                  onClick={() => this.setState({ hasError: false, error: undefined, errorInfo: undefined, isNetworkError: false })}
+                  className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-mono rounded-lg transition-colors duration-200"
+                >
+                  重试
+                </button>
+              </div>
 
-            {/* 开发环境下显示错误详情 */}
-            {import.meta.env.DEV && this.state.error && (
-              <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
-                  查看错误详情
-                </summary>
-                <pre className="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-40">
-                  {this.state.error.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            )}
+              {import.meta.env.DEV && this.state.error && (
+                <details className="mt-6 text-left">
+                  <summary className="text-gray-400 cursor-pointer font-mono">错误详情</summary>
+                  <pre className="mt-2 text-xs text-gray-500 bg-gray-800 p-2 rounded overflow-auto">
+                    {this.state.error.toString()}
+                    {this.state.errorInfo?.componentStack}
+                  </pre>
+                </details>
+              )}
+            </div>
           </div>
         </div>
       )
@@ -130,54 +145,61 @@ class AppErrorBoundary extends Component<
   }
 }
 
-// 智能分层预加载策略
+// 智能分层预加载策略 - 优化为更保守的策略
 const preloadComponents = () => {
-  // 优化预加载策略 - 只预加载最核心的组件，减少首屏加载时间
-  // 第一层：仅预加载Dashboard（用户登录后的首页）
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      Dashboard.preload?.()
-    }, { timeout: 2000 }) // 增加延迟，确保首屏加载完成
-  } else {
-    setTimeout(() => {
-      Dashboard.preload?.()
-    }, 2000)
+  // 检查网络状态
+  const connection = (navigator as any).connection
+  const isSlowNetwork = connection && ['slow-2g', '2g', '3g'].includes(connection.effectiveType)
+  
+  // 如果是慢速网络，跳过预加载
+  if (isSlowNetwork) {
+    console.log('🐌 检测到慢速网络，跳过预加载以优化首屏加载')
+    return
   }
 
-  // 第二层：延迟预加载最常用的工时记录功能
+  // 第一层：仅在用户空闲时预加载Dashboard（用户登录后的首页）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      TimesheetRecord.preload?.()
-    }, { timeout: 5000 })
+      Dashboard.preload?.().catch(() => {
+        // 静默处理预加载失败
+      })
+    }, { timeout: 5000 }) // 增加延迟，确保首屏加载完成
   } else {
     setTimeout(() => {
-      TimesheetRecord.preload?.()
+      Dashboard.preload?.().catch(() => {
+        // 静默处理预加载失败
+      })
     }, 5000)
   }
 
-  // 第三层：其他组件仅在网络条件良好时预加载
+  // 第二层：仅在网络条件良好且用户空闲时预加载工时记录
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      const connection = navigator.connection
-      const isGoodConnection = !connection || connection.effectiveType === '4g'
+      const currentConnection = (navigator as any).connection
+      const isGoodConnection = !currentConnection || currentConnection.effectiveType === '4g'
       
       if (isGoodConnection) {
-        TimesheetHistory.preload?.()
+        TimesheetRecord.preload?.().catch(() => {
+          // 静默处理预加载失败
+        })
       }
     }, { timeout: 10000 })
   }
 }
 
-// 懒加载包装组件 - 移动端优化
-const LazyWrapper = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <Suspense fallback={<EnhancedLoadingSpinner />}>
-      <AppErrorBoundary>
-        {children}
-      </AppErrorBoundary>
-    </Suspense>
-  )
-}
+// 懒加载包装组件
+const LazyWrapper: React.FC<{ children: React.ReactNode; type?: 'page' | 'card' | 'list' | 'table' | 'form' }> = ({ 
+  children, 
+  type = 'page' 
+}) => (
+  <Suspense fallback={
+    <div className="min-h-screen bg-black">
+      <SkeletonLoader type={type} lines={5} />
+    </div>
+  }>
+    {children}
+  </Suspense>
+)
 
 
 // 内部App组件
@@ -205,68 +227,68 @@ function AppInner() {
           } />
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <LazyWrapper><Dashboard /></LazyWrapper>
+              <LazyWrapper type="card"><Dashboard /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/company-management" element={
             <ProtectedRoute>
-              <LazyWrapper><CompanyManagement /></LazyWrapper>
+              <LazyWrapper type="table"><CompanyManagement /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/user-management" element={
             <ProtectedRoute>
-              <LazyWrapper><UserManagement /></LazyWrapper>
+              <LazyWrapper type="table"><UserManagement /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/role-permissions" element={
             <ProtectedRoute>
-              <LazyWrapper><RoleList /></LazyWrapper>
+              <LazyWrapper type="list"><RoleList /></LazyWrapper>
             </ProtectedRoute>
           } />
 
           <Route path="/role-permissions/edit/:id" element={
             <ProtectedRoute>
-              <LazyWrapper><RoleEdit /></LazyWrapper>
+              <LazyWrapper type="form"><RoleEdit /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/role-permissions/create" element={
             <ProtectedRoute>
-              <LazyWrapper><RoleCreate /></LazyWrapper>
+              <LazyWrapper type="form"><RoleCreate /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/process-management" element={
             <ProtectedRoute>
-              <LazyWrapper><ProcessManagement /></LazyWrapper>
+              <LazyWrapper type="table"><ProcessManagement /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/timesheet-record" element={
             <ProtectedRoute>
-              <LazyWrapper><TimesheetRecord /></LazyWrapper>
+              <LazyWrapper type="form"><TimesheetRecord /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/timesheet-history" element={
             <ProtectedRoute>
-              <LazyWrapper><TimesheetHistory /></LazyWrapper>
+              <LazyWrapper type="list"><TimesheetHistory /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/supervisor-approval" element={
             <RoleProtectedRoute allowedRoles={['班长', 'supervisor', '超级管理员', 'super_admin']}>
-              <LazyWrapper><SupervisorApproval /></LazyWrapper>
+              <LazyWrapper type="table"><SupervisorApproval /></LazyWrapper>
             </RoleProtectedRoute>
           } />
           <Route path="/section-chief-approval" element={
             <RoleProtectedRoute allowedRoles={['段长', 'section_chief', '超级管理员', 'super_admin']}>
-              <LazyWrapper><SectionChiefApproval /></LazyWrapper>
+              <LazyWrapper type="table"><SectionChiefApproval /></LazyWrapper>
             </RoleProtectedRoute>
           } />
           <Route path="/reports" element={
             <ProtectedRoute>
-              <LazyWrapper><Reports /></LazyWrapper>
+              <LazyWrapper type="table"><Reports /></LazyWrapper>
             </ProtectedRoute>
           } />
           <Route path="/history" element={
             <ProtectedRoute>
-              <LazyWrapper><History /></LazyWrapper>
+              <LazyWrapper type="list"><History /></LazyWrapper>
             </ProtectedRoute>
           } />
 
@@ -284,13 +306,15 @@ function AppInner() {
 function App() {
   return (
     <AppErrorBoundary>
-      <AuthProvider>
-        <ModuleLoadingProvider>
-          <AppInner />
-          {/* Toast 通知 */}
-          <Toaster position="top-right" richColors />
-        </ModuleLoadingProvider>
-      </AuthProvider>
+      <NetworkErrorHandler>
+        <AuthProvider>
+          <ModuleLoadingProvider>
+            <AppInner />
+            {/* Toast 通知 */}
+            <Toaster position="top-right" richColors />
+          </ModuleLoadingProvider>
+        </AuthProvider>
+      </NetworkErrorHandler>
     </AppErrorBoundary>
   )
 }

@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
 import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
-import ExcelImportDialog from '../components/ExcelImportDialog';
+// Excel导入对话框懒加载
+const ExcelImportDialog = React.lazy(() => import('../components/ExcelImportDialog'));
 import CollapsibleSection from '../components/CollapsibleSection';
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions';
 
@@ -1785,15 +1786,28 @@ const ProcessManagement: React.FC = () => {
         type="danger"
       />
       
-      {/* Excel导入对话框 */}
-      <ExcelImportDialog
-        isOpen={showImportDialog}
-        onClose={() => setShowImportDialog(false)}
-        onImport={handleBatchImport}
-        companies={companies}
-        currentUser={user}
-        existingProcesses={processes}
-      />
+      {/* Excel导入对话框 - 懒加载 */}
+      {showImportDialog && (
+        <React.Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 p-6 rounded-lg border border-green-400">
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-green-400 font-mono">正在加载Excel导入功能...</span>
+              </div>
+            </div>
+          </div>
+        }>
+          <ExcelImportDialog
+            isOpen={showImportDialog}
+            onClose={() => setShowImportDialog(false)}
+            onImport={handleBatchImport}
+            companies={companies}
+            currentUser={user}
+            existingProcesses={processes}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

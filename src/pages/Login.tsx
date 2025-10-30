@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Phone, Lock, Eye, EyeOff, User, X } from 'lucide-react'
+import { performanceMonitor } from '@/utils/performanceMonitor'
+
+// 预加载关键组件
+const preloadCriticalComponents = () => {
+  // 预加载Dashboard组件（用户登录后的首页）
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      import('@/pages/Dashboard').catch(() => {
+        // 静默处理预加载失败
+      })
+    }, { timeout: 3000 })
+  }
+}
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -36,6 +49,10 @@ export default function Login() {
 
   // 加载保存的用户信息
   useEffect(() => {
+    // 开始性能监控
+    performanceMonitor.startTiming('login_page_load')
+    performanceMonitor.recordNetworkInfo()
+    
     const savedUsersData = localStorage.getItem('savedUsers')
     const savedCredentials = localStorage.getItem('savedCredentials')
     
@@ -48,6 +65,9 @@ export default function Login() {
         setRememberMe(true)
       }
     }
+
+    // 预加载关键组件
+    preloadCriticalComponents()
     
     // 如果有保存的密码凭据，自动填充
     if (savedCredentials) {
@@ -65,6 +85,13 @@ export default function Login() {
         console.error('Failed to load saved credentials:', error)
       }
     }
+    
+    // 结束性能监控
+    const timer = setTimeout(() => {
+      performanceMonitor.endTiming('login_page_load')
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +104,9 @@ export default function Login() {
       setLoading(false)
       return
     }
+
+    // 开始登录性能监控
+    performanceMonitor.startTiming('login_process')
 
     const result = await login(formData.phone, formData.password)
     
@@ -109,8 +139,14 @@ export default function Login() {
         localStorage.removeItem('savedCredentials')
       }
       
+      // 结束登录性能监控
+      performanceMonitor.endTiming('login_process')
+      
       navigate(from, { replace: true })
     } else {
+      // 记录登录失败
+      performanceMonitor.endTiming('login_process')
+      
       setError(result.error || '登录失败')
     }
     

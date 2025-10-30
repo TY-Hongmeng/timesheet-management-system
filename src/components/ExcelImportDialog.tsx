@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState, useRef } from 'react';
 import { X, Upload, Download, FileSpreadsheet } from 'lucide-react';
 
 interface ExcelImportDialogProps {
@@ -111,10 +110,21 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
 
   const parseExcelFile = async (file: File) => {
     setIsLoading(true);
+    setIsImporting(true);
+    setImportProgress(0);
+    setImportStatus('开始解析...');
     setErrors([]);
+    setPreviewData([]);
     
     try {
-      // 读取文件
+      // 阶段1：动态加载XLSX库 (0-15%)
+      setImportStatus('正在加载Excel处理库...');
+      setImportProgress(5);
+      const XLSX = await import('xlsx');
+      
+      // 阶段2：文件读取 (15-30%)
+      setImportStatus('正在读取文件...');
+      setImportProgress(15);
       const arrayBuffer = await file.arrayBuffer();
       
       // 检查文件内容是否有效
@@ -122,6 +132,10 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
         setErrors(['文件内容为空，请检查文件是否损坏']);
         return;
       }
+      
+      // 阶段3：Excel解析 (30-70%)
+      setImportStatus('正在解析Excel文件...');
+      setImportProgress(30);
       
       // 解析Excel文件，使用更详细的配置
       const workbook = XLSX.read(arrayBuffer, { 
@@ -385,26 +399,34 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
     return errors;
   };
 
-  const downloadTemplate = () => {
-    // 获取当前用户的公司名称，如果没有则使用示例公司
-    const companyName = currentUser?.company?.name || '示例公司';
-    
-    const templateData = [
-      {
-        公司名称: companyName,
-        生产线: '生产线A',
-        工时类型: '生产工时',
-        产品名称: '示例产品',
-        产品工序: '示例工序',
-        单价: '', // 单价可以为空
-        生效年月: new Date().toISOString().slice(0, 7) // 当前年月
-      }
-    ];
-    
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '工序导入模板');
-    XLSX.writeFile(wb, '工序导入模板.xlsx');
+  const downloadTemplate = async () => {
+    try {
+      // 动态加载XLSX库
+      const XLSX = await import('xlsx');
+      
+      // 获取当前用户的公司名称，如果没有则使用示例公司
+      const companyName = currentUser?.company?.name || '示例公司';
+      
+      const templateData = [
+        {
+          公司名称: companyName,
+          生产线: '生产线A',
+          工时类型: '生产工时',
+          产品名称: '示例产品',
+          产品工序: '示例工序',
+          单价: '', // 单价可以为空
+          生效年月: new Date().toISOString().slice(0, 7) // 当前年月
+        }
+      ];
+      
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '工序导入模板');
+      XLSX.writeFile(wb, '工序导入模板.xlsx');
+    } catch (error) {
+      console.error('下载模板失败:', error);
+      // 可以添加错误提示
+    }
   };
 
   const handleImport = async () => {
@@ -416,14 +438,19 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
     setImportStatus('开始导入...');
     
     try {
-      // 阶段1：文件读取 (0-15%)
-      setImportStatus('正在读取Excel文件...');
+      // 阶段1：动态加载XLSX库 (0-10%)
+      setImportStatus('正在加载Excel处理库...');
       setImportProgress(5);
+      const XLSX = await import('xlsx');
+      
+      // 阶段2：文件读取 (10-20%)
+      setImportStatus('正在读取Excel文件...');
+      setImportProgress(10);
       const arrayBuffer = await selectedFile.arrayBuffer();
       
-      // 阶段2：Excel解析 (15-30%)
+      // 阶段3：Excel解析 (20-40%)
       setImportStatus('正在解析Excel数据...');
-      setImportProgress(15);
+      setImportProgress(20);
       
       const workbook = XLSX.read(arrayBuffer, { 
         type: 'array',
@@ -444,10 +471,10 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
         blankrows: false
       });
       
-      setImportProgress(30);
+      setImportProgress(40);
       setImportStatus(`正在处理 ${jsonData.length - 1} 条数据...`);
       
-      // 阶段3：数据转换 (30-50%)
+      // 阶段4：数据转换 (40-60%)
       const headers = jsonData[0] as string[];
       const dataRows = jsonData.slice(1) as any[][];
       const processedData: ExcelRowData[] = [];
@@ -495,8 +522,9 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
         
         // 更新进度
         if (index % 10 === 0) {
-          const progress = 50 + Math.floor((index / processedData.length) * 20);
-          setImportProgress(progress);
+ // 更新进度
+        const progress = 60 + Math.floor((index / processedData.length) * 20);
+        setImportProgress(progress);
         }
         
         return {
@@ -510,9 +538,9 @@ const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
         };
       });
       
-      // 阶段5：数据保存 (70-95%)
+      // 阶段5：数据保存 (80-95%)
       setImportStatus(`正在保存 ${processData.length} 条工序数据到数据库...`);
-      setImportProgress(70);
+      setImportProgress(80);
       
       await onImport(processData);
       
