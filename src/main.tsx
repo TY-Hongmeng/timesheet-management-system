@@ -8,27 +8,33 @@ import { performanceMonitor } from './utils/performanceMonitor.ts'
 
 // 应用启动包装器组件
 function AppLauncher() {
-  const [showProgress, setShowProgress] = useState(true)
+  const [showProgress, setShowProgress] = useState(false)
   const [appReady, setAppReady] = useState(false)
-  const [htmlProgressGone, setHtmlProgressGone] = useState(false)
 
-  // 检查HTML进度条是否还存在
   useEffect(() => {
-    const checkInstantProgress = () => {
+    // 立即强制移除HTML进度条，避免冲突
+    const removeHtmlProgress = () => {
       const instantProgress = document.getElementById('instant-progress')
-      if (!instantProgress && !htmlProgressGone) {
-        // HTML进度条已消失，现在可以显示React进度条
-        setHtmlProgressGone(true)
-        console.log('HTML进度条已消失，开始显示React进度条')
+      if (instantProgress) {
+        console.log('强制移除HTML进度条，避免与React进度条冲突')
+        instantProgress.remove()
       }
     }
 
-    const interval = setInterval(checkInstantProgress, 100)
-    return () => clearInterval(interval)
-  }, [htmlProgressGone])
+    // 立即移除HTML进度条
+    removeHtmlProgress()
+    
+    // 短暂延迟后显示React进度条，确保HTML进度条完全移除
+    const timer = setTimeout(() => {
+      setShowProgress(true)
+      console.log('开始显示React进度条')
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
-    if (!htmlProgressGone) return
+    if (!showProgress) return
 
     const initializeApp = async () => {
       try {
@@ -37,7 +43,6 @@ function AppLauncher() {
         // 初始化移动端优化
         await initMobileOptimization()
         
-        // 模拟应用准备过程 - 这里不需要额外延时，让进度条组件自己控制
         console.log('应用初始化完成')
         
         setAppReady(true)
@@ -48,7 +53,7 @@ function AppLauncher() {
     }
 
     initializeApp()
-  }, [htmlProgressGone])
+  }, [showProgress])
 
   // 进度条完成回调
   const handleProgressComplete = () => {
@@ -56,17 +61,18 @@ function AppLauncher() {
     setShowProgress(false)
   }
 
-  // 如果HTML进度条还在显示，不渲染任何内容
-  if (!htmlProgressGone) {
-    return null
-  }
-
   // 如果需要显示React进度条
   if (showProgress) {
     return <AppStartupProgress onComplete={handleProgressComplete} isVisible={true} />
   }
 
-  return <App />
+  // 如果应用已准备好，显示主应用
+  if (appReady) {
+    return <App />
+  }
+
+  // 默认返回null，等待初始化完成
+  return null
 }
 
 // 移动端应用启动器

@@ -260,11 +260,9 @@
         
         var currentProgress = 0;
         var steps = [
-          { progress: 20, text: '初始化系统...' },
-          { progress: 40, text: '检查网络连接...' },
-          { progress: 60, text: '加载认证模块...' },
-          { progress: 80, text: '准备用户界面...' },
-          { progress: 100, text: '启动完成！' }
+          { progress: 30, text: '初始化系统...' },
+          { progress: 60, text: '加载核心模块...' },
+          { progress: 100, text: '准备就绪！' }
         ];
         
         var stepIndex = 0;
@@ -280,22 +278,24 @@
             
             stepIndex++;
             
-            // 根据步骤调整时间间隔
-            var delay = stepIndex === 1 ? 500 : (stepIndex === steps.length ? 300 : 800);
+            // 快速完成HTML进度条，避免与React进度条冲突
+            var delay = stepIndex === steps.length ? 200 : 400;
             setTimeout(updateProgress, delay);
           } else {
-            // 进度完成后，等待React应用接管
+            // 进度完成后，立即移除HTML进度条，让React应用接管
             setTimeout(function() {
               if (instantProgress && instantProgress.parentNode) {
+                console.log('HTML进度条完成，准备移除');
                 instantProgress.style.opacity = '0';
-                instantProgress.style.transition = 'opacity 0.3s ease';
+                instantProgress.style.transition = 'opacity 0.2s ease';
                 setTimeout(function() {
                   if (instantProgress && instantProgress.parentNode) {
                     instantProgress.parentNode.removeChild(instantProgress);
+                    console.log('HTML进度条已移除');
                   }
-                }, 300);
+                }, 200);
               }
-            }, 500);
+            }, 100);
           }
         }
         
