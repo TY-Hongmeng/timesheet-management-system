@@ -59,23 +59,30 @@ interface ErrorBoundaryState {
   error?: Error
   errorInfo?: ErrorInfo
   isNetworkError: boolean
+  retryCount: number
 }
 
 class AppErrorBoundary extends Component<
   { children: ReactNode },
   ErrorBoundaryState
 > {
+  private maxRetries = 3
+  private retryTimeout: NodeJS.Timeout | null = null
+
   constructor(props: { children: ReactNode }) {
     super(props)
-    this.state = { hasError: false, isNetworkError: false }
+    this.state = { hasError: false, isNetworkError: false, retryCount: 0 }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     // 检查是否为网络相关错误
     const isNetworkError = error.message.includes('fetch') || 
                           error.message.includes('network') || 
                           error.message.includes('Failed to load') ||
-                          error.name === 'NetworkError'
+                          error.message.includes('Loading chunk') ||
+                          error.message.includes('ChunkLoadError') ||
+                          error.name === 'NetworkError' ||
+                          error.name === 'ChunkLoadError'
     
     return { hasError: true, error, isNetworkError }
   }
@@ -83,56 +90,116 @@ class AppErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('应用错误边界捕获到错误:', error, errorInfo)
     this.setState({ error, errorInfo })
+
+    // 对于网络错误，尝试自动恢复
+    if (this.state.isNetworkError && this.state.retryCount < this.maxRetries) {
+      this.scheduleAutoRetry()
+    }
+  }
+
+  scheduleAutoRetry = () => {
+    if (this.retryTimeout) {
+      clearTimeout(this.retryTimeout)
+    }
+
+    this.retryTimeout = setTimeout(() => {
+      this.handleRetry()
+    }, 2000 + this.state.retryCount * 1000) // 递增延迟
+  }
+
+  handleRetry = () => {
+    const newRetryCount = this.state.retryCount + 1
+
+    if (newRetryCount >= this.maxRetries) {
+      // 达到最大重试次数，重新加载页面
+      window.location.reload()
+      return
+    }
+
+    this.setState({ 
+      hasError: false, 
+      error: undefined, 
+      errorInfo: undefined, 
+      retryCount: newRetryCount 
+    })
+  }
+
+  handleManualRetry = () => {
+    this.setState({ 
+      hasError: false, 
+      error: undefined, 
+      errorInfo: undefined, 
+      retryCount: 0 
+    })
+  }
+
+  componentWillUnmount() {
+    if (this.retryTimeout) {
+      clearTimeout(this.retryTimeout)
+    }
   }
 
   render() {
     if (this.state.hasError) {
-      const { isNetworkError } = this.state
+      const { isNetworkError, retryCount } = this.state
       
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center">
-            <div className="bg-gray-900 border border-red-400 rounded-lg p-8 shadow-lg shadow-red-400/20">
+            <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg p-8 shadow-lg">
               <div className="mb-6">
-                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white text-2xl font-bold">
-                    {isNetworkError ? '📡' : '!'}
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-red-600 dark:text-red-400 text-2xl">
+                    {isNetworkError ? '📡' : '⚠️'}
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold text-red-400 mb-2 font-mono">
+                <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
                   {isNetworkError ? '网络错误' : '应用错误'}
                 </h2>
-                <p className="text-red-300 font-mono">
+                <p className="text-red-600 dark:text-red-300">
                   {isNetworkError 
-                    ? '网络连接出现问题，请检查网络后重试'
-                    : '应用遇到了一个错误，请刷新页面重试'
+                    ? '网络连接出现问题，正在尝试重新连接...'
+                    : '应用遇到了一个错误，请重试'
                   }
                 </p>
+                {retryCount > 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    重试次数: {retryCount}/{this.maxRetries}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-4">
                 <button
-                  onClick={() => window.location.reload()}
-                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-colors duration-200 font-mono"
+                  onClick={this.handleManualRetry}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-medium rounded-lg transition-colors duration-200"
                 >
-                  {isNetworkError ? '重新连接' : '刷新页面'}
+                  {isNetworkError ? '重新连接' : '重试'}
                 </button>
                 
                 <button
-                  onClick={() => this.setState({ hasError: false, error: undefined, errorInfo: undefined, isNetworkError: false })}
-                  className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-mono rounded-lg transition-colors duration-200"
+                  onClick={() => window.location.reload()}
+                  className="w-full py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200"
                 >
-                  重试
+                  刷新页面
                 </button>
               </div>
 
               {import.meta.env.DEV && this.state.error && (
                 <details className="mt-6 text-left">
-                  <summary className="text-gray-400 cursor-pointer font-mono">错误详情</summary>
-                  <pre className="mt-2 text-xs text-gray-500 bg-gray-800 p-2 rounded overflow-auto">
-                    {this.state.error.toString()}
-                    {this.state.errorInfo?.componentStack}
-                  </pre>
+                  <summary className="text-gray-600 dark:text-gray-400 cursor-pointer text-sm">
+                    错误详情 (开发模式)
+                  </summary>
+                  <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono overflow-auto max-h-32">
+                    <div className="text-red-600 dark:text-red-400 font-semibold mb-1">
+                      {this.state.error.name}: {this.state.error.message}
+                    </div>
+                    {this.state.errorInfo?.componentStack && (
+                      <pre className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                        {this.state.errorInfo.componentStack}
+                      </pre>
+                    )}
+                  </div>
                 </details>
               )}
             </div>

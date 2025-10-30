@@ -13,22 +13,34 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 基础样式重置 */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
 /* 移动端环境优化 */
 body {
   /* 防止页面被拖拽 */
   overscroll-behavior: none;
-  /* 防止选中文本 */
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   /* 防止长按弹出菜单 */
   -webkit-touch-callout: none;
   /* 防止点击高亮 */
   -webkit-tap-highlight-color: transparent;
+  /* 改善触摸滚动 */
+  -webkit-overflow-scrolling: touch;
 }
 
-
+/* 根容器优化 */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh; /* 动态视口高度，更好的移动端支持 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
 
 /* 移动端样式优化 */
 .mobile-env {
@@ -46,6 +58,10 @@ input, textarea, select {
   autocorrect: off;
   /* 防止拼写检查 */
   spellcheck: false;
+  /* 改善移动端输入体验 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* 按钮点击效果优化 */
@@ -56,6 +72,8 @@ button, .btn {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  /* 改善点击响应 */
+  cursor: pointer;
 }
 
 /* 滚动条优化 */
@@ -84,11 +102,72 @@ button, .btn {
   html, body {
     height: 100%;
     overflow-x: hidden;
+    /* 修复iOS Safari的100vh问题 */
+    min-height: -webkit-fill-available;
   }
   
   #root {
     min-height: 100vh;
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
     position: relative;
+  }
+  
+  /* 防止文本选择（除了输入框） */
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* 允许输入框文本选择 */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+  
+  /* 优化表格在移动端的显示 */
+  table {
+    font-size: 14px;
+  }
+  
+  th, td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  /* 优化按钮在移动端的大小 */
+  button, .btn {
+    min-height: 44px; /* iOS推荐的最小触摸目标 */
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* 优化输入框在移动端的大小 */
+  input, textarea, select {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+}
+
+/* 小屏幕设备优化 */
+@media screen and (max-width: 480px) {
+  /* 进一步优化小屏幕 */
+  body {
+    font-size: 14px;
+  }
+  
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  
+  /* 优化间距 */
+  .container, .max-w-7xl, .max-w-6xl, .max-w-5xl {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
@@ -108,5 +187,95 @@ button, .btn {
   
   .safe-area-inset-right {
     padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* 横屏适配 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  /* 横屏时减少垂直间距 */
+  .py-8 { padding-top: 1rem; padding-bottom: 1rem; }
+  .py-6 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .my-8 { margin-top: 1rem; margin-bottom: 1rem; }
+  .my-6 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  button, .btn {
+    border: 2px solid currentColor;
+  }
+  
+  input, textarea, select {
+    border: 2px solid currentColor;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 修复iOS Safari的视口问题 */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* 修复Android WebView的问题 */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select {
+    background-image: none;
+  }
+}
+
+/* 焦点可见性增强 */
+.focus-visible:focus,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 触摸设备上移除hover效果 */
+  button:hover,
+  .btn:hover {
+    transform: none;
+  }
+  
+  /* 增加触摸反馈 */
+  button:active,
+  .btn:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* 打印样式优化 */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
   }
 }
