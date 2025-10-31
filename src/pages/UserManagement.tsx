@@ -300,7 +300,7 @@ export default function UserManagement() {
   }
 
   // 处理注册默认状态切换 - 增强版本，带重试机制
-  const handleDefaultStatusToggle = (newStatus: boolean) => {
+  const handleDefaultStatusToggle = async (newStatus: boolean) => {
     console.log('🔄 [UserManagement] 切换默认状态:', newStatus)
     console.log('🔄 [UserManagement] localStorage切换前状态:', Object.keys(localStorage))
     
