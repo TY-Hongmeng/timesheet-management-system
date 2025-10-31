@@ -230,10 +230,23 @@ export default function UserManagement() {
 
   // 处理注册默认状态切换
   const handleDefaultStatusToggle = (newStatus: boolean) => {
-    console.log('切换默认状态:', newStatus)
+    console.log('🔄 切换默认状态:', newStatus)
+    console.log('🔄 切换前localStorage内容:', localStorage.getItem('defaultUserStatus'))
+    console.log('🔄 切换前defaultUserStatus状态:', defaultUserStatus)
+    
     setDefaultUserStatus(newStatus)
     localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
-    console.log('已保存到localStorage:', localStorage.getItem('defaultUserStatus'))
+    
+    console.log('🔄 切换后localStorage内容:', localStorage.getItem('defaultUserStatus'))
+    console.log('🔄 localStorage验证读取:', JSON.parse(localStorage.getItem('defaultUserStatus') || 'false'))
+    
+    // 同时更新formData的is_active字段
+    setFormData(prev => ({
+      ...prev,
+      is_active: newStatus
+    }))
+    console.log('🔄 已同步更新formData.is_active为:', newStatus)
+    
     toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
   }
 

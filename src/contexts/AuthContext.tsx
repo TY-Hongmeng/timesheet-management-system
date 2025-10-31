@@ -324,9 +324,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 从localStorage读取默认用户状态设置
       const saved = localStorage.getItem('defaultUserStatus')
       const defaultUserStatus = saved ? JSON.parse(saved) : false // 默认为禁用状态
-      console.log('注册时读取localStorage:', saved)
-      console.log('解析后的默认用户状态:', defaultUserStatus)
-      console.log('将设置新用户is_active为:', defaultUserStatus)
+      console.log('📝 [AuthContext Register] 注册时读取localStorage key "defaultUserStatus":', saved)
+      console.log('📝 [AuthContext Register] 解析后的默认用户状态:', defaultUserStatus)
+      console.log('📝 [AuthContext Register] 将设置新用户is_active为:', defaultUserStatus)
+      console.log('📝 [AuthContext Register] localStorage所有相关键值:', {
+        defaultUserStatus: localStorage.getItem('defaultUserStatus'),
+        allKeys: Object.keys(localStorage).filter(key => key.includes('default') || key.includes('status'))
+      })
+      console.log('📝 [AuthContext Register] 即将插入数据库的用户数据:', {
+        id: userId,
+        phone: formData.phone,
+        name: formData.name,
+        company_id: formData.company_id,
+        role_id: formData.role_id,
+        production_line: formData.production_line,
+        is_active: defaultUserStatus
+      })
 
       // 创建用户信息记录
       const { error: userError } = await supabase
@@ -359,7 +372,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       // 注册成功，但不自动登录
-      console.log(`用户注册成功，账号状态为${defaultUserStatus ? '启用' : '禁用'}${defaultUserStatus ? '' : '，需要管理员激活'}`)
+      console.log(`📝 用户注册成功，账号状态为${defaultUserStatus ? '启用' : '禁用'}${defaultUserStatus ? '' : '，需要管理员激活'}`)
+      console.log('📝 新创建用户的完整信息:', userData)
+      console.log('📝 新用户的is_active字段值:', userData?.is_active)
 
       return { success: true }
     } catch (error: any) {
