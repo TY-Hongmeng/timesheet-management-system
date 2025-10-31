@@ -227,15 +227,21 @@ const preloadComponents = () => {
   // 第一层：仅在用户空闲时预加载Dashboard（用户登录后的首页）
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
-      Dashboard.preload?.().catch(() => {
-        // 静默处理预加载失败
-      })
+      // 类型安全的预加载调用
+      if ('preload' in Dashboard && typeof (Dashboard as any).preload === 'function') {
+        (Dashboard as any).preload().catch(() => {
+          // 静默处理预加载失败
+        })
+      }
     }, { timeout: 5000 }) // 增加延迟，确保首屏加载完成
   } else {
     setTimeout(() => {
-      Dashboard.preload?.().catch(() => {
-        // 静默处理预加载失败
-      })
+      // 类型安全的预加载调用
+      if ('preload' in Dashboard && typeof (Dashboard as any).preload === 'function') {
+        (Dashboard as any).preload().catch(() => {
+          // 静默处理预加载失败
+        })
+      }
     }, 5000)
   }
 
@@ -246,9 +252,12 @@ const preloadComponents = () => {
       const isGoodConnection = !currentConnection || currentConnection.effectiveType === '4g'
       
       if (isGoodConnection) {
-        TimesheetRecord.preload?.().catch(() => {
-          // 静默处理预加载失败
-        })
+        // 类型安全的预加载调用
+        if ('preload' in TimesheetRecord && typeof (TimesheetRecord as any).preload === 'function') {
+          (TimesheetRecord as any).preload().catch(() => {
+            // 静默处理预加载失败
+          })
+        }
       }
     }, { timeout: 10000 })
   }

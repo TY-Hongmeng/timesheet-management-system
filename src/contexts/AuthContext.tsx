@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userData = JSON.parse(storedUser)
           const loginTime = parseInt(lastLoginTime)
           const currentTime = Date.now()
-          const sessionDuration = 24 * 60 * 60 * 1000 // 24小时
+          const sessionDuration = 7 * 24 * 60 * 60 * 1000 // 7天
           
           // 检查会话是否过期
           if (currentTime - loginTime > sessionDuration) {

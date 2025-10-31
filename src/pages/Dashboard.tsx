@@ -135,8 +135,8 @@ function SortableModule({ module, index, isDragMode, dragModeEnabled }: Sortable
           touchAction: dragModeEnabled ? 'none' : 'auto', // 手机端拖拽时禁用默认触摸行为
           userSelect: dragModeEnabled ? 'none' : 'auto', // 拖拽模式时禁用文本选择
           WebkitUserSelect: dragModeEnabled ? 'none' : 'auto', // Safari兼容
-          WebkitTouchCallout: dragModeEnabled ? 'none' : 'auto', // 禁用长按菜单
-        }}
+          WebkitTouchCallout: dragModeEnabled ? 'none' : 'default', // 禁用长按菜单
+        } as React.CSSProperties}
       >
         <Link 
           to={module.path} 

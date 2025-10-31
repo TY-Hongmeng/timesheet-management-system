@@ -26,6 +26,11 @@ export default function Login() {
   const [error, setError] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [rememberPassword, setRememberPassword] = useState(false)
+  
+  // 添加调试函数
+  const debugLog = (message: string, data?: any) => {
+    console.log(`🔍 [Login Debug] ${message}`, data)
+  }
   const [savedUsers, setSavedUsers] = useState<Array<{phone: string, name?: string}>>([])
 
   const { login } = useAuth()
@@ -53,38 +58,64 @@ export default function Login() {
     performanceMonitor.startTiming('login_page_load')
     performanceMonitor.recordNetworkInfo()
     
+    debugLog('开始加载保存的用户信息')
+    
     const savedUsersData = localStorage.getItem('savedUsers')
     const savedCredentials = localStorage.getItem('savedCredentials')
     
-    if (savedUsersData) {
-      const users = JSON.parse(savedUsersData)
-      setSavedUsers(users)
-      // 自动填充最后一次登录的用户
-      if (users.length > 0) {
-        setFormData(prev => ({ ...prev, phone: users[0].phone }))
-        setRememberMe(true)
-      }
-    }
-
-    // 预加载关键组件
-    preloadCriticalComponents()
+    debugLog('localStorage数据', { savedUsersData, savedCredentials })
     
-    // 如果有保存的密码凭据，自动填充
+    // 检查是否有保存的密码凭据
+    let hasCredentials = false
+    let credentialsPhone = ''
+    
     if (savedCredentials) {
       try {
         const credentials = JSON.parse(savedCredentials)
+        debugLog('解析保存的凭据', credentials)
         if (credentials.phone && credentials.password) {
           setFormData({
             phone: credentials.phone,
             password: decryptPassword(credentials.password)
           })
+          debugLog('设置记住密码和记住账号为true')
           setRememberPassword(true)
           setRememberMe(true)
+          hasCredentials = true
+          credentialsPhone = credentials.phone
         }
       } catch (error) {
         console.error('Failed to load saved credentials:', error)
       }
     }
+    
+    // 如果没有保存的凭据，但有保存的用户列表，则填充最后一次登录的用户
+    if (!hasCredentials && savedUsersData) {
+      try {
+        const users = JSON.parse(savedUsersData)
+        debugLog('加载保存的用户列表', users)
+        setSavedUsers(users)
+        if (users.length > 0) {
+          setFormData(prev => ({ ...prev, phone: users[0].phone }))
+          debugLog('设置记住账号为true')
+          setRememberMe(true)
+        }
+      } catch (error) {
+        console.error('Failed to load saved users:', error)
+      }
+    } else if (savedUsersData) {
+      // 如果有凭据，仍然需要设置保存的用户列表
+      try {
+        const users = JSON.parse(savedUsersData)
+        debugLog('设置保存的用户列表', users)
+        setSavedUsers(users)
+      } catch (error) {
+        console.error('Failed to load saved users:', error)
+      }
+    }
+
+    // 预加载关键组件
+    preloadCriticalComponents()
     
     // 结束性能监控
     const timer = setTimeout(() => {
@@ -108,27 +139,33 @@ export default function Login() {
     // 开始登录性能监控
     performanceMonitor.startTiming('login_process')
 
+    debugLog('登录前复选框状态', { rememberMe, rememberPassword })
+    
     const result = await login(formData.phone, formData.password)
     
     if (result.success) {
       // 如果选择记住我，保存用户信息
       if (rememberMe) {
+        debugLog('保存用户信息到localStorage')
         const existingUsers = JSON.parse(localStorage.getItem('savedUsers') || '[]')
         const userExists = existingUsers.find((user: any) => user.phone === formData.phone)
         
         if (!userExists) {
           const newUsers = [{ phone: formData.phone }, ...existingUsers.slice(0, 4)] // 最多保存5个用户
           localStorage.setItem('savedUsers', JSON.stringify(newUsers))
+          debugLog('添加新用户到列表', newUsers)
         } else {
           // 将当前用户移到最前面
           const filteredUsers = existingUsers.filter((user: any) => user.phone !== formData.phone)
           const newUsers = [{ phone: formData.phone }, ...filteredUsers]
           localStorage.setItem('savedUsers', JSON.stringify(newUsers))
+          debugLog('更新用户顺序', newUsers)
         }
       }
       
       // 如果选择记住密码，保存加密的凭据
       if (rememberPassword) {
+        debugLog('保存加密凭据到localStorage')
         const credentials = {
           phone: formData.phone,
           password: encryptPassword(formData.password)
@@ -136,6 +173,7 @@ export default function Login() {
         localStorage.setItem('savedCredentials', JSON.stringify(credentials))
       } else {
         // 如果不记住密码，清除保存的凭据
+        debugLog('清除保存的凭据')
         localStorage.removeItem('savedCredentials')
       }
       
@@ -154,22 +192,41 @@ export default function Login() {
   }
 
   const handleQuickLogin = (phone: string) => {
+    debugLog('快速登录点击', { phone })
     setFormData(prev => ({ ...prev, phone }))
+    setRememberMe(true) // 快速登录意味着用户想要记住账号
+    debugLog('设置记住账号为true')
+    
     // 检查是否有保存的密码
     const savedCredentials = localStorage.getItem('savedCredentials')
+    debugLog('检查保存的凭据', { savedCredentials })
     if (savedCredentials) {
       try {
         const credentials = JSON.parse(savedCredentials)
+        debugLog('解析凭据', credentials)
         if (credentials.phone === phone && credentials.password) {
           setFormData({
             phone: phone,
             password: decryptPassword(credentials.password)
           })
           setRememberPassword(true)
+          debugLog('找到匹配密码，设置记住密码为true')
+        } else {
+          // 如果没有匹配的密码，清空密码字段并取消记住密码
+          setFormData(prev => ({ ...prev, password: '' }))
+          setRememberPassword(false)
+          debugLog('没有匹配密码，设置记住密码为false')
         }
       } catch (error) {
         console.error('Failed to load saved password:', error)
+        setRememberPassword(false)
+        debugLog('解析凭据失败，设置记住密码为false')
       }
+    } else {
+      // 没有保存的凭据，清空密码并取消记住密码
+      setFormData(prev => ({ ...prev, password: '' }))
+      debugLog('没有保存的凭据，清空密码')
+      setRememberPassword(false)
     }
   }
 
@@ -266,10 +323,21 @@ export default function Login() {
                   type="checkbox"
                   id="rememberMe"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-green-600 bg-black border-green-400 rounded focus:ring-green-500 focus:ring-2"
+                  onChange={(e) => {
+                    debugLog('记住账号复选框点击', { checked: e.target.checked, previous: rememberMe })
+                    setRememberMe(e.target.checked)
+                  }}
+                  className="w-4 h-4 text-green-400 bg-gray-800 border-2 border-green-400 rounded focus:ring-green-500 focus:ring-2 checked:bg-green-600 checked:border-green-600 accent-green-400"
                 />
-                <label htmlFor="rememberMe" className="ml-2 text-sm text-green-300 font-mono">
+                <label 
+                  htmlFor="rememberMe" 
+                  className="ml-2 text-sm text-green-300 font-mono cursor-pointer select-none"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    debugLog('记住账号标签点击', { current: rememberMe })
+                    setRememberMe(!rememberMe)
+                  }}
+                >
                   记住账号
                 </label>
               </div>
@@ -279,10 +347,21 @@ export default function Login() {
                   type="checkbox"
                   id="rememberPassword"
                   checked={rememberPassword}
-                  onChange={(e) => setRememberPassword(e.target.checked)}
-                  className="w-4 h-4 text-green-600 bg-black border-green-400 rounded focus:ring-green-500 focus:ring-2"
+                  onChange={(e) => {
+                    debugLog('记住密码复选框点击', { checked: e.target.checked, previous: rememberPassword })
+                    setRememberPassword(e.target.checked)
+                  }}
+                  className="w-4 h-4 text-green-400 bg-gray-800 border-2 border-green-400 rounded focus:ring-green-500 focus:ring-2 checked:bg-green-600 checked:border-green-600 accent-green-400"
                 />
-                <label htmlFor="rememberPassword" className="ml-2 text-sm text-green-300 font-mono">
+                <label 
+                  htmlFor="rememberPassword" 
+                  className="ml-2 text-sm text-green-300 font-mono cursor-pointer select-none"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    debugLog('记住密码标签点击', { current: rememberPassword })
+                    setRememberPassword(!rememberPassword)
+                  }}
+                >
                   记住密码
                 </label>
               </div>
