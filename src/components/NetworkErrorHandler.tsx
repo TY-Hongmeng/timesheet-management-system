@@ -15,31 +15,13 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
   // 实际网络连接测试
   const testNetworkConnection = useCallback(async () => {
     try {
-      // 使用多个测试方法来确保准确性
-      const tests = [
-        // 测试1: 检查navigator.onLine状态
-        Promise.resolve(navigator.onLine),
-        
-        // 测试2: 尝试获取当前页面的favicon（如果存在）
-        fetch(window.location.origin + '/favicon.ico', { 
-          method: 'HEAD',
-          cache: 'no-cache',
-          mode: 'no-cors'
-        }).then(() => true).catch(() => false)
-      ]
-
-      const results = await Promise.allSettled(tests)
-      
-      // 如果至少有一个测试成功，认为网络正常
-      const successCount = results.filter(result => 
-        result.status === 'fulfilled' && result.value === true
-      ).length
-
-      return successCount > 0
+      // 使用navigator.onLine作为主要的网络状态检测方法
+      // 这是最可靠且不会产生网络请求错误的方法
+      return navigator.onLine
     } catch (error) {
       console.warn('网络连接测试失败:', error)
-      // 如果测试失败，回退到navigator.onLine
-      return navigator.onLine
+      // 如果测试失败，默认认为在线
+      return true
     }
   }, [])
 
