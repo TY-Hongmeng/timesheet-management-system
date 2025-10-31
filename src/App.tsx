@@ -260,8 +260,10 @@ const LazyWrapper: React.FC<{ children: React.ReactNode; type?: 'page' | 'card' 
   type = 'page' 
 }) => (
   <Suspense fallback={
-    <div className="min-h-screen bg-black">
-      <SkeletonLoader type={type} lines={5} />
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="w-full max-w-6xl mx-auto">
+        <SkeletonLoader type={type} />
+      </div>
     </div>
   }>
     {children}
