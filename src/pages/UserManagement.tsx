@@ -48,58 +48,17 @@ export default function UserManagement() {
   const [showForm, setShowForm] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
   
-  // 注册默认状态控制 - 需要在formData之前初始化
-  const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(() => {
-    const saved = localStorage.getItem('defaultUserStatus')
-    console.log('🔧 [UserManagement] 初始化时localStorage原始值:', saved)
-    
-    // 如果localStorage中没有值，设置默认值为false（禁用状态）
-    if (saved === null || saved === undefined) {
-      console.log('🔧 [UserManagement] localStorage中没有defaultUserStatus，设置默认值为false')
-      const defaultValue = false
-      localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
-      console.log('🔧 [UserManagement] 已保存默认值到localStorage:', localStorage.getItem('defaultUserStatus'))
-      return defaultValue
-    }
-    
-    try {
-      const status = JSON.parse(saved)
-      console.log('🔧 [UserManagement] 成功解析localStorage值:', status)
-      return status
-    } catch (error) {
-      console.error('🔧 [UserManagement] 解析localStorage值失败:', error)
-      // 如果解析失败，重置为默认值
-      const defaultValue = false
-      localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
-      console.log('🔧 [UserManagement] 解析失败，重置为默认值:', defaultValue)
-      return defaultValue
-    }
-  })
+  // 注册默认状态控制 - 简化初始化
+  const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(false)
   
-  const [formData, setFormData] = useState<UserFormData>(() => {
-    const saved = localStorage.getItem('defaultUserStatus')
-    let defaultStatus = false
-    
-    if (saved !== null) {
-      try {
-        defaultStatus = JSON.parse(saved)
-      } catch (error) {
-        console.error('🔧 [UserManagement] formData初始化时解析localStorage失败:', error)
-        defaultStatus = false
-      }
-    }
-    
-    console.log('🔧 [UserManagement] formData初始化，is_active设置为:', defaultStatus)
-    
-    return {
-      phone: '',
-      id_card: '',
-      name: '',
-      company_id: '',
-      role_id: '',
-      production_line: '',
-      is_active: defaultStatus // 使用localStorage中的默认状态
-    }
+  const [formData, setFormData] = useState<UserFormData>({
+    phone: '',
+    id_card: '',
+    name: '',
+    company_id: '',
+    role_id: '',
+    production_line: '',
+    is_active: false // 默认为false，会在useEffect中同步
   })
   const [formLoading, setFormLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -139,6 +98,35 @@ export default function UserManagement() {
       return
     }
   }, [user, authLoading, navigate])
+
+  // 强制初始化 localStorage 的 defaultUserStatus
+  useEffect(() => {
+    console.log('🔧 [UserManagement] 组件挂载，强制初始化 localStorage')
+    
+    // 检查 localStorage 中是否有 defaultUserStatus
+    const saved = localStorage.getItem('defaultUserStatus')
+    console.log('🔧 [UserManagement] 当前 localStorage 值:', saved)
+    
+    if (saved === null || saved === undefined) {
+      // 如果没有，设置默认值为 false
+      const defaultValue = false
+      localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
+      setDefaultUserStatus(defaultValue)
+      console.log('🔧 [UserManagement] 设置默认值:', defaultValue)
+    } else {
+      // 如果有，确保状态同步
+      try {
+        const parsedValue = JSON.parse(saved)
+        setDefaultUserStatus(parsedValue)
+        console.log('🔧 [UserManagement] 同步现有值:', parsedValue)
+      } catch (error) {
+        console.error('🔧 [UserManagement] 解析失败，重置为默认值:', error)
+        const defaultValue = false
+        localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
+        setDefaultUserStatus(defaultValue)
+      }
+    }
+  }, []) // 只在组件挂载时执行一次
 
   // 当defaultUserStatus变化时，更新formData的is_active字段
   useEffect(() => {
@@ -261,55 +249,26 @@ export default function UserManagement() {
 
   // 处理注册默认状态切换
   const handleDefaultStatusToggle = (newStatus: boolean) => {
-    console.log('🔄 [UserManagement] 开始切换默认状态:', newStatus)
-    console.log('🔄 [UserManagement] 切换前localStorage内容:', localStorage.getItem('defaultUserStatus'))
-    console.log('🔄 [UserManagement] 切换前defaultUserStatus状态:', defaultUserStatus)
-    console.log('🔄 [UserManagement] 切换前localStorage所有键:', Object.keys(localStorage))
+    console.log('🔄 [UserManagement] 切换默认状态:', newStatus)
     
-    // 先更新状态
+    // 直接保存到localStorage
+    localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
+    
+    // 更新状态
     setDefaultUserStatus(newStatus)
-    
-    // 然后保存到localStorage
-    try {
-      localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
-      console.log('🔄 [UserManagement] 已保存到localStorage:', JSON.stringify(newStatus))
-      
-      // 立即验证保存结果
-      const savedValue = localStorage.getItem('defaultUserStatus')
-      const parsedValue = savedValue ? JSON.parse(savedValue) : null
-      console.log('🔄 [UserManagement] localStorage验证 - 原始值:', savedValue)
-      console.log('🔄 [UserManagement] localStorage验证 - 解析值:', parsedValue)
-      console.log('🔄 [UserManagement] localStorage验证 - 是否匹配:', parsedValue === newStatus)
-      
-      // 检查localStorage是否正常工作
-      if (parsedValue !== newStatus) {
-        console.error('🔄 [UserManagement] ❌ localStorage保存失败！期望:', newStatus, '实际:', parsedValue)
-        toast.error('设置保存失败，请检查浏览器设置')
-        return
-      }
-      
-    } catch (error) {
-      console.error('🔄 [UserManagement] localStorage保存出错:', error)
-      toast.error('设置保存失败：' + error.message)
-      return
-    }
     
     // 同时更新formData的is_active字段
     setFormData(prev => ({
       ...prev,
       is_active: newStatus
     }))
-    console.log('🔄 [UserManagement] 已同步更新formData.is_active为:', newStatus)
     
     // 显示成功提示
     toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
     
-    // 最终验证
-    console.log('🔄 [UserManagement] 切换完成后localStorage所有键:', Object.keys(localStorage))
-    console.log('🔄 [UserManagement] 切换完成后相关键值:', {
-      defaultUserStatus: localStorage.getItem('defaultUserStatus'),
-      allKeys: Object.keys(localStorage).filter(key => key.includes('default') || key.includes('status'))
-    })
+    // 验证保存结果
+    const saved = localStorage.getItem('defaultUserStatus')
+    console.log('🔄 [UserManagement] 保存结果验证:', saved, '期望:', JSON.stringify(newStatus))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1500,7 +1459,14 @@ export default function UserManagement() {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => handleDefaultStatusToggle(false)}
+                onClick={(e) => {
+                  console.log('🖱️ [UserManagement] 禁用按钮被点击！')
+                  console.log('🖱️ [UserManagement] 点击事件对象:', e)
+                  console.log('🖱️ [UserManagement] 当前defaultUserStatus:', defaultUserStatus)
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDefaultStatusToggle(false)
+                }}
                 className={`px-3 py-1 rounded font-mono text-sm transition-colors ${
                   !defaultUserStatus 
                     ? 'bg-red-600 text-white' 
@@ -1510,7 +1476,14 @@ export default function UserManagement() {
                 禁用
               </button>
               <button
-                onClick={() => handleDefaultStatusToggle(true)}
+                onClick={(e) => {
+                  console.log('🖱️ [UserManagement] 启用按钮被点击！')
+                  console.log('🖱️ [UserManagement] 点击事件对象:', e)
+                  console.log('🖱️ [UserManagement] 当前defaultUserStatus:', defaultUserStatus)
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDefaultStatusToggle(true)
+                }}
                 className={`px-3 py-1 rounded font-mono text-sm transition-colors ${
                   defaultUserStatus 
                     ? 'bg-green-600 text-white' 

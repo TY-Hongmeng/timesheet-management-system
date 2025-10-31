@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #00ff00;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #333;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #00ff00;
+            background-color: #2a2a2a;
+        }
+        .log {
+            background-color: #000;
+            color: #00ff00;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>localStorage 功能测试</h1>
+    
+    <div class="status">
+        <h3>当前状态</h3>
+        <p>defaultUserStatus: <span id="currentStatus">未设置</span></p>
+        <p>localStorage 可用: <span id="storageAvailable">检查中...</span></p>
+    </div>
+    
+    <div>
+        <h3>操作按钮</h3>
+        <button onclick="setStatusTrue()">设置为 true (启用)</button>
+        <button onclick="setStatusFalse()">设置为 false (禁用)</button>
+        <button onclick="clearStatus()">清除设置</button>
+        <button onclick="checkStatus()">检查当前状态</button>
+        <button onclick="clearLog()">清除日志</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus() {
+            const statusElement = document.getElementById('currentStatus');
+            const storageElement = document.getElementById('storageAvailable');
+            
+            // 检查 localStorage 是否可用
+            const isStorageAvailable = typeof(Storage) !== "undefined";
+            storageElement.textContent = isStorageAvailable ? '✅ 可用' : '❌ 不可用';
+            
+            if (isStorageAvailable) {
+                const value = localStorage.getItem('defaultUserStatus');
+                if (value === null) {
+                    statusElement.textContent = '❌ 未设置 (null)';
+                } else {
+                    try {
+                        const parsed = JSON.parse(value);
+                        statusElement.textContent = `✅ ${parsed} (${typeof parsed})`;
+                    } catch (e) {
+                        statusElement.textContent = `❌ 解析错误: ${value}`;
+                    }
+                }
+            } else {
+                statusElement.textContent = '❌ localStorage 不可用';
+            }
+        }
+
+        function setStatusTrue() {
+            log('🔄 开始设置 defaultUserStatus 为 true');
+            try {
+                localStorage.setItem('defaultUserStatus', JSON.stringify(true));
+                log('✅ 设置成功');
+                
+                // 立即验证
+                const saved = localStorage.getItem('defaultUserStatus');
+                const parsed = saved ? JSON.parse(saved) : null;
+                log(`🔍 验证结果: 原始值="${saved}", 解析值=${parsed}, 类型=${typeof parsed}`);
+                
+                updateStatus();
+            } catch (error) {
+                log(`❌ 设置失败: ${error.message}`);
+            }
+        }
+
+        function setStatusFalse() {
+            log('🔄 开始设置 defaultUserStatus 为 false');
+            try {
+                localStorage.setItem('defaultUserStatus', JSON.stringify(false));
+                log('✅ 设置成功');
+                
+                // 立即验证
+                const saved = localStorage.getItem('defaultUserStatus');
+                const parsed = saved ? JSON.parse(saved) : null;
+                log(`🔍 验证结果: 原始值="${saved}", 解析值=${parsed}, 类型=${typeof parsed}`);
+                
+                updateStatus();
+            } catch (error) {
+                log(`❌ 设置失败: ${error.message}`);
+            }
+        }
+
+        function clearStatus() {
+            log('🔄 开始清除 defaultUserStatus');
+            try {
+                localStorage.removeItem('defaultUserStatus');
+                log('✅ 清除成功');
+                updateStatus();
+            } catch (error) {
+                log(`❌ 清除失败: ${error.message}`);
+            }
+        }
+
+        function checkStatus() {
+            log('🔍 检查当前 localStorage 状态:');
+            log(`- localStorage 可用: ${typeof(Storage) !== "undefined"}`);
+            log(`- 所有键: [${Object.keys(localStorage).join(', ')}]`);
+            log(`- 键总数: ${Object.keys(localStorage).length}`);
+            
+            const value = localStorage.getItem('defaultUserStatus');
+            log(`- defaultUserStatus 原始值: ${value}`);
+            log(`- defaultUserStatus 值类型: ${typeof value}`);
+            log(`- defaultUserStatus 是否为null: ${value === null}`);
+            
+            if (value !== null) {
+                try {
+                    const parsed = JSON.parse(value);
+                    log(`- defaultUserStatus 解析值: ${parsed}`);
+                    log(`- defaultUserStatus 解析类型: ${typeof parsed}`);
+                } catch (e) {
+                    log(`- defaultUserStatus 解析错误: ${e.message}`);
+                }
+            }
+            
+            updateStatus();
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            log('📱 页面加载完成，开始初始化检查');
+            checkStatus();
+        };
+    </script>
+</body>
+</html>
