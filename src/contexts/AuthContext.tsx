@@ -324,7 +324,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 从localStorage读取默认用户状态设置
       const saved = localStorage.getItem('defaultUserStatus')
       const defaultUserStatus = saved ? JSON.parse(saved) : false // 默认为禁用状态
-      console.log('使用默认用户状态:', defaultUserStatus)
+      console.log('注册时读取localStorage:', saved)
+      console.log('解析后的默认用户状态:', defaultUserStatus)
+      console.log('将设置新用户is_active为:', defaultUserStatus)
 
       // 创建用户信息记录
       const { error: userError } = await supabase

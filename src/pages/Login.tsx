@@ -319,16 +319,33 @@ export default function Login() {
             {/* Remember Options */}
             <div className="space-y-3">
               <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onChange={(e) => {
-                    debugLog('记住账号复选框点击', { checked: e.target.checked, previous: rememberMe })
-                    setRememberMe(e.target.checked)
-                  }}
-                  className="w-4 h-4 text-green-400 bg-gray-800 border-2 border-green-400 rounded focus:ring-green-500 focus:ring-2 checked:bg-green-600 checked:border-green-600 accent-green-400"
-                />
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => {
+                      debugLog('记住账号复选框点击', { checked: e.target.checked, previous: rememberMe })
+                      setRememberMe(e.target.checked)
+                    }}
+                    className="sr-only"
+                  />
+                  <div 
+                    className={`w-3.5 h-3.5 border border-green-400 rounded cursor-pointer transition-all duration-200 flex items-center justify-center ${
+                      rememberMe 
+                        ? 'bg-transparent border-green-400' 
+                        : 'bg-transparent border-green-400 hover:border-green-300'
+                    }`}
+                    onClick={() => {
+                      debugLog('记住账号自定义复选框点击', { current: rememberMe })
+                      setRememberMe(!rememberMe)
+                    }}
+                  >
+                    {rememberMe && (
+                      <span className="text-green-400 text-xs font-bold leading-none">✓</span>
+                    )}
+                  </div>
+                </div>
                 <label 
                   htmlFor="rememberMe" 
                   className="ml-2 text-sm text-green-300 font-mono cursor-pointer select-none"
@@ -343,16 +360,33 @@ export default function Login() {
               </div>
               
               <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="rememberPassword"
-                  checked={rememberPassword}
-                  onChange={(e) => {
-                    debugLog('记住密码复选框点击', { checked: e.target.checked, previous: rememberPassword })
-                    setRememberPassword(e.target.checked)
-                  }}
-                  className="w-4 h-4 text-green-400 bg-gray-800 border-2 border-green-400 rounded focus:ring-green-500 focus:ring-2 checked:bg-green-600 checked:border-green-600 accent-green-400"
-                />
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="rememberPassword"
+                    checked={rememberPassword}
+                    onChange={(e) => {
+                      debugLog('记住密码复选框点击', { checked: e.target.checked, previous: rememberPassword })
+                      setRememberPassword(e.target.checked)
+                    }}
+                    className="sr-only"
+                  />
+                  <div 
+                    className={`w-3.5 h-3.5 border border-green-400 rounded cursor-pointer transition-all duration-200 flex items-center justify-center ${
+                      rememberPassword 
+                        ? 'bg-transparent border-green-400' 
+                        : 'bg-transparent border-green-400 hover:border-green-300'
+                    }`}
+                    onClick={() => {
+                      debugLog('记住密码自定义复选框点击', { current: rememberPassword })
+                      setRememberPassword(!rememberPassword)
+                    }}
+                  >
+                    {rememberPassword && (
+                      <span className="text-green-400 text-xs font-bold leading-none">✓</span>
+                    )}
+                  </div>
+                </div>
                 <label 
                   htmlFor="rememberPassword" 
                   className="ml-2 text-sm text-green-300 font-mono cursor-pointer select-none"

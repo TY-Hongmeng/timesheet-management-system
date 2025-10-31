@@ -51,7 +51,10 @@ export default function UserManagement() {
   // 注册默认状态控制 - 需要在formData之前初始化
   const [defaultUserStatus, setDefaultUserStatus] = useState<boolean>(() => {
     const saved = localStorage.getItem('defaultUserStatus')
-    return saved ? JSON.parse(saved) : false // 默认为禁用状态
+    const status = saved ? JSON.parse(saved) : false // 默认为禁用状态
+    console.log('UserManagement初始化时读取localStorage:', saved)
+    console.log('UserManagement初始化defaultUserStatus为:', status)
+    return status
   })
   
   const [formData, setFormData] = useState<UserFormData>(() => {
@@ -108,6 +111,7 @@ export default function UserManagement() {
 
   // 当defaultUserStatus变化时，更新formData的is_active字段
   useEffect(() => {
+    console.log('defaultUserStatus变化，更新formData.is_active为:', defaultUserStatus)
     setFormData(prev => ({
       ...prev,
       is_active: defaultUserStatus
@@ -226,8 +230,10 @@ export default function UserManagement() {
 
   // 处理注册默认状态切换
   const handleDefaultStatusToggle = (newStatus: boolean) => {
+    console.log('切换默认状态:', newStatus)
     setDefaultUserStatus(newStatus)
     localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
+    console.log('已保存到localStorage:', localStorage.getItem('defaultUserStatus'))
     toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
   }
 
