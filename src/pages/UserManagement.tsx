@@ -99,32 +99,53 @@ export default function UserManagement() {
     }
   }, [user, authLoading, navigate])
 
-  // 强制初始化 localStorage 的 defaultUserStatus
+  // 强制初始化 localStorage 的 defaultUserStatus - 更强制的版本
   useEffect(() => {
     console.log('🔧 [UserManagement] 组件挂载，强制初始化 localStorage')
+    console.log('🔧 [UserManagement] localStorage当前所有键:', Object.keys(localStorage))
+    console.log('🔧 [UserManagement] localStorage总键数:', Object.keys(localStorage).length)
     
     // 检查 localStorage 中是否有 defaultUserStatus
     const saved = localStorage.getItem('defaultUserStatus')
     console.log('🔧 [UserManagement] 当前 localStorage 值:', saved)
+    console.log('🔧 [UserManagement] 当前值类型:', typeof saved)
     
-    if (saved === null || saved === undefined) {
-      // 如果没有，设置默认值为 false
-      const defaultValue = false
-      localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
-      setDefaultUserStatus(defaultValue)
-      console.log('🔧 [UserManagement] 设置默认值:', defaultValue)
-    } else {
-      // 如果有，确保状态同步
-      try {
-        const parsedValue = JSON.parse(saved)
-        setDefaultUserStatus(parsedValue)
-        console.log('🔧 [UserManagement] 同步现有值:', parsedValue)
-      } catch (error) {
-        console.error('🔧 [UserManagement] 解析失败，重置为默认值:', error)
-        const defaultValue = false
+    // 强制设置默认值，无论是否存在
+    const defaultValue = false
+    console.log('🔧 [UserManagement] 强制设置默认值:', defaultValue)
+    
+    try {
+      // 多次尝试写入localStorage，确保写入成功
+      let writeSuccess = false
+      for (let i = 0; i < 3; i++) {
         localStorage.setItem('defaultUserStatus', JSON.stringify(defaultValue))
-        setDefaultUserStatus(defaultValue)
+        const verifyValue = localStorage.getItem('defaultUserStatus')
+        console.log(`🔧 [UserManagement] 第${i+1}次写入验证:`, verifyValue)
+        
+        if (verifyValue !== null && verifyValue === JSON.stringify(defaultValue)) {
+          console.log('🔧 [UserManagement] ✅ localStorage写入成功')
+          writeSuccess = true
+          break
+        } else {
+          console.warn(`🔧 [UserManagement] ⚠️ 第${i+1}次写入失败，重试...`)
+        }
       }
+      
+      if (!writeSuccess) {
+        console.error('🔧 [UserManagement] ❌ localStorage写入失败，可能是权限问题')
+      }
+      
+      setDefaultUserStatus(defaultValue)
+      
+      // 最终验证
+      const finalValue = localStorage.getItem('defaultUserStatus')
+      console.log('🔧 [UserManagement] 最终验证值:', finalValue)
+      console.log('🔧 [UserManagement] localStorage更新后所有键:', Object.keys(localStorage))
+      console.log('🔧 [UserManagement] localStorage更新后键数:', Object.keys(localStorage).length)
+      
+    } catch (error) {
+      console.error('🔧 [UserManagement] ❌ localStorage操作失败:', error)
+      setDefaultUserStatus(defaultValue)
     }
   }, []) // 只在组件挂载时执行一次
 
@@ -135,6 +156,37 @@ export default function UserManagement() {
       ...prev,
       is_active: defaultUserStatus
     }))
+  }, [defaultUserStatus])
+
+  // 定期验证localStorage状态 - 确保值不会丢失
+  useEffect(() => {
+    const verifyLocalStorage = () => {
+      const currentValue = localStorage.getItem('defaultUserStatus')
+      console.log('🔍 [UserManagement] 定期验证localStorage:')
+      console.log('🔍 [UserManagement] - 当前值:', currentValue)
+      console.log('🔍 [UserManagement] - 状态值:', defaultUserStatus)
+      console.log('🔍 [UserManagement] - localStorage所有键:', Object.keys(localStorage))
+      console.log('🔍 [UserManagement] - localStorage键数量:', Object.keys(localStorage).length)
+      
+      // 如果localStorage中的值丢失了，重新设置
+      if (currentValue === null) {
+        console.warn('🔍 [UserManagement] ⚠️ localStorage值丢失，重新设置')
+        localStorage.setItem('defaultUserStatus', JSON.stringify(defaultUserStatus))
+        
+        // 验证重新设置的结果
+        const reVerifyValue = localStorage.getItem('defaultUserStatus')
+        console.log('🔍 [UserManagement] 重新设置后验证:', reVerifyValue)
+      }
+    }
+    
+    // 立即执行一次验证
+    verifyLocalStorage()
+    
+    // 每5秒验证一次
+    const interval = setInterval(verifyLocalStorage, 5000)
+    
+    // 清理定时器
+    return () => clearInterval(interval)
   }, [defaultUserStatus])
 
   // 如果正在加载认证状态，显示加载界面
@@ -247,28 +299,76 @@ export default function UserManagement() {
     }
   }
 
-  // 处理注册默认状态切换
+  // 处理注册默认状态切换 - 增强版本，带重试机制
   const handleDefaultStatusToggle = (newStatus: boolean) => {
     console.log('🔄 [UserManagement] 切换默认状态:', newStatus)
+    console.log('🔄 [UserManagement] localStorage切换前状态:', Object.keys(localStorage))
     
-    // 直接保存到localStorage
-    localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
-    
-    // 更新状态
-    setDefaultUserStatus(newStatus)
-    
-    // 同时更新formData的is_active字段
-    setFormData(prev => ({
-      ...prev,
-      is_active: newStatus
-    }))
-    
-    // 显示成功提示
-    toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
-    
-    // 验证保存结果
-    const saved = localStorage.getItem('defaultUserStatus')
-    console.log('🔄 [UserManagement] 保存结果验证:', saved, '期望:', JSON.stringify(newStatus))
+    try {
+      // 多次尝试保存到localStorage，确保写入成功
+      let saveSuccess = false
+      const maxRetries = 5
+      
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          // 保存到localStorage
+          localStorage.setItem('defaultUserStatus', JSON.stringify(newStatus))
+          
+          // 立即验证
+          const verifyValue = localStorage.getItem('defaultUserStatus')
+          const parsedValue = verifyValue ? JSON.parse(verifyValue) : null
+          
+          console.log(`🔄 [UserManagement] 第${i+1}次保存尝试:`)
+          console.log(`🔄 [UserManagement] - 写入值:`, JSON.stringify(newStatus))
+          console.log(`🔄 [UserManagement] - 读取值:`, verifyValue)
+          console.log(`🔄 [UserManagement] - 解析值:`, parsedValue)
+          console.log(`🔄 [UserManagement] - 值匹配:`, parsedValue === newStatus)
+          
+          if (parsedValue === newStatus) {
+            console.log('🔄 [UserManagement] ✅ localStorage保存成功')
+            saveSuccess = true
+            break
+          } else {
+            console.warn(`🔄 [UserManagement] ⚠️ 第${i+1}次保存验证失败，重试...`)
+            // 短暂延迟后重试
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+        } catch (error) {
+          console.error(`🔄 [UserManagement] 第${i+1}次保存出错:`, error)
+        }
+      }
+      
+      if (!saveSuccess) {
+        console.error('🔄 [UserManagement] ❌ localStorage保存失败，已尝试', maxRetries, '次')
+        toast.error('保存设置失败，请检查浏览器权限')
+        return
+      }
+      
+      // 更新状态
+      setDefaultUserStatus(newStatus)
+      
+      // 同时更新formData的is_active字段
+      setFormData(prev => ({
+        ...prev,
+        is_active: newStatus
+      }))
+      
+      // 显示成功提示
+      toast.success(`新用户注册默认状态已设置为：${newStatus ? '启用' : '禁用'}`)
+      
+      // 最终验证和调试信息
+      const finalValue = localStorage.getItem('defaultUserStatus')
+      console.log('🔄 [UserManagement] 最终验证:')
+      console.log('🔄 [UserManagement] - localStorage值:', finalValue)
+      console.log('🔄 [UserManagement] - 状态值:', defaultUserStatus)
+      console.log('🔄 [UserManagement] - formData.is_active:', formData.is_active)
+      console.log('🔄 [UserManagement] localStorage切换后状态:', Object.keys(localStorage))
+      console.log('🔄 [UserManagement] localStorage键数量:', Object.keys(localStorage).length)
+      
+    } catch (error) {
+      console.error('🔄 [UserManagement] ❌ 切换默认状态失败:', error)
+      toast.error('设置失败，请重试')
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
