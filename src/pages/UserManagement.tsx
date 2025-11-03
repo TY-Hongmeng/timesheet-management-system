@@ -87,6 +87,20 @@ export default function UserManagement() {
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
+  // 新增：增强诊断状态
+  const [diagnosticInfo, setDiagnosticInfo] = useState({
+    localStorageSupported: true,
+    sessionStorageSupported: true,
+    isPrivateMode: false,
+    storageQuotaExceeded: false,
+    lastError: '',
+    browserInfo: '',
+    storageTestResults: [] as string[],
+    realTimeMonitoring: true
+  })
+  const [manualStatusInput, setManualStatusInput] = useState('')
+  const [fallbackStorage, setFallbackStorage] = useState<{[key: string]: any}>({})
+
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -98,6 +112,110 @@ export default function UserManagement() {
       return
     }
   }, [user, authLoading, navigate])
+
+  // 新增：全面的存储诊断检查
+  useEffect(() => {
+    const runDiagnostics = async () => {
+      console.log('🔍 [Diagnostics] 开始全面存储诊断检查')
+      const results: string[] = []
+      let newDiagnosticInfo = { ...diagnosticInfo }
+
+      // 1. 检测浏览器信息
+      const browserInfo = `${navigator.userAgent} | ${navigator.platform} | ${navigator.language}`
+      newDiagnosticInfo.browserInfo = browserInfo
+      results.push(`✅ 浏览器信息: ${browserInfo.substring(0, 100)}...`)
+
+      // 2. 检测 localStorage 支持
+      try {
+        const testKey = '__test_localStorage_' + Date.now()
+        localStorage.setItem(testKey, 'test')
+        const testValue = localStorage.getItem(testKey)
+        localStorage.removeItem(testKey)
+        
+        if (testValue === 'test') {
+          newDiagnosticInfo.localStorageSupported = true
+          results.push('✅ localStorage 基础功能正常')
+        } else {
+          throw new Error('localStorage 读写不一致')
+        }
+      } catch (error) {
+        newDiagnosticInfo.localStorageSupported = false
+        newDiagnosticInfo.lastError = `localStorage 错误: ${error}`
+        results.push(`❌ localStorage 不可用: ${error}`)
+      }
+
+      // 3. 检测 sessionStorage 支持
+      try {
+        const testKey = '__test_sessionStorage_' + Date.now()
+        sessionStorage.setItem(testKey, 'test')
+        const testValue = sessionStorage.getItem(testKey)
+        sessionStorage.removeItem(testKey)
+        
+        if (testValue === 'test') {
+          newDiagnosticInfo.sessionStorageSupported = true
+          results.push('✅ sessionStorage 基础功能正常')
+        } else {
+          throw new Error('sessionStorage 读写不一致')
+        }
+      } catch (error) {
+        newDiagnosticInfo.sessionStorageSupported = false
+        results.push(`❌ sessionStorage 不可用: ${error}`)
+      }
+
+      // 4. 检测隐私模式
+      try {
+        // 尝试写入大量数据来检测隐私模式
+        const testData = 'x'.repeat(1024 * 1024) // 1MB 数据
+        localStorage.setItem('__privacy_test', testData)
+        localStorage.removeItem('__privacy_test')
+        newDiagnosticInfo.isPrivateMode = false
+        results.push('✅ 非隐私模式，存储配额正常')
+      } catch (error) {
+        if (error instanceof DOMException && error.code === 22) {
+          newDiagnosticInfo.isPrivateMode = true
+          newDiagnosticInfo.storageQuotaExceeded = true
+          results.push('⚠️ 可能处于隐私模式或存储配额已满')
+        } else {
+          results.push(`⚠️ 存储配额检测异常: ${error}`)
+        }
+      }
+
+      // 5. 检测当前 defaultUserStatus 状态
+      const currentValue = localStorage.getItem('defaultUserStatus')
+      results.push(`🔍 当前 defaultUserStatus: ${currentValue || 'null'}`)
+
+      // 6. 尝试多种方式设置测试值
+      const testMethods = [
+        { name: 'JSON.stringify(true)', value: JSON.stringify(true) },
+        { name: 'String(true)', value: String(true) },
+        { name: '"true"', value: 'true' },
+        { name: '1', value: '1' }
+      ]
+
+      for (const method of testMethods) {
+        try {
+          localStorage.setItem('__test_method', method.value)
+          const retrieved = localStorage.getItem('__test_method')
+          localStorage.removeItem('__test_method')
+          
+          if (retrieved === method.value) {
+            results.push(`✅ 测试方法 ${method.name}: 成功`)
+          } else {
+            results.push(`❌ 测试方法 ${method.name}: 失败 (期望: ${method.value}, 实际: ${retrieved})`)
+          }
+        } catch (error) {
+          results.push(`❌ 测试方法 ${method.name}: 异常 ${error}`)
+        }
+      }
+
+      newDiagnosticInfo.storageTestResults = results
+      setDiagnosticInfo(newDiagnosticInfo)
+      
+      console.log('🔍 [Diagnostics] 诊断完成:', results)
+    }
+
+    runDiagnostics()
+  }, []) // 只在组件挂载时执行一次
 
   // 强制初始化 localStorage 的 defaultUserStatus - 更强制的版本
   useEffect(() => {
@@ -368,6 +486,214 @@ export default function UserManagement() {
     } catch (error) {
       console.error('🔄 [UserManagement] ❌ 切换默认状态失败:', error)
       toast.error('设置失败，请重试')
+    }
+  }
+
+  // 新增：超级强力的状态设置函数，支持多种存储方式和备选方案
+  const forceSetDefaultStatus = async (newStatus: boolean, method: string = 'auto') => {
+    console.log('💪 [ForceSet] 开始超级强力设置:', newStatus, '方法:', method)
+    
+    const results: string[] = []
+    let success = false
+    
+    // 更新诊断信息
+    setDiagnosticInfo(prev => ({
+      ...prev,
+      storageTestResults: [...prev.storageTestResults, `🚀 开始强制设置: ${newStatus} (方法: ${method})`]
+    }))
+
+    // 方法1: 标准 localStorage JSON 方式
+    if (!success && (method === 'auto' || method === 'localStorage-json')) {
+      try {
+        const value = JSON.stringify(newStatus)
+        localStorage.setItem('defaultUserStatus', value)
+        
+        // 多次验证
+        let verified = false
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          const retrieved = localStorage.getItem('defaultUserStatus')
+          if (retrieved === value) {
+            verified = true
+            break
+          }
+        }
+        
+        if (verified) {
+          success = true
+          results.push('✅ localStorage JSON 方式成功')
+        } else {
+          results.push('❌ localStorage JSON 方式验证失败')
+        }
+      } catch (error) {
+        results.push(`❌ localStorage JSON 方式异常: ${error}`)
+      }
+    }
+
+    // 方法2: localStorage 字符串方式
+    if (!success && (method === 'auto' || method === 'localStorage-string')) {
+      try {
+        const value = String(newStatus)
+        localStorage.setItem('defaultUserStatus', value)
+        
+        let verified = false
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          const retrieved = localStorage.getItem('defaultUserStatus')
+          if (retrieved === value) {
+            verified = true
+            break
+          }
+        }
+        
+        if (verified) {
+          success = true
+          results.push('✅ localStorage 字符串方式成功')
+        } else {
+          results.push('❌ localStorage 字符串方式验证失败')
+        }
+      } catch (error) {
+        results.push(`❌ localStorage 字符串方式异常: ${error}`)
+      }
+    }
+
+    // 方法3: sessionStorage 备选方案
+    if (!success && (method === 'auto' || method === 'sessionStorage')) {
+      try {
+        const value = JSON.stringify(newStatus)
+        sessionStorage.setItem('defaultUserStatus', value)
+        
+        let verified = false
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          const retrieved = sessionStorage.getItem('defaultUserStatus')
+          if (retrieved === value) {
+            verified = true
+            break
+          }
+        }
+        
+        if (verified) {
+          success = true
+          results.push('✅ sessionStorage 方式成功 (临时存储)')
+          toast.warning('使用临时存储，刷新页面后需重新设置')
+        } else {
+          results.push('❌ sessionStorage 方式验证失败')
+        }
+      } catch (error) {
+        results.push(`❌ sessionStorage 方式异常: ${error}`)
+      }
+    }
+
+    // 方法4: 内存存储备选方案
+    if (!success && (method === 'auto' || method === 'memory')) {
+      try {
+        setFallbackStorage(prev => ({
+          ...prev,
+          defaultUserStatus: newStatus
+        }))
+        success = true
+        results.push('✅ 内存存储方式成功 (仅当前会话有效)')
+        toast.warning('使用内存存储，刷新页面后将丢失设置')
+      } catch (error) {
+        results.push(`❌ 内存存储方式异常: ${error}`)
+      }
+    }
+
+    // 方法5: 强制清理后重试
+    if (!success && (method === 'auto' || method === 'force-clear')) {
+      try {
+        // 清理可能冲突的数据
+        const keysToRemove = Object.keys(localStorage).filter(key => 
+          key.includes('defaultUserStatus') || key.includes('user') || key.includes('status')
+        )
+        
+        keysToRemove.forEach(key => {
+          try {
+            localStorage.removeItem(key)
+          } catch (e) {
+            console.warn('清理键失败:', key, e)
+          }
+        })
+        
+        // 等待一下
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        // 重新设置
+        const value = JSON.stringify(newStatus)
+        localStorage.setItem('defaultUserStatus', value)
+        
+        let verified = false
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          const retrieved = localStorage.getItem('defaultUserStatus')
+          if (retrieved === value) {
+            verified = true
+            break
+          }
+        }
+        
+        if (verified) {
+          success = true
+          results.push('✅ 强制清理后重试成功')
+        } else {
+          results.push('❌ 强制清理后重试失败')
+        }
+      } catch (error) {
+        results.push(`❌ 强制清理方式异常: ${error}`)
+      }
+    }
+
+    // 更新状态
+    if (success) {
+      setDefaultUserStatus(newStatus)
+      setFormData(prev => ({ ...prev, is_active: newStatus }))
+      toast.success(`强制设置成功！默认状态: ${newStatus ? '启用' : '禁用'}`)
+    } else {
+      toast.error('所有设置方法都失败了，请检查浏览器设置')
+    }
+
+    // 更新诊断结果
+    setDiagnosticInfo(prev => ({
+      ...prev,
+      storageTestResults: [...prev.storageTestResults, ...results],
+      lastError: success ? '' : '所有存储方法都失败'
+    }))
+
+    console.log('💪 [ForceSet] 设置完成:', success, results)
+    return success
+  }
+
+  // 新增：重置浏览器存储功能
+  const resetBrowserStorage = async () => {
+    console.log('🔄 [Reset] 开始重置浏览器存储')
+    
+    try {
+      // 清空 localStorage
+      localStorage.clear()
+      
+      // 清空 sessionStorage
+      sessionStorage.clear()
+      
+      // 清空内存存储
+      setFallbackStorage({})
+      
+      // 重新初始化
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 强制设置默认值
+      await forceSetDefaultStatus(true, 'localStorage-json')
+      
+      toast.success('浏览器存储已重置并重新初始化')
+      
+      // 刷新页面
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+      
+    } catch (error) {
+      console.error('🔄 [Reset] 重置失败:', error)
+      toast.error('重置失败: ' + error)
     }
   }
 
@@ -1542,7 +1868,7 @@ export default function UserManagement() {
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>
 
-        {/* localStorage 调试面板 */}
+        {/* 超级强化版 localStorage 调试面板 */}
         <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-400/50 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
@@ -1550,91 +1876,247 @@ export default function UserManagement() {
                 <span className="text-black text-xs font-bold">🔧</span>
               </div>
               <div>
-                <h3 className="text-yellow-400 font-mono font-bold">localStorage 调试面板</h3>
+                <h3 className="text-yellow-400 font-mono font-bold">超级强化版 localStorage 调试面板</h3>
                 <p className="text-yellow-300/70 text-sm font-mono">
-                  当前 localStorage 状态 - 键数量: {Object.keys(localStorage).length}
+                  实时监控 - 键数量: {Object.keys(localStorage).length} | 
+                  浏览器: {diagnosticInfo.browserInfo} | 
+                  隐私模式: {diagnosticInfo.isPrivateMode ? '是' : '否'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+          </div>
+
+          {/* 浏览器兼容性和权限检查 */}
+          <div className="mb-4 p-3 bg-blue-900/20 border border-blue-400/30 rounded">
+            <h4 className="text-blue-400 font-mono font-bold mb-2">🔍 系统诊断</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+              <div>
+                <div className="text-blue-300">localStorage 支持: 
+                  <span className={diagnosticInfo.localStorageSupported ? 'text-green-400' : 'text-red-400'}>
+                    {diagnosticInfo.localStorageSupported ? '✅' : '❌'}
+                  </span>
+                </div>
+                <div className="text-blue-300">sessionStorage 支持: 
+                  <span className={diagnosticInfo.sessionStorageSupported ? 'text-green-400' : 'text-red-400'}>
+                    {diagnosticInfo.sessionStorageSupported ? '✅' : '❌'}
+                  </span>
+                </div>
+                <div className="text-blue-300">当前状态: 
+                  <span className={diagnosticInfo.currentDefaultUserStatus !== null ? 'text-green-400' : 'text-red-400'}>
+                    {diagnosticInfo.currentDefaultUserStatus !== null ? String(diagnosticInfo.currentDefaultUserStatus) : 'null'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <div className="text-blue-300">存储权限: 
+                  <span className={diagnosticInfo.storagePermission ? 'text-green-400' : 'text-red-400'}>
+                    {diagnosticInfo.storagePermission ? '✅' : '❌'}
+                  </span>
+                </div>
+                <div className="text-blue-300">配额限制: 
+                  <span className="text-yellow-300">{diagnosticInfo.quotaInfo}</span>
+                </div>
+                <div className="text-blue-300">最后错误: 
+                  <span className="text-red-300">{diagnosticInfo.lastError || '无'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 超级强力设置按钮组 */}
+          <div className="mb-4 p-3 bg-green-900/20 border border-green-400/30 rounded">
+            <h4 className="text-green-400 font-mono font-bold mb-2">💪 超级强力设置</h4>
+            <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => {
-                  console.log('🔧 [Debug] 强制设置 defaultUserStatus = true')
-                  localStorage.setItem('defaultUserStatus', JSON.stringify(true))
-                  setDefaultUserStatus(true)
-                  setFormData(prev => ({ ...prev, is_active: true }))
-                  toast.success('已强制设置默认状态为启用')
-                  // 强制重新渲染
-                  window.location.reload()
-                }}
+                onClick={() => forceSetDefaultStatus(true, 'auto')}
                 className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded font-mono text-sm transition-colors"
               >
-                强制启用
+                🚀 超级启用
               </button>
               <button
-                onClick={() => {
-                  console.log('🔧 [Debug] 强制设置 defaultUserStatus = false')
-                  localStorage.setItem('defaultUserStatus', JSON.stringify(false))
-                  setDefaultUserStatus(false)
-                  setFormData(prev => ({ ...prev, is_active: false }))
-                  toast.success('已强制设置默认状态为禁用')
-                  // 强制重新渲染
-                  window.location.reload()
-                }}
+                onClick={() => forceSetDefaultStatus(false, 'auto')}
                 className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors"
               >
-                强制禁用
+                🚀 超级禁用
               </button>
               <button
-                onClick={() => {
-                  console.log('🔧 [Debug] 清空 localStorage')
-                  localStorage.clear()
-                  toast.success('已清空 localStorage')
-                  // 强制重新渲染
-                  window.location.reload()
-                }}
-                className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded font-mono text-sm transition-colors"
+                onClick={() => forceSetDefaultStatus(true, 'localStorage-json')}
+                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-mono text-xs transition-colors"
               >
-                清空存储
+                JSON方式
+              </button>
+              <button
+                onClick={() => forceSetDefaultStatus(true, 'localStorage-string')}
+                className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded font-mono text-xs transition-colors"
+              >
+                字符串方式
+              </button>
+              <button
+                onClick={() => forceSetDefaultStatus(true, 'sessionStorage')}
+                className="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded font-mono text-xs transition-colors"
+              >
+                临时存储
+              </button>
+              <button
+                onClick={() => forceSetDefaultStatus(true, 'memory')}
+                className="px-2 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded font-mono text-xs transition-colors"
+              >
+                内存存储
+              </button>
+              <button
+                onClick={() => forceSetDefaultStatus(true, 'force-clear')}
+                className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded font-mono text-xs transition-colors"
+              >
+                强制清理
               </button>
             </div>
           </div>
-          
-          {/* localStorage 内容显示 */}
-          <div className="bg-black/50 border border-yellow-400/30 rounded p-3 font-mono text-sm">
-            <div className="text-yellow-400 mb-2">localStorage 内容:</div>
-            {Object.keys(localStorage).length === 0 ? (
-              <div className="text-yellow-300/50">localStorage 为空</div>
-            ) : (
-              <div className="space-y-1">
-                {Object.keys(localStorage).map(key => {
-                  const value = localStorage.getItem(key)
-                  return (
-                    <div key={key} className="flex">
-                      <span className="text-yellow-400 min-w-[150px]">{key}:</span>
-                      <span className="text-yellow-300 break-all">{value}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            
-            {/* 特别显示 defaultUserStatus */}
-            <div className="mt-3 pt-3 border-t border-yellow-400/30">
-              <div className="text-yellow-400 mb-1">关键状态检查:</div>
-              <div className="flex">
-                <span className="text-yellow-400 min-w-[150px]">defaultUserStatus:</span>
-                <span className={`font-bold ${localStorage.getItem('defaultUserStatus') ? 'text-green-400' : 'text-red-400'}`}>
-                  {localStorage.getItem('defaultUserStatus') || 'null'}
-                </span>
-              </div>
-              <div className="flex">
-                <span className="text-yellow-400 min-w-[150px]">React状态值:</span>
-                <span className={`font-bold ${defaultUserStatus ? 'text-green-400' : 'text-red-400'}`}>
-                  {String(defaultUserStatus)}
-                </span>
+
+          {/* 紧急备选方案 */}
+          <div className="mb-4 p-3 bg-red-900/20 border border-red-400/30 rounded">
+            <h4 className="text-red-400 font-mono font-bold mb-2">🆘 紧急备选方案</h4>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={resetBrowserStorage}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors"
+              >
+                🔄 重置浏览器存储
+              </button>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={manualStatusInput}
+                  onChange={(e) => setManualStatusInput(e.target.value)}
+                  placeholder="手动输入 true/false"
+                  className="px-2 py-1 bg-gray-800 border border-gray-600 rounded text-white font-mono text-sm w-40"
+                />
+                <button
+                  onClick={() => {
+                    const value = manualStatusInput.toLowerCase() === 'true'
+                    forceSetDefaultStatus(value, 'auto')
+                  }}
+                  className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded font-mono text-sm transition-colors"
+                >
+                  手动设置
+                </button>
               </div>
             </div>
+          </div>
+
+          {/* 实时存储内容显示 */}
+          <div className="bg-black/50 border border-yellow-400/30 rounded p-3 font-mono text-sm">
+            <div className="text-yellow-400 mb-2">🔍 实时存储内容:</div>
+            
+            {/* localStorage */}
+            <div className="mb-3">
+              <div className="text-green-400 mb-1">localStorage ({Object.keys(localStorage).length} 项):</div>
+              {Object.keys(localStorage).length === 0 ? (
+                <div className="text-yellow-300/50 ml-4">localStorage 为空</div>
+              ) : (
+                <div className="space-y-1 ml-4">
+                  {Object.keys(localStorage).map(key => {
+                    const value = localStorage.getItem(key)
+                    return (
+                      <div key={key} className="flex">
+                        <span className="text-yellow-400 min-w-[150px]">{key}:</span>
+                        <span className="text-yellow-300 break-all">{value}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* sessionStorage */}
+            <div className="mb-3">
+              <div className="text-orange-400 mb-1">sessionStorage ({Object.keys(sessionStorage).length} 项):</div>
+              {Object.keys(sessionStorage).length === 0 ? (
+                <div className="text-yellow-300/50 ml-4">sessionStorage 为空</div>
+              ) : (
+                <div className="space-y-1 ml-4">
+                  {Object.keys(sessionStorage).map(key => {
+                    const value = sessionStorage.getItem(key)
+                    return (
+                      <div key={key} className="flex">
+                        <span className="text-orange-400 min-w-[150px]">{key}:</span>
+                        <span className="text-orange-300 break-all">{value}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 内存存储 */}
+            <div className="mb-3">
+              <div className="text-pink-400 mb-1">内存存储 ({Object.keys(fallbackStorage).length} 项):</div>
+              {Object.keys(fallbackStorage).length === 0 ? (
+                <div className="text-yellow-300/50 ml-4">内存存储为空</div>
+              ) : (
+                <div className="space-y-1 ml-4">
+                  {Object.keys(fallbackStorage).map(key => {
+                    const value = fallbackStorage[key]
+                    return (
+                      <div key={key} className="flex">
+                        <span className="text-pink-400 min-w-[150px]">{key}:</span>
+                        <span className="text-pink-300 break-all">{String(value)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* 关键状态检查 */}
+            <div className="mt-3 pt-3 border-t border-yellow-400/30">
+              <div className="text-yellow-400 mb-1">🎯 关键状态检查:</div>
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="text-yellow-400 min-w-[200px]">localStorage.defaultUserStatus:</span>
+                  <span className={`font-bold ${localStorage.getItem('defaultUserStatus') ? 'text-green-400' : 'text-red-400'}`}>
+                    {localStorage.getItem('defaultUserStatus') || 'null'}
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="text-yellow-400 min-w-[200px]">sessionStorage.defaultUserStatus:</span>
+                  <span className={`font-bold ${sessionStorage.getItem('defaultUserStatus') ? 'text-orange-400' : 'text-red-400'}`}>
+                    {sessionStorage.getItem('defaultUserStatus') || 'null'}
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="text-yellow-400 min-w-[200px]">内存存储.defaultUserStatus:</span>
+                  <span className={`font-bold ${fallbackStorage.defaultUserStatus !== undefined ? 'text-pink-400' : 'text-red-400'}`}>
+                    {fallbackStorage.defaultUserStatus !== undefined ? String(fallbackStorage.defaultUserStatus) : 'undefined'}
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="text-yellow-400 min-w-[200px]">React状态值:</span>
+                  <span className={`font-bold ${defaultUserStatus ? 'text-green-400' : 'text-red-400'}`}>
+                    {String(defaultUserStatus)}
+                  </span>
+                </div>
+                <div className="flex">
+                  <span className="text-yellow-400 min-w-[200px]">表单状态值:</span>
+                  <span className={`font-bold ${formData.is_active ? 'text-green-400' : 'text-red-400'}`}>
+                    {String(formData.is_active)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 诊断测试结果 */}
+            {diagnosticInfo.storageTestResults.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-yellow-400/30">
+                <div className="text-yellow-400 mb-1">📋 诊断测试结果:</div>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {diagnosticInfo.storageTestResults.slice(-10).map((result, index) => (
+                    <div key={index} className="text-yellow-300 text-xs">
+                      {result}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
