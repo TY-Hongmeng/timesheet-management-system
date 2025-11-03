@@ -3,6 +3,7 @@ import { Search, Calendar, Filter, Eye, Download, RefreshCw, Clock, User, Buildi
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { toast } from 'sonner'
+import PageHeader from '../components/PageHeader'
 
 interface ProductionLine {
   id: number
@@ -354,20 +355,15 @@ export default function TimesheetHistory() {
 
   return (
     <div className="min-h-screen bg-black text-green-300">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-green-400 px-6 py-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
-            <Clock className="w-5 h-5 sm:w-8 sm:h-8" />
-            工时记录历史
-          </h1>
-          <p className="text-green-600 text-sm font-mono mt-1">
-            TIMESHEET HISTORY MANAGEMENT
-          </p>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <PageHeader
+          title="历史记录"
+          icon={Clock}
+          subtitle="TIMESHEET HISTORY MANAGEMENT"
+          onRefresh={searchRecords}
+          refreshing={searching}
+        />
         {/* 查询条件 */}
         <div className="bg-gray-900 border border-green-400 rounded-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-green-400 font-mono mb-4 flex items-center gap-2">
@@ -776,6 +772,7 @@ export default function TimesheetHistory() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

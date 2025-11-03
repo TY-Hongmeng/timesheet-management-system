@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Calendar, Clock, User, Building, Package, Settings, ArrowLeft, RefreshCw } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Plus, Trash2, Calendar, Clock, User, Building, Package, Settings } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext'
 import { supabase } from '../lib/supabase'
 import { isSuperAdmin } from '../utils/permissions'
 import TimesheetConfirmDialog from '../components/TimesheetConfirmDialog'
+import PageHeader from '../components/PageHeader'
 
 interface ProductionLine {
   id: number
@@ -1716,34 +1717,12 @@ export default function TimesheetRecord() {
     <div className="min-h-screen bg-black text-green-400 font-mono">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-4 sm:mb-8">
-          <div className="flex justify-between items-center mb-2 sm:mb-4">
-            <div className="flex items-center">
-              <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mr-2 sm:mr-3" />
-              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">工时记录</h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-600 disabled:to-gray-800 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base disabled:cursor-not-allowed"
-              >
-                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{refreshing ? '刷新中...' : '刷新'}</span>
-                <span className="sm:hidden">{refreshing ? '...' : '刷新'}</span>
-              </button>
-              <Link
-                to="/dashboard"
-                className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">返回控制台</span>
-                <span className="sm:hidden">返回</span>
-              </Link>
-            </div>
-          </div>
-          <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
-        </div>
+        <PageHeader
+          title="工时记录"
+          icon={Clock}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+        />
         <div className="space-y-3 sm:space-y-6">
           {/* 基本信息和添加工时记录 - 水平布局 */}
           <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">

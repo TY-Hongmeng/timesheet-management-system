@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, ArrowLeft, Edit2, Trash2, Save, X, Shield, Crown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 // 日期格式化函数
 const formatDate = (dateString: string): string => {
@@ -1236,34 +1237,12 @@ const SectionChiefApproval: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono">
       <div className="max-w-6xl mx-auto px-3 py-4">
-        {/* Header - 紧凑设计 */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center">
-              <Crown className="w-6 h-6 text-green-400 mr-2" />
-              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">段长审核</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-700 disabled:to-gray-800 text-green-300 hover:text-green-200 disabled:text-gray-400 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50 disabled:border-gray-600"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{refreshing ? '刷新中...' : '刷新'}</span>
-              </button>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-green-300 hover:text-green-200 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">返回控制台</span>
-                <span className="sm:hidden">返回</span>
-              </Link>
-            </div>
-          </div>
-          <div className="h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
-        </div>
+        <PageHeader
+          title="段长审核"
+          icon={Crown}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+        />
 
         {/* 统计信息栏 - 紧凑设计 */}
         <div className="bg-gray-900 border border-green-400 rounded-lg p-3 mb-4">
