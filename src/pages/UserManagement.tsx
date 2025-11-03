@@ -1542,6 +1542,102 @@ export default function UserManagement() {
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>
 
+        {/* localStorage 调试面板 */}
+        <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-400/50 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+                <span className="text-black text-xs font-bold">🔧</span>
+              </div>
+              <div>
+                <h3 className="text-yellow-400 font-mono font-bold">localStorage 调试面板</h3>
+                <p className="text-yellow-300/70 text-sm font-mono">
+                  当前 localStorage 状态 - 键数量: {Object.keys(localStorage).length}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  console.log('🔧 [Debug] 强制设置 defaultUserStatus = true')
+                  localStorage.setItem('defaultUserStatus', JSON.stringify(true))
+                  setDefaultUserStatus(true)
+                  setFormData(prev => ({ ...prev, is_active: true }))
+                  toast.success('已强制设置默认状态为启用')
+                  // 强制重新渲染
+                  window.location.reload()
+                }}
+                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded font-mono text-sm transition-colors"
+              >
+                强制启用
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔧 [Debug] 强制设置 defaultUserStatus = false')
+                  localStorage.setItem('defaultUserStatus', JSON.stringify(false))
+                  setDefaultUserStatus(false)
+                  setFormData(prev => ({ ...prev, is_active: false }))
+                  toast.success('已强制设置默认状态为禁用')
+                  // 强制重新渲染
+                  window.location.reload()
+                }}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-mono text-sm transition-colors"
+              >
+                强制禁用
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔧 [Debug] 清空 localStorage')
+                  localStorage.clear()
+                  toast.success('已清空 localStorage')
+                  // 强制重新渲染
+                  window.location.reload()
+                }}
+                className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded font-mono text-sm transition-colors"
+              >
+                清空存储
+              </button>
+            </div>
+          </div>
+          
+          {/* localStorage 内容显示 */}
+          <div className="bg-black/50 border border-yellow-400/30 rounded p-3 font-mono text-sm">
+            <div className="text-yellow-400 mb-2">localStorage 内容:</div>
+            {Object.keys(localStorage).length === 0 ? (
+              <div className="text-yellow-300/50">localStorage 为空</div>
+            ) : (
+              <div className="space-y-1">
+                {Object.keys(localStorage).map(key => {
+                  const value = localStorage.getItem(key)
+                  return (
+                    <div key={key} className="flex">
+                      <span className="text-yellow-400 min-w-[150px]">{key}:</span>
+                      <span className="text-yellow-300 break-all">{value}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            
+            {/* 特别显示 defaultUserStatus */}
+            <div className="mt-3 pt-3 border-t border-yellow-400/30">
+              <div className="text-yellow-400 mb-1">关键状态检查:</div>
+              <div className="flex">
+                <span className="text-yellow-400 min-w-[150px]">defaultUserStatus:</span>
+                <span className={`font-bold ${localStorage.getItem('defaultUserStatus') ? 'text-green-400' : 'text-red-400'}`}>
+                  {localStorage.getItem('defaultUserStatus') || 'null'}
+                </span>
+              </div>
+              <div className="flex">
+                <span className="text-yellow-400 min-w-[150px]">React状态值:</span>
+                <span className={`font-bold ${defaultUserStatus ? 'text-green-400' : 'text-red-400'}`}>
+                  {String(defaultUserStatus)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 注册默认状态控制开关 */}
         <div className="mb-6 p-4 bg-gray-900/50 border border-green-400/30 rounded-lg">
           <div className="flex items-center justify-between">
