@@ -145,19 +145,6 @@ export default function Register() {
       return
     }
 
-    // 🔍 注册前调试日志 - 检查localStorage状态
-    console.log('🔍 [Register Debug] 注册前localStorage状态检查:')
-    console.log('🔍 [Register Debug] defaultUserStatus原始值:', localStorage.getItem('defaultUserStatus'))
-    console.log('🔍 [Register Debug] defaultUserStatus解析值:', JSON.parse(localStorage.getItem('defaultUserStatus') || 'false'))
-    console.log('🔍 [Register Debug] 所有localStorage键:', Object.keys(localStorage))
-    console.log('🔍 [Register Debug] 即将注册用户:', {
-      phone: formData.phone,
-      name: formData.name,
-      company_id: formData.company_id,
-      role_id: formData.role_id,
-      production_line: showProductionLine ? formData.production_line : null
-    })
-
     const result = await register({
       phone: formData.phone,
       password: formData.password,

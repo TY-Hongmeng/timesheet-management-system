@@ -319,48 +319,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 生成用户ID（移除邮箱相关认证）
       const userId = crypto.randomUUID()
       
-      console.log('创建用户账号，用户ID:', userId)
-
       // 从localStorage读取默认用户状态设置
       const saved = localStorage.getItem('defaultUserStatus')
-      console.log('📝 [AuthContext Register] 注册时localStorage检查:')
-      console.log('📝 [AuthContext Register] - 原始值:', saved)
-      console.log('📝 [AuthContext Register] - 值类型:', typeof saved)
-      console.log('📝 [AuthContext Register] - 是否为null:', saved === null)
-      console.log('📝 [AuthContext Register] - localStorage总键数:', Object.keys(localStorage).length)
-      console.log('📝 [AuthContext Register] - localStorage所有键:', Object.keys(localStorage))
-      
       let defaultUserStatus = false
       
       if (saved === null || saved === undefined) {
-        console.log('📝 [AuthContext Register] ⚠️ localStorage中没有defaultUserStatus，使用默认值false')
         defaultUserStatus = false
       } else {
         try {
           defaultUserStatus = JSON.parse(saved)
-          console.log('📝 [AuthContext Register] ✅ 成功解析localStorage值:', defaultUserStatus)
         } catch (error) {
-          console.error('📝 [AuthContext Register] ❌ 解析localStorage值失败:', error)
           defaultUserStatus = false
         }
       }
-      
-      console.log('📝 [AuthContext Register] 最终确定的默认用户状态:', defaultUserStatus)
-      console.log('📝 [AuthContext Register] 将设置新用户is_active为:', defaultUserStatus)
-      console.log('📝 [AuthContext Register] localStorage所有相关键值:', {
-        defaultUserStatus: localStorage.getItem('defaultUserStatus'),
-        allKeys: Object.keys(localStorage).filter(key => key.includes('default') || key.includes('status')),
-        allKeysCount: Object.keys(localStorage).length
-      })
-      console.log('📝 [AuthContext Register] 即将插入数据库的用户数据:', {
-        id: userId,
-        phone: formData.phone,
-        name: formData.name,
-        company_id: formData.company_id,
-        role_id: formData.role_id,
-        production_line: formData.production_line,
-        is_active: defaultUserStatus
-      })
 
       // 创建用户信息记录
       const { error: userError } = await supabase

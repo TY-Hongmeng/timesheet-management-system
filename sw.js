@@ -1,11 +1,10 @@
 // Enhanced Service Worker for ERR_CONNECTION_RESET handling
-// 增强的 Service Worker，专门处理连接重置错误
-
-const CACHE_NAME = 'timesheet-v1.2.0'
-const STATIC_CACHE = 'timesheet-static-v1.2.0'
-const DYNAMIC_CACHE = 'timesheet-dynamic-v1.2.0'
-const OFFLINE_CACHE = 'timesheet-offline-v1.2.0'
-const FIVEG_CACHE = 'timesheet-5g-v1.2.0'
+// Service Worker 增强版 - 智能缓存策略 (强制更新版本)
+const CACHE_NAME = 'timesheet-v1.4.1'
+const STATIC_CACHE = 'timesheet-static-v1.4.1'
+const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.1'
+const OFFLINE_CACHE = 'timesheet-offline-v1.4.1'
+const FIVEG_CACHE = 'timesheet-5g-v1.4.1'
 
 // 关键资源 - 必须缓存
 const CRITICAL_RESOURCES = [
@@ -89,31 +88,46 @@ self.addEventListener('install', event => {
   );
 });
 
-// 激活事件 - 清理旧缓存
+// 激活事件 - 强制清理所有旧缓存
 self.addEventListener('activate', event => {
-  console.log('SW: Activating enhanced version...');
-  
-  const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, OFFLINE_CACHE];
+  console.log('SW: 强制激活新版本 v1.4.1...');
   
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
+    Promise.all([
+      // 1. 删除所有旧缓存（包括当前版本的缓存）
+      caches.keys().then(cacheNames => {
+        console.log('SW: 发现缓存:', cacheNames);
         return Promise.all(
           cacheNames.map(cacheName => {
-            if (!currentCaches.includes(cacheName)) {
-              console.log('SW: Deleting old cache:', cacheName);
+            // 删除所有旧版本缓存
+            if (!cacheName.includes('v1.4.1')) {
+              console.log('SW: 删除旧缓存:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
+      }),
+      
+      // 2. 立即接管所有客户端
+      self.clients.claim(),
+      
+      // 3. 通知所有客户端刷新
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: 'v1.4.1',
+            message: 'Service Worker 已更新，请刷新页面'
+          });
+        });
       })
-      .then(() => {
-        console.log('SW: Enhanced activation complete');
-        return self.clients.claim();
-      })
-      .catch(error => {
-        console.error('SW: Activation failed:', error);
-      })
+    ])
+    .then(() => {
+      console.log('SW: v1.4.1 激活完成，所有旧缓存已清除');
+    })
+    .catch(error => {
+      console.error('SW: 激活失败:', error);
+    })
   );
 });
 
@@ -682,4 +696,75 @@ async function fiveGNetworkStrategy(request) {
   }
 }
 
-console.log('[SW] Service Worker loaded successfully');
+// 监听消息事件 - 增强版
+self.addEventListener('message', event => {
+  console.log('[SW] 收到消息:', event.data);
+  
+  if (event.data && event.data.type) {
+    switch (event.data.type) {
+      case 'SKIP_WAITING':
+        console.log('[SW] 收到 SKIP_WAITING 消息，立即激活...');
+        self.skipWaiting();
+        break;
+        
+      case 'CLEAR_ALL_CACHES':
+        console.log('[SW] 收到清除缓存消息，开始清除...');
+        clearAllCaches().then(() => {
+          event.ports[0]?.postMessage({ success: true, message: '所有缓存已清除' });
+        }).catch(error => {
+          event.ports[0]?.postMessage({ success: false, error: error.message });
+        });
+        break;
+        
+      case 'GET_CACHE_STATUS':
+        getCacheStatus().then(status => {
+          event.ports[0]?.postMessage({ success: true, data: status });
+        });
+        break;
+        
+      default:
+        console.log('[SW] 未知消息类型:', event.data.type);
+    }
+  }
+});
+
+// 清除所有缓存的函数
+async function clearAllCaches() {
+  try {
+    const cacheNames = await caches.keys();
+    console.log('[SW] 准备清除缓存:', cacheNames);
+    
+    await Promise.all(
+      cacheNames.map(cacheName => {
+        console.log('[SW] 删除缓存:', cacheName);
+        return caches.delete(cacheName);
+      })
+    );
+    
+    console.log('[SW] 所有缓存已清除');
+    return true;
+  } catch (error) {
+    console.error('[SW] 清除缓存失败:', error);
+    throw error;
+  }
+}
+
+// 获取缓存状态
+async function getCacheStatus() {
+  try {
+    const cacheNames = await caches.keys();
+    const status = {
+      version: 'v1.4.1',
+      caches: cacheNames,
+      totalCaches: cacheNames.length,
+      timestamp: new Date().toISOString()
+    };
+    
+    return status;
+  } catch (error) {
+    console.error('[SW] 获取缓存状态失败:', error);
+    return { error: error.message };
+  }
+}
+
+console.log('[SW] Service Worker loaded successfully - v1.4.1 (彻底重置版)');
