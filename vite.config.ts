@@ -6,47 +6,29 @@ import { resolve } from 'path';
 import type { ViteDevServer, PreviewServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// SPA fallback 插件 - 复制 index.html 为 404.html（GitHub Pages SPA 路由支持）
-const copySpaFallbackPlugin = () => {
+// GitHub Pages SPA 404 插件 - 确保使用正确的 404.html
+const githubPagesSpaPlugin = () => {
   return {
-    name: 'copy-spa-fallback',
+    name: 'github-pages-spa',
     writeBundle() {
-      const indexPath = resolve(__dirname, 'dist', 'index.html');
-      const fallbackPath = resolve(__dirname, 'dist', '404.html');
+      const publicPath = resolve(__dirname, 'public', '404.html');
+      const distPath = resolve(__dirname, 'dist', '404.html');
       
-      if (existsSync(indexPath)) {
+      if (existsSync(publicPath)) {
         try {
-          copyFileSync(indexPath, fallbackPath);
-          console.log('✅ SPA fallback: index.html 已复制为 404.html');
+          copyFileSync(publicPath, distPath);
+          console.log('✅ GitHub Pages SPA: public/404.html 已复制到 dist/404.html');
         } catch (error) {
-          console.error('❌ 复制 SPA fallback 失败:', error);
+          console.error('❌ 复制 GitHub Pages SPA 404.html 失败:', error);
         }
       } else {
-        console.error('❌ 构建输出中未找到 index.html');
+        console.error('❌ 未找到 public/404.html');
       }
     }
   };
 };
 
-// 复制根目录 404.html 到构建输出的插件（备用）
-const copyRoot404Plugin = () => {
-  return {
-    name: 'copy-root-404',
-    writeBundle() {
-      const rootPath = resolve(__dirname, '404.html');
-      const distPath = resolve(__dirname, 'dist', '404-root.html');
-      
-      if (existsSync(rootPath)) {
-        try {
-          copyFileSync(rootPath, distPath);
-          console.log('✅ 根目录 404.html 已复制到 dist 目录（备用）');
-        } catch (error) {
-          console.error('❌ 复制根目录 404.html 失败:', error);
-        }
-      }
-    }
-  };
-};
+
 
 // 强制性 MIME 类型插件 - 确保正确的 Content-Type 头部
 const forceMimeTypePlugin = () => {
@@ -112,8 +94,7 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     forceMimeTypePlugin(),
-    copySpaFallbackPlugin(), // SPA 路由支持 - 主要解决方案
-    copyRoot404Plugin(), // 备用方案
+    githubPagesSpaPlugin(), // GitHub Pages SPA 路由支持 - 使用 public/404.html
   ],
   server: {
     host: 'localhost',
