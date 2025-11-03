@@ -109,7 +109,7 @@
           }
         };
         
-        // 移动端优化的路由重定向
+        // 单页应用路由重定向处理
         function handleRouting() {
           var l = window.location;
           var pathname = l.pathname;
@@ -120,59 +120,56 @@
           }
           
           try {
-            // 检查是否已经在正确的基础路径下
-            if (pathname.indexOf('/timesheet-management-system/') === 0) {
+            // 构建目标 URL - 始终重定向到 index.html，让 React Router 处理路由
+            var baseUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/timesheet-management-system/';
+            
+            // 保存当前路径信息到 sessionStorage，供 React 应用使用
+            if (pathname !== '/timesheet-management-system/' && pathname !== '/timesheet-management-system') {
               // 移除基础路径，获取实际的路由路径
-              var routePath = pathname.replace('/timesheet-management-system/', '');
-              
-              // 如果有路由路径，则重定向到带查询参数的形式
-              if (routePath && routePath !== '/') {
-                var newUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                  '/timesheet-management-system/?/' + routePath +
-                  (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-                  l.hash;
-                
-                if (isMobile) {
-                  // 移动端延迟重定向，确保用户看到加载状态
-                  setTimeout(function() {
-                    l.replace(newUrl);
-                  }, 500);
-                } else {
-                  l.replace(newUrl);
-                }
-              } else {
-                // 如果没有路由路径，直接重定向到主页
-                var homeUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                  '/timesheet-management-system/';
-                
-                if (isMobile) {
-                  setTimeout(function() {
-                    l.replace(homeUrl);
-                  }, 500);
-                } else {
-                  l.replace(homeUrl);
-                }
+              var routePath = pathname;
+              if (routePath.indexOf('/timesheet-management-system/') === 0) {
+                routePath = routePath.replace('/timesheet-management-system/', '');
               }
-            } else {
-              // 如果不在正确的基础路径下，重定向到主页
-              var homeUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                '/timesheet-management-system/';
               
-              if (isMobile) {
-                setTimeout(function() {
-                  l.replace(homeUrl);
-                }, 500);
-              } else {
-                l.replace(homeUrl);
+              // 如果有有效的路由路径，保存到 sessionStorage
+              if (routePath && routePath !== '/' && routePath !== '') {
+                try {
+                  sessionStorage.setItem('spa_redirect_path', '/' + routePath);
+                  if (l.search) {
+                    sessionStorage.setItem('spa_redirect_search', l.search);
+                  }
+                  if (l.hash) {
+                    sessionStorage.setItem('spa_redirect_hash', l.hash);
+                  }
+                } catch (e) {
+                  // sessionStorage 可能不可用，忽略错误
+                  console.warn('无法保存路由信息到 sessionStorage:', e);
+                }
               }
             }
+            
+            // 重定向到基础 URL，让 React Router 处理路由
+            if (isMobile) {
+              // 移动端延迟重定向，确保用户看到加载状态
+              setTimeout(function() {
+                l.replace(baseUrl);
+              }, 500);
+            } else {
+              l.replace(baseUrl);
+            }
+            
           } catch (error) {
             console.error('路由处理错误:', error);
+            var fallbackUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/timesheet-management-system/';
+            
             if (isMobile) {
-              showError('页面加载失败，请重试');
+              showError('页面加载失败，正在重试...');
+              setTimeout(function() {
+                l.replace(fallbackUrl);
+              }, 1000);
             } else {
               // 桌面端直接重定向
-              l.replace(l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/timesheet-management-system/');
+              l.replace(fallbackUrl);
             }
           }
         }

@@ -287,6 +287,41 @@ function AppInner() {
     preloadComponents()
   }, [])
 
+  // 处理 404 页面重定向
+  useEffect(() => {
+    try {
+      const redirectPath = sessionStorage.getItem('spa_redirect_path')
+      const redirectSearch = sessionStorage.getItem('spa_redirect_search')
+      const redirectHash = sessionStorage.getItem('spa_redirect_hash')
+      
+      if (redirectPath) {
+        // 清除 sessionStorage 中的重定向信息
+        sessionStorage.removeItem('spa_redirect_path')
+        sessionStorage.removeItem('spa_redirect_search')
+        sessionStorage.removeItem('spa_redirect_hash')
+        
+        // 构建完整的重定向 URL
+        let redirectUrl = redirectPath
+        if (redirectSearch) {
+          redirectUrl += redirectSearch
+        }
+        if (redirectHash) {
+          redirectUrl += redirectHash
+        }
+        
+        // 使用 React Router 进行导航
+        setTimeout(() => {
+          window.location.replace(window.location.origin + 
+            (import.meta.env.PROD ? '/timesheet-management-system' : '') + 
+            redirectUrl)
+        }, 100)
+      }
+    } catch (error) {
+      // sessionStorage 可能不可用，忽略错误
+      console.warn('处理 404 重定向时出错:', error)
+    }
+  }, [])
+
   const basename = import.meta.env.PROD ? '/timesheet-management-system' : ''
   
   return (
