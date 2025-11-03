@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 import { copyFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
+import type { ViteDevServer, PreviewServer } from 'vite';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 // 复制根目录 404.html 到构建输出的插件
 const copyRoot404Plugin = () => {
@@ -30,8 +32,8 @@ const copyRoot404Plugin = () => {
 const forceMimeTypePlugin = () => {
   return {
     name: 'force-mime-type',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
         const url = req.url || '';
         
         // 为不同文件类型设置正确的 MIME 类型
@@ -55,8 +57,8 @@ const forceMimeTypePlugin = () => {
         next();
       });
     },
-    configurePreviewServer(server) {
-      server.middlewares.use((req, res, next) => {
+    configurePreviewServer(server: PreviewServer) {
+      server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
         const url = req.url || '';
         
         // 为不同文件类型设置正确的 MIME 类型
@@ -137,6 +139,9 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) {
+            return `assets/[name]-[hash].[ext]`;
+          }
           const info = assetInfo.name.split('.');
           const ext = info[info.length - 1];
           if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {

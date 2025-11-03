@@ -93,6 +93,7 @@ export default function UserManagement() {
     sessionStorageSupported: true,
     isPrivateMode: false,
     storageQuotaExceeded: false,
+    storagePermission: true,
     lastError: '',
     browserInfo: '',
     storageTestResults: [] as string[],
@@ -133,12 +134,14 @@ export default function UserManagement() {
         
         if (testValue === 'test') {
           newDiagnosticInfo.localStorageSupported = true
+          newDiagnosticInfo.storagePermission = true
           results.push('✅ localStorage 基础功能正常')
         } else {
           throw new Error('localStorage 读写不一致')
         }
       } catch (error) {
         newDiagnosticInfo.localStorageSupported = false
+        newDiagnosticInfo.storagePermission = false
         newDiagnosticInfo.lastError = `localStorage 错误: ${error}`
         results.push(`❌ localStorage 不可用: ${error}`)
       }
