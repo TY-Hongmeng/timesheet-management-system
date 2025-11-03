@@ -6,23 +6,43 @@ import { resolve } from 'path';
 import type { ViteDevServer, PreviewServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// 复制根目录 404.html 到构建输出的插件
+// SPA fallback 插件 - 复制 index.html 为 404.html（GitHub Pages SPA 路由支持）
+const copySpaFallbackPlugin = () => {
+  return {
+    name: 'copy-spa-fallback',
+    writeBundle() {
+      const indexPath = resolve(__dirname, 'dist', 'index.html');
+      const fallbackPath = resolve(__dirname, 'dist', '404.html');
+      
+      if (existsSync(indexPath)) {
+        try {
+          copyFileSync(indexPath, fallbackPath);
+          console.log('✅ SPA fallback: index.html 已复制为 404.html');
+        } catch (error) {
+          console.error('❌ 复制 SPA fallback 失败:', error);
+        }
+      } else {
+        console.error('❌ 构建输出中未找到 index.html');
+      }
+    }
+  };
+};
+
+// 复制根目录 404.html 到构建输出的插件（备用）
 const copyRoot404Plugin = () => {
   return {
     name: 'copy-root-404',
     writeBundle() {
       const rootPath = resolve(__dirname, '404.html');
-      const distPath = resolve(__dirname, 'dist', '404.html');
+      const distPath = resolve(__dirname, 'dist', '404-root.html');
       
       if (existsSync(rootPath)) {
         try {
           copyFileSync(rootPath, distPath);
-          console.log('✅ 根目录 404.html 已复制到 dist 目录');
+          console.log('✅ 根目录 404.html 已复制到 dist 目录（备用）');
         } catch (error) {
           console.error('❌ 复制根目录 404.html 失败:', error);
         }
-      } else {
-        console.warn('⚠️ 根目录 404.html 文件不存在');
       }
     }
   };
@@ -92,7 +112,8 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     forceMimeTypePlugin(),
-    copyRoot404Plugin(),
+    copySpaFallbackPlugin(), // SPA 路由支持 - 主要解决方案
+    copyRoot404Plugin(), // 备用方案
   ],
   server: {
     host: 'localhost',
