@@ -94,7 +94,7 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     forceMimeTypePlugin(),
-    githubPagesSpaPlugin(), // GitHub Pages SPA 路由支持 - 使用 public/404.html
+    // HashRouter 不需要 SPA 插件，因为所有路由都通过 # 处理
   ],
   server: {
     host: 'localhost',
