@@ -125,16 +125,23 @@
             
             // 保存当前路径信息到 sessionStorage，供 React 应用使用
             if (pathname !== '/timesheet-management-system/' && pathname !== '/timesheet-management-system') {
-              // 移除基础路径，获取实际的路由路径
-              var routePath = pathname;
-              if (routePath.indexOf('/timesheet-management-system/') === 0) {
-                routePath = routePath.replace('/timesheet-management-system/', '');
+              var routePath;
+              
+              // 检查路径是否已包含基础路径
+              if (pathname.indexOf('/timesheet-management-system/') === 0) {
+                // 已有基础路径，移除它获取实际路由
+                routePath = pathname.replace('/timesheet-management-system/', '');
+              } else {
+                // 没有基础路径，直接使用当前路径作为路由（去掉开头的斜杠）
+                routePath = pathname.startsWith('/') ? pathname.substring(1) : pathname;
               }
               
               // 如果有有效的路由路径，保存到 sessionStorage
-              if (routePath && routePath !== '/' && routePath !== '') {
+              if (routePath && routePath !== '' && routePath !== '/') {
                 try {
-                  sessionStorage.setItem('spa_redirect_path', '/' + routePath);
+                  // 确保路径以斜杠开头
+                  var finalPath = routePath.startsWith('/') ? routePath : '/' + routePath;
+                  sessionStorage.setItem('spa_redirect_path', finalPath);
                   if (l.search) {
                     sessionStorage.setItem('spa_redirect_search', l.search);
                   }
