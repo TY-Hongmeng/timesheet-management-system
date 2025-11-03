@@ -160,18 +160,22 @@ async function handleNavigationRequest(request) {
         // 尝试网络请求
         const networkResponse = await fetchWithRetry(request, 2);
         
-        // 成功则缓存并返回
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, networkResponse.clone());
+        // 只缓存 GET 请求的成功响应
+        if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+        }
         return networkResponse;
         
     } catch (error) {
         console.log('[SW] Navigation request failed:', error.message);
         
-        // 网络失败，尝试从缓存获取
-        const cachedResponse = await caches.match(request);
-        if (cachedResponse) {
-            return cachedResponse;
+        // 只有 GET 请求才尝试从缓存获取
+        if (isCacheableRequest(request)) {
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+                return cachedResponse;
+            }
         }
         
         // 缓存也没有，返回错误页面
@@ -184,8 +188,8 @@ async function networkFirstStrategy(request) {
   try {
     const networkResponse = await fetchWithRetry(request, 2);
     
-    // 缓存成功的响应
-    if (networkResponse && networkResponse.ok) {
+    // 只缓存 GET 请求的成功响应
+    if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
       const cache = await caches.open(DYNAMIC_CACHE);
       await cache.put(request, networkResponse.clone());
       console.log('SW: Cached dynamic response for:', request.url);
@@ -194,11 +198,14 @@ async function networkFirstStrategy(request) {
     return networkResponse;
   } catch (error) {
     console.log('SW: Network failed, trying cache for:', request.url);
-    const cachedResponse = await caches.match(request);
     
-    if (cachedResponse) {
-      console.log('SW: Serving stale content for:', request.url);
-      return cachedResponse;
+    // 只有 GET 请求才尝试从缓存获取
+    if (isCacheableRequest(request)) {
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        console.log('SW: Serving stale content for:', request.url);
+        return cachedResponse;
+      }
     }
     
     return await getOfflineResponse(request);
@@ -224,31 +231,34 @@ async function networkWithFallbackStrategy(request) {
 // 缓存优先策略 - 增强版
 async function cacheFirstStrategy(request) {
   try {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      console.log('SW: Cache hit for:', request.url);
-      
-      // 检查缓存是否过期（对于关键资源）
-      const cacheDate = cachedResponse.headers.get('date');
-      if (cacheDate) {
-        const age = Date.now() - new Date(cacheDate).getTime();
-        const maxAge = 24 * 60 * 60 * 1000; // 24小时
+    // 只有 GET 请求才检查缓存
+    if (isCacheableRequest(request)) {
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        console.log('SW: Cache hit for:', request.url);
         
-        if (age > maxAge) {
-          console.log('SW: Cache expired, updating in background');
-          // 后台更新缓存
-          updateCacheInBackground(request);
+        // 检查缓存是否过期（对于关键资源）
+        const cacheDate = cachedResponse.headers.get('date');
+        if (cacheDate) {
+          const age = Date.now() - new Date(cacheDate).getTime();
+          const maxAge = 24 * 60 * 60 * 1000; // 24小时
+          
+          if (age > maxAge) {
+            console.log('SW: Cache expired, updating in background');
+            // 后台更新缓存
+            updateCacheInBackground(request);
+          }
         }
+        
+        return cachedResponse;
       }
-      
-      return cachedResponse;
     }
     
     console.log('SW: Cache miss, fetching:', request.url);
     const networkResponse = await fetchWithRetry(request, 3);
     
-    // 缓存成功的响应
-    if (networkResponse && networkResponse.ok) {
+    // 只缓存 GET 请求的成功响应
+    if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
       const cache = await caches.open(STATIC_CACHE);
       await cache.put(request, networkResponse.clone());
       console.log('SW: Cached new response for:', request.url);
@@ -263,13 +273,19 @@ async function cacheFirstStrategy(request) {
 
 // 过期重新验证策略
 async function staleWhileRevalidateStrategy(request) {
+    // 只有 GET 请求才使用缓存策略
+    if (!isCacheableRequest(request)) {
+        // 非 GET 请求直接返回网络响应
+        return fetchWithRetry(request, 1);
+    }
+    
     const cache = await caches.open(CACHE_NAME);
     const cachedResponse = await cache.match(request);
     
-    // 后台更新
+    // 后台更新（只对 GET 请求）
     const networkResponsePromise = fetchWithRetry(request, 1)
         .then(networkResponse => {
-            if (networkResponse.ok) {
+            if (networkResponse.ok && isCacheableRequest(request)) {
                 cache.put(request, networkResponse.clone());
             }
             return networkResponse;
@@ -474,6 +490,7 @@ function isDynamicResource(pathname) {
 }
 
 function isAllowedCrossOrigin(url) {
+  // 允许的跨域资源
   const allowedDomains = [
     'fonts.googleapis.com',
     'fonts.gstatic.com',
@@ -481,6 +498,11 @@ function isAllowedCrossOrigin(url) {
     'unpkg.com'
   ];
   return allowedDomains.some(domain => url.hostname.includes(domain));
+}
+
+// 检查请求是否可缓存（只有 GET 请求可以缓存）
+function isCacheableRequest(request) {
+  return request.method === 'GET';
 }
 
 // 判断是否使用网络优先策略
@@ -560,6 +582,11 @@ async function getOfflineResponse(request) {
 // 后台更新缓存
 async function updateCacheInBackground(request) {
   try {
+    // 只更新 GET 请求的缓存
+    if (!isCacheableRequest(request)) {
+      return;
+    }
+    
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.ok) {
       const cache = await caches.open(STATIC_CACHE);
@@ -628,8 +655,8 @@ async function fiveGNetworkStrategy(request) {
     
     clearTimeout(timeoutId);
     
-    if (networkResponse && networkResponse.ok) {
-      // 5G网络下更激进地缓存响应
+    if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
+      // 5G网络下更激进地缓存响应（只缓存 GET 请求）
       const cache = await caches.open(FIVEG_CACHE);
       await cache.put(request, networkResponse.clone());
     }
@@ -638,10 +665,12 @@ async function fiveGNetworkStrategy(request) {
   } catch (error) {
     console.warn('SW: 5G network request failed, falling back to cache:', error);
     
-    // 回退到缓存
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
+    // 只有 GET 请求才回退到缓存
+    if (isCacheableRequest(request)) {
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
     }
     
     // 最后回退到离线页面
