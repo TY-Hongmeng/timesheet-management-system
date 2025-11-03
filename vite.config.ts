@@ -1,6 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
+import { copyFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// 复制根目录 404.html 到构建输出的插件
+const copyRoot404Plugin = () => {
+  return {
+    name: 'copy-root-404',
+    writeBundle() {
+      const rootPath = resolve(__dirname, '404.html');
+      const distPath = resolve(__dirname, 'dist', '404.html');
+      
+      if (existsSync(rootPath)) {
+        try {
+          copyFileSync(rootPath, distPath);
+          console.log('✅ 根目录 404.html 已复制到 dist 目录');
+        } catch (error) {
+          console.error('❌ 复制根目录 404.html 失败:', error);
+        }
+      } else {
+        console.warn('⚠️ 根目录 404.html 文件不存在');
+      }
+    }
+  };
+};
 
 // 强制性 MIME 类型插件 - 确保正确的 Content-Type 头部
 const forceMimeTypePlugin = () => {
@@ -66,6 +90,7 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     forceMimeTypePlugin(),
+    copyRoot404Plugin(),
   ],
   server: {
     host: 'localhost',
