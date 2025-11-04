@@ -17,11 +17,10 @@ const AppWrapper: React.FC = () => {
     if ('serviceWorker' in navigator) {
       const basePath = window.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
       const swUrl = basePath ? `${basePath}/sw.js` : '/sw.js'
-      const scope = basePath ? `${basePath}/` : '/' // 确保作用域以斜杠结尾，避免GitHub Pages限制
 
       navigator.serviceWorker
-        // 避免作用域报错：可直接省略scope，或确保结尾斜杠
-        .register(swUrl, { scope })
+        // 依赖默认作用域，避免 GitHub Pages 作用域限制
+        .register(swUrl)
         .then(reg => {
           console.log('[SW] Registered:', reg)
 
