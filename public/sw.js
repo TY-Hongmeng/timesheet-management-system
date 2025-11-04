@@ -6,6 +6,11 @@ const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.3'
 const OFFLINE_CACHE = 'timesheet-offline-v1.4.3'
 const FIVEG_CACHE = 'timesheet-5g-v1.4.3'
 
+// 先定义 BASE_PATH 相关变量，避免未定义引用导致 SW 脚本评估失败
+const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : '';
+const OFFLINE_URL = `${BASE_PATH}/error-handler.html`;
+const MOBILE_TEST_URL = `${BASE_PATH}/mobile-performance-test.html`;
+
 // 关键资源 - 必须缓存
 const CRITICAL_RESOURCES = [
   `${BASE_PATH}/`,
