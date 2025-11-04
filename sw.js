@@ -1,50 +1,51 @@
 // Enhanced Service Worker for ERR_CONNECTION_RESET handling
 // Service Worker 增强版 - 智能缓存策略 (强制更新版本)
-const CACHE_NAME = 'timesheet-v1.4.1'
-const STATIC_CACHE = 'timesheet-static-v1.4.1'
-const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.1'
-const OFFLINE_CACHE = 'timesheet-offline-v1.4.1'
-const FIVEG_CACHE = 'timesheet-5g-v1.4.1'
+const CACHE_NAME = 'timesheet-v1.4.3'
+const STATIC_CACHE = 'timesheet-static-v1.4.3'
+const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.3'
+const OFFLINE_CACHE = 'timesheet-offline-v1.4.3'
+const FIVEG_CACHE = 'timesheet-5g-v1.4.3'
 
 // 关键资源 - 必须缓存
 const CRITICAL_RESOURCES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/error-handler.html'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/manifest.json`,
+  OFFLINE_URL
 ]
 
 // 静态资源 - 长期缓存
 const STATIC_RESOURCES = [
-  '/favicon.svg',
-  '/assets/',
-  '/src/main.tsx',
-  '/src/App.tsx',
-  '/src/index.css'
+  `${BASE_PATH}/favicon.svg`,
+  `${BASE_PATH}/assets/`,
+  `${BASE_PATH}/src/main.tsx`,
+  `${BASE_PATH}/src/App.tsx`,
+  `${BASE_PATH}/src/index.css`
 ]
 
 // 动态资源 - 网络优先
 const DYNAMIC_RESOURCES = [
-  '/api/',
-  '/auth/',
-  '/data/'
+  `${BASE_PATH}/api/`,
+  `${BASE_PATH}/auth/`,
+  `${BASE_PATH}/data/`
 ]
 
-const OFFLINE_URL = '/error-handler.html';
-const MOBILE_TEST_URL = '/mobile-performance-test.html';
+const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : '';
+const OFFLINE_URL = `${BASE_PATH}/error-handler.html`;
+const MOBILE_TEST_URL = `${BASE_PATH}/mobile-performance-test.html`;
 
 // 需要缓存的核心资源
 const CORE_ASSETS = [
-    '/',
-    '/index.html',
-    '/error-handler.html',
-    '/mobile-performance-test.html',
-    '/manifest.json',
-    '/src/main.tsx',
-    '/src/App.tsx',
-    '/src/components/',
-    '/src/utils/',
-    '/src/styles/'
+    `${BASE_PATH}/`,
+    `${BASE_PATH}/index.html`,
+    OFFLINE_URL,
+    MOBILE_TEST_URL,
+    `${BASE_PATH}/manifest.json`,
+    `${BASE_PATH}/src/main.tsx`,
+    `${BASE_PATH}/src/App.tsx`,
+    `${BASE_PATH}/src/components/`,
+    `${BASE_PATH}/src/utils/`,
+    `${BASE_PATH}/src/styles/`
 ];
 
 // 网络优先策略的资源
@@ -90,7 +91,7 @@ self.addEventListener('install', event => {
 
 // 激活事件 - 强制清理所有旧缓存
 self.addEventListener('activate', event => {
-  console.log('SW: 强制激活新版本 v1.4.1...');
+  console.log('SW: 强制激活新版本 v1.4.3...');
   
   event.waitUntil(
     Promise.all([
@@ -99,8 +100,9 @@ self.addEventListener('activate', event => {
         console.log('SW: 发现缓存:', cacheNames);
         return Promise.all(
           cacheNames.map(cacheName => {
-            // 删除所有旧版本缓存
-            if (!cacheName.includes('v1.4.1')) {
+            // 删除所有非当前版本的缓存
+            const currentVersion = 'v1.4.3'
+            if (!cacheName.includes(currentVersion)) {
               console.log('SW: 删除旧缓存:', cacheName);
               return caches.delete(cacheName);
             }
@@ -116,14 +118,14 @@ self.addEventListener('activate', event => {
         clients.forEach(client => {
           client.postMessage({
             type: 'SW_UPDATED',
-            version: 'v1.4.1',
+            version: 'v1.4.3',
             message: 'Service Worker 已更新，请刷新页面'
           });
         });
       })
     ])
     .then(() => {
-      console.log('SW: v1.4.1 激活完成，所有旧缓存已清除');
+      console.log('SW: v1.4.3 激活完成，所有旧缓存已清除');
     })
     .catch(error => {
       console.error('SW: 激活失败:', error);
@@ -486,20 +488,23 @@ function createBasicErrorPage(error, path) {
 
 // 资源类型检测函数
 function isCriticalResource(pathname) {
+  const normalized = pathname.replace(BASE_PATH, '')
   return CRITICAL_RESOURCES.some(resource => 
-    pathname === resource || pathname.endsWith(resource)
+    pathname === resource || pathname.endsWith(resource) || normalized === resource || normalized.endsWith(resource)
   );
 }
 
 function isStaticResource(pathname) {
+  const normalized = pathname.replace(BASE_PATH, '')
   return STATIC_RESOURCES.some(resource => 
-    pathname.includes(resource)
+    pathname.includes(resource) || normalized.includes(resource)
   ) || /\.(js|css|png|jpg|jpeg|svg|woff|woff2|ico)$/.test(pathname);
 }
 
 function isDynamicResource(pathname) {
+  const normalized = pathname.replace(BASE_PATH, '')
   return DYNAMIC_RESOURCES.some(resource => 
-    pathname.includes(resource)
+    pathname.includes(resource) || normalized.includes(resource)
   );
 }
 
@@ -511,7 +516,7 @@ function isAllowedCrossOrigin(url) {
     'cdn.jsdelivr.net',
     'unpkg.com'
   ];
-  return allowedDomains.some(domain => url.hostname.includes(domain));
+  return allowedDomains.some(domain => url.hostname.includes(domain)) || url.hostname.endsWith('github.io');
 }
 
 // 检查请求是否可缓存（只有 GET 请求可以缓存）
@@ -754,7 +759,7 @@ async function getCacheStatus() {
   try {
     const cacheNames = await caches.keys();
     const status = {
-      version: 'v1.4.1',
+      version: 'v1.4.3',
       caches: cacheNames,
       totalCaches: cacheNames.length,
       timestamp: new Date().toISOString()
@@ -767,4 +772,4 @@ async function getCacheStatus() {
   }
 }
 
-console.log('[SW] Service Worker loaded successfully - v1.4.1 (彻底重置版)');
+console.log('[SW] Service Worker loaded successfully - v1.4.3 (彻底重置版)');

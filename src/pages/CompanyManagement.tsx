@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import NavActions from '@/components/NavActions'
 import type { Company } from '@/lib/supabase'
 import { Building, Plus, Edit, Trash2, Save, X, AlertTriangle, GripVertical, ArrowLeft, Search } from 'lucide-react'
 import {
@@ -357,14 +358,7 @@ export default function CompanyManagement() {
               <Building className="w-8 h-8 text-green-400 mr-3" />
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">公司管理</h1>
             </div>
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-green-300 hover:text-green-200 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="hidden sm:inline">返回控制台</span>
-              <span className="sm:hidden">返回</span>
-            </Link>
+            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
           </div>
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>
