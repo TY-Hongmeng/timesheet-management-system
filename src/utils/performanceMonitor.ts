@@ -1,3 +1,5 @@
+import React from 'react'
+
 // 性能监控工具
 class PerformanceMonitor {
   private static instance: PerformanceMonitor

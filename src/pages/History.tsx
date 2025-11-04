@@ -3,10 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  ArrowLeft, 
   Calendar, 
   User, 
-  RefreshCw,
   Filter,
   ArrowUpDown,
   ArrowUp,
@@ -16,6 +14,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import NavActions from '../components/NavActions';
 import { toast } from 'sonner';
 
 // 数据接口定义
@@ -518,23 +517,7 @@ const History: React.FC = () => {
               历史记录
             </h1>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-700 disabled:to-gray-800 text-green-300 hover:text-green-200 disabled:text-gray-400 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50 disabled:border-gray-600"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{refreshing ? '刷新中...' : '刷新'}</span>
-              </button>
-
-              <Link 
-                to="/dashboard" 
-                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-green-300 hover:text-green-200 rounded-lg font-mono transition-all duration-200 shadow-md hover:shadow-lg border border-gray-600 hover:border-green-500/50"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">返回控制台</span>
-                <span className="sm:hidden">返回</span>
-              </Link>
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
             </div>
           </div>
         </div>

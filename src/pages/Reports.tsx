@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions';
 import { 
-  ArrowLeft, 
   BarChart3, 
   Calendar, 
   User, 
@@ -21,10 +20,10 @@ import {
   Trash2,
   Check,
   X,
-  RefreshCw,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import NavActions from '../components/NavActions';
 import { toast } from 'sonner';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DeleteConfirmDialog from '../components/DeleteConfirmDialog';
@@ -1361,24 +1360,7 @@ const Reports: React.FC = () => {
               查看报表
             </h1>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-600 disabled:to-gray-800 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base disabled:cursor-not-allowed"
-              >
-                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{refreshing ? '刷新中...' : '刷新'}</span>
-                <span className="sm:hidden">{refreshing ? '...' : '刷新'}</span>
-              </button>
-
-              <Link 
-                to="/dashboard" 
-                className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">返回控制台</span>
-                <span className="sm:hidden">返回</span>
-              </Link>
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
             </div>
           </div>
         </div>

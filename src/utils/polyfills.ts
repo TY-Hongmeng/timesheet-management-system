@@ -67,7 +67,7 @@ if (!Array.prototype.includes) {
     if (len === 0) {
       return false;
     }
-    const n = parseInt(fromIndex) || 0;
+    const n = parseInt(String(fromIndex)) || 0;
     let k;
     if (n >= 0) {
       k = n;

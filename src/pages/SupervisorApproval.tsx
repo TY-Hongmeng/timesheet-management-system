@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, safeQuery } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, ArrowLeft, Edit2, Trash2, Save, X, Shield, Crown, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, Edit2, Trash2, Save, X, Shield, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
-import PageHeader from '../components/PageHeader';
+import NavActions from '../components/NavActions';
 
 // 日期格式化函数
 const formatDate = (dateString: string): string => {
@@ -1233,12 +1233,19 @@ const SupervisorApproval: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <PageHeader
-          title="班长审核"
-          icon={CheckCircle}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-        />
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <CheckCircle className="w-8 h-8 text-green-400 mr-3" />
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">班长审核</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+            </div>
+          </div>
+          <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
+        </div>
 
         {/* 统计信息栏 - 紧凑设计 */}
         <div className="bg-gray-900 border border-green-400 rounded-lg p-3 mb-4">

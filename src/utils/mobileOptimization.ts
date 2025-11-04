@@ -27,8 +27,8 @@ export const isSlowConnection = (): boolean => {
 
 // 获取当前页面的资源文件
 const getCurrentAssets = () => {
-  const scripts = Array.from(document.querySelectorAll('script[src]'))
-  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+  const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[]
+  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[]
   
   return {
     reactVendor: scripts.find(s => s.src.includes('react-vendor'))?.src || '',
@@ -255,7 +255,7 @@ export const mobilePreloadStrategy = {
     
     // 2. 优化微信分享
     const shareMetaTitle = document.createElement('meta')
-    shareMetaTitle.property = 'og:title'
+    shareMetaTitle.setAttribute('property', 'og:title')
     shareMetaTitle.content = '工时管理系统'
     document.head.appendChild(shareMetaTitle)
     
@@ -279,16 +279,18 @@ export const mobilePreloadStrategy = {
     console.log('🚨 启用紧急优化模式')
     
     // 1. 清理不必要的预加载
-    document.querySelectorAll('link[rel="preload"]').forEach(link => {
-      if (!link.href.includes('index-') && !link.href.includes('react')) {
-        link.remove()
+    document.querySelectorAll('link[rel="preload"]').forEach((link: Element) => {
+      const linkElement = link as HTMLLinkElement
+      if (!linkElement.href.includes('index-') && !linkElement.href.includes('react')) {
+        linkElement.remove()
       }
     })
     
     // 2. 延迟非关键脚本
-    document.querySelectorAll('script[src]').forEach(script => {
-      if (!script.src.includes('react') && !script.src.includes('index-')) {
-        script.defer = true
+    document.querySelectorAll('script[src]').forEach((script: Element) => {
+      const scriptElement = script as HTMLScriptElement
+      if (!scriptElement.src.includes('react') && !scriptElement.src.includes('index-')) {
+        scriptElement.defer = true
       }
     })
     

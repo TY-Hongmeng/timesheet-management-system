@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Trash2, Calendar, Clock, User, Building, Package, Settings } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext'
 import { supabase } from '../lib/supabase'
 import { isSuperAdmin } from '../utils/permissions'
 import TimesheetConfirmDialog from '../components/TimesheetConfirmDialog'
-import PageHeader from '../components/PageHeader'
+import NavActions from '../components/NavActions'
 
 interface ProductionLine {
   id: number
@@ -451,7 +451,7 @@ export default function TimesheetRecord() {
       // 这些数据会在用户选择生产线后通过useEffect自动加载
       
       // 标记模块为已加载
-      markModuleAsLoaded(MODULE_IDS.TIMESHEET_RECORD)
+      markModuleAsLoaded(MODULE_IDS.TIME_RECORD)
       
     } catch (error) {
       toast.error('加载数据失败')
@@ -1717,12 +1717,16 @@ export default function TimesheetRecord() {
     <div className="min-h-screen bg-black text-green-400 font-mono">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <PageHeader
-          title="工时记录"
-          icon={Clock}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-        />
+        <div className="mb-4 sm:mb-8">
+          <div className="flex justify-between items-center mb-2 sm:mb-4">
+            <div className="flex items-center">
+              <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mr-2 sm:mr-3" />
+              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">工时记录</h1>
+            </div>
+            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+          </div>
+          <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
+        </div>
         <div className="space-y-3 sm:space-y-6">
           {/* 基本信息和添加工时记录 - 水平布局 */}
           <div className="flex flex-col lg:flex-row gap-3 sm:gap-6">

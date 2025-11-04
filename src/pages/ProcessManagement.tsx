@@ -1002,7 +1002,7 @@ const ProcessManagement: React.FC = () => {
                   toast.info('当前没有未定价的工序');
                 } else {
                   setSearchTerm('');
-                  setFilters({ production_line: '', production_category: '', product_name: '' });
+                  setFilters({ company_id: '', production_line: '', production_category: '', product_name: '', product_process: '' });
                   setEffectiveDateFilter('');
                   // 设置一个特殊的筛选状态来显示未定价工序
                   setShowUnpricedOnly(!showUnpricedOnly);
