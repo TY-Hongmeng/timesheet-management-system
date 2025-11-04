@@ -3,9 +3,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Company, UserRole } from '@/lib/supabase'
-import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, RefreshCw, Users, UserX } from 'lucide-react'
+import { User, Plus, Edit, Trash2, Search, Save, X, Shield, Phone, CreditCard, Building, UserCheck, AlertTriangle, ArrowLeft, RefreshCw, Users, UserX } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import NavActions from '../components/NavActions'
 import { toast } from 'sonner'
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions'
 import CollapsibleSection from '../components/CollapsibleSection'
@@ -1734,7 +1733,13 @@ export default function UserManagement() {
               <User className="w-8 h-8 text-green-400 mr-3" />
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">用户管理</h1>
             </div>
-            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+            <Link
+              to="/dashboard"
+              className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-mono text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>返回控制台</span>
+            </Link>
           </div>
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>

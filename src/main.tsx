@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { SimpleStartupProgress } from './components/SimpleStartupProgress'
@@ -12,6 +12,44 @@ const AppWrapper: React.FC = () => {
     setShowProgress(false)
   }
 
+  useEffect(() => {
+    // 注册 Service Worker（在生产环境或本地环境均可）
+    if ('serviceWorker' in navigator) {
+      const basePath = window.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
+      const swUrl = `${basePath}/sw.js`
+
+      navigator.serviceWorker
+        .register(swUrl, { scope: basePath || '/' })
+        .then(reg => {
+          console.log('[SW] Registered:', reg)
+
+          // 如果已有等待中的 SW，通知跳过等待并立即激活
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          }
+
+          // 监听更新事件，安装完成后强制启用新 SW
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing || reg.waiting
+            if (!newWorker) return
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed') {
+                // 如果已有控制器，表示更新，通知跳过等待
+                if (navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' })
+                  // 刷新页面以让新 SW 接管
+                  setTimeout(() => window.location.reload(), 100)
+                }
+              }
+            })
+          })
+        })
+        .catch(err => {
+          console.error('[SW] Registration failed:', err)
+        })
+    }
+  }, [])
+
   // 显示进度条或主应用
   return showProgress ? 
     <SimpleStartupProgress onComplete={handleProgressComplete} /> : 
@@ -23,45 +61,4 @@ const rootElement = document.getElementById('root')
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(<AppWrapper />)
-}
-
-// 注册 Service Worker，适配 GitHub Pages 的 base 路径
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const baseUrl = (import.meta as any).env?.BASE_URL || '/'
-    const swUrl = `${baseUrl}sw.js`
-
-    navigator.serviceWorker.register(swUrl, { scope: baseUrl }).then(registration => {
-      console.log('[SW] Registered:', swUrl, 'scope:', baseUrl)
-
-      // 监听更新事件
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        if (!newWorker) return
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              // 新版本已安装，通知跳过等待并刷新
-              registration.waiting?.postMessage({ type: 'SKIP_WAITING' })
-              console.log('[SW] New content available; refreshing...')
-              setTimeout(() => window.location.reload(), 500)
-            } else {
-              console.log('[SW] Content cached for offline use.')
-            }
-          }
-        })
-      })
-
-      // 监听来自 SW 的更新消息
-      navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
-        if (event.data?.type === 'SW_UPDATED') {
-          console.log('[SW] Updated to', event.data.version)
-          // 主动刷新获取最新资源
-          setTimeout(() => window.location.reload(), 300)
-        }
-      })
-    }).catch(err => {
-      console.error('[SW] Registration failed:', err)
-    })
-  })
 }

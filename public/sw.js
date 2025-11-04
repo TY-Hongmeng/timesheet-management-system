@@ -1,22 +1,20 @@
 // Enhanced Service Worker for ERR_CONNECTION_RESET handling
 // Service Worker 增强版 - 智能缓存策略 (强制更新版本)
-const CACHE_NAME = 'timesheet-v1.4.3'
-const STATIC_CACHE = 'timesheet-static-v1.4.3'
-const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.3'
-const OFFLINE_CACHE = 'timesheet-offline-v1.4.3'
-const FIVEG_CACHE = 'timesheet-5g-v1.4.3'
+const CACHE_NAME = 'timesheet-v1.4.4'
+const STATIC_CACHE = 'timesheet-static-v1.4.4'
+const DYNAMIC_CACHE = 'timesheet-dynamic-v1.4.4'
+const OFFLINE_CACHE = 'timesheet-offline-v1.4.4'
+const FIVEG_CACHE = 'timesheet-5g-v1.4.4'
 
-// 先定义 BASE_PATH 相关变量，避免未定义引用导致 SW 脚本评估失败
-const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : '';
-const OFFLINE_URL = `${BASE_PATH}/error-handler.html`;
-const MOBILE_TEST_URL = `${BASE_PATH}/mobile-performance-test.html`;
+// 统一的 BASE_PATH 检测（GitHub Pages 子路径适配）
+const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
 
 // 关键资源 - 必须缓存
 const CRITICAL_RESOURCES = [
   `${BASE_PATH}/`,
   `${BASE_PATH}/index.html`,
   `${BASE_PATH}/manifest.json`,
-  OFFLINE_URL
+  `${BASE_PATH}/error-handler.html`
 ]
 
 // 静态资源 - 长期缓存
@@ -35,38 +33,34 @@ const DYNAMIC_RESOURCES = [
   `${BASE_PATH}/data/`
 ]
 
-// 删除重复的 BASE_PATH/URL 定义，避免脚本评估失败
-const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : '';
-const OFFLINE_URL = `${BASE_PATH}/error-handler.html`;
-const MOBILE_TEST_URL = `${BASE_PATH}/mobile-performance-test.html`;
 
 // 需要缓存的核心资源
 const CORE_ASSETS = [
     `${BASE_PATH}/`,
     `${BASE_PATH}/index.html`,
-    OFFLINE_URL,
-    MOBILE_TEST_URL,
+    `${BASE_PATH}/error-handler.html`,
+    `${BASE_PATH}/mobile-performance-test.html`,
     `${BASE_PATH}/manifest.json`,
     `${BASE_PATH}/src/main.tsx`,
     `${BASE_PATH}/src/App.tsx`,
     `${BASE_PATH}/src/components/`,
     `${BASE_PATH}/src/utils/`,
     `${BASE_PATH}/src/styles/`
-];
+]
 
 // 网络优先策略的资源
 const NETWORK_FIRST_PATTERNS = [
     /\/api\//,
     /\.json$/,
     /\/src\/.*\.(ts|tsx|js|jsx)$/
-];
+]
 
 // 缓存优先策略的资源
 const CACHE_FIRST_PATTERNS = [
     /\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/,
     /\/assets\//,
     /\/static\//
-];
+]
 
 // 安装事件 - 预缓存关键资源
 self.addEventListener('install', event => {
@@ -82,7 +76,7 @@ self.addEventListener('install', event => {
       // 预缓存离线页面
       caches.open(OFFLINE_CACHE).then(cache => {
         console.log('SW: Caching offline resources');
-        return cache.add(OFFLINE_URL);
+        return cache.add(`${BASE_PATH}/error-handler.html`);
       })
     ])
     .then(() => {
@@ -97,7 +91,7 @@ self.addEventListener('install', event => {
 
 // 激活事件 - 强制清理所有旧缓存
 self.addEventListener('activate', event => {
-  console.log('SW: 强制激活新版本 v1.4.3...');
+  console.log('SW: 强制激活新版本 v1.4.4...');
   
   event.waitUntil(
     Promise.all([
@@ -106,9 +100,8 @@ self.addEventListener('activate', event => {
         console.log('SW: 发现缓存:', cacheNames);
         return Promise.all(
           cacheNames.map(cacheName => {
-            // 删除所有非当前版本的缓存
-            const currentVersion = 'v1.4.3'
-            if (!cacheName.includes(currentVersion)) {
+            // 删除所有旧版本缓存
+            if (!cacheName.includes('v1.4.4')) {
               console.log('SW: 删除旧缓存:', cacheName);
               return caches.delete(cacheName);
             }
@@ -124,14 +117,14 @@ self.addEventListener('activate', event => {
         clients.forEach(client => {
           client.postMessage({
             type: 'SW_UPDATED',
-            version: 'v1.4.3',
+            version: 'v1.4.4',
             message: 'Service Worker 已更新，请刷新页面'
           });
         });
       })
     ])
     .then(() => {
-      console.log('SW: v1.4.3 激活完成，所有旧缓存已清除');
+      console.log('SW: v1.4.4 激活完成，所有旧缓存已清除');
     })
     .catch(error => {
       console.error('SW: 激活失败:', error);
@@ -152,11 +145,8 @@ self.addEventListener('fetch', event => {
   console.log('SW: Handling enhanced fetch for:', url.pathname);
 
   // 检测5G网络并使用优化策略
-  const connection = navigator.connection;
-  const is5GNetwork = connection && (
-    connection.effectiveType === '5g' ||
-    (connection.effectiveType === '4g' && connection.downlink && connection.downlink > 20)
-  );
+  const connection = (typeof self !== 'undefined' && self.navigator && self.navigator.connection) ? self.navigator.connection : null;
+  const is5GNetwork = connection && (connection.effectiveType === '4g' && connection.downlink && connection.downlink > 20);
 
   // 5G网络下使用专门的优化策略
   if (is5GNetwork) {
@@ -340,8 +330,7 @@ async function fetchWithRetry(request, retries = 2) {
                 redirect: 'follow'
             };
             
-            // 添加特殊头部来处理连接问题
-            fetchOptions.headers.set('Connection', 'keep-alive');
+            // 避免使用被禁止的请求头，仅设置允许的头部
             fetchOptions.headers.set('Cache-Control', 'no-cache');
             
             // 设置超时
@@ -376,14 +365,14 @@ async function handleNetworkError(error, request) {
     const url = new URL(request.url);
     
     // 构建错误页面 URL
-    const errorUrl = new URL(OFFLINE_URL, self.location.origin);
+    const errorUrl = new URL(`${BASE_PATH}/error-handler.html`, self.location.origin);
     errorUrl.searchParams.set('error', getErrorType(error));
     errorUrl.searchParams.set('message', error.message);
     errorUrl.searchParams.set('url', url.pathname);
     
     try {
         // 尝试获取错误页面
-        const errorResponse = await caches.match(OFFLINE_URL);
+        const errorResponse = await caches.match(`${BASE_PATH}/error-handler.html`);
         if (errorResponse) {
             return errorResponse;
         }
@@ -494,23 +483,20 @@ function createBasicErrorPage(error, path) {
 
 // 资源类型检测函数
 function isCriticalResource(pathname) {
-  const normalized = pathname.replace(BASE_PATH, '')
   return CRITICAL_RESOURCES.some(resource => 
-    pathname === resource || pathname.endsWith(resource) || normalized === resource || normalized.endsWith(resource)
+    pathname === resource || pathname.endsWith(resource)
   );
 }
 
 function isStaticResource(pathname) {
-  const normalized = pathname.replace(BASE_PATH, '')
   return STATIC_RESOURCES.some(resource => 
-    pathname.includes(resource) || normalized.includes(resource)
+    pathname.includes(resource)
   ) || /\.(js|css|png|jpg|jpeg|svg|woff|woff2|ico)$/.test(pathname);
 }
 
 function isDynamicResource(pathname) {
-  const normalized = pathname.replace(BASE_PATH, '')
   return DYNAMIC_RESOURCES.some(resource => 
-    pathname.includes(resource) || normalized.includes(resource)
+    pathname.includes(resource)
   );
 }
 
@@ -522,7 +508,7 @@ function isAllowedCrossOrigin(url) {
     'cdn.jsdelivr.net',
     'unpkg.com'
   ];
-  return allowedDomains.some(domain => url.hostname.includes(domain)) || url.hostname.endsWith('github.io');
+  return allowedDomains.some(domain => url.hostname.includes(domain));
 }
 
 // 检查请求是否可缓存（只有 GET 请求可以缓存）
@@ -541,203 +527,39 @@ function shouldUseCacheFirst(url) {
 }
 
 // 消息处理
+self.removeEventListener && self.removeEventListener('message', () => {})
+// 合并消息处理为一个监听器，处理所有消息类型
 self.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-});
+  const data = event.data || {}
+  if (!data || !data.type) return
 
-// 后台同步（如果支持）
-if ('sync' in self.registration) {
-    self.addEventListener('sync', event => {
-        if (event.tag === 'background-sync') {
-            event.waitUntil(doBackgroundSync());
-        }
-    });
-}
-
-// 后台同步处理
-async function doBackgroundSync() {
-    try {
-        // 尝试同步离线时的操作
-        console.log('[SW] Background sync triggered');
-        
-        // 这里可以添加离线时需要同步的操作
-        // 比如发送离线时收集的数据
-        
-    } catch (error) {
-        console.error('[SW] Background sync failed:', error);
-    }
-}
-
-// 获取离线响应
-async function getOfflineResponse(request) {
-  // 如果是导航请求，返回离线页面
-  if (request.mode === 'navigate') {
-    const offlineResponse = await caches.match(OFFLINE_URL);
-    if (offlineResponse) {
-      return offlineResponse;
-    }
-  }
-  
-  // 尝试从任何缓存中获取
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) {
-    console.log('SW: Serving cached fallback for:', request.url);
-    return cachedResponse;
-  }
-  
-  // 返回通用离线响应
-  return new Response(
-    JSON.stringify({
-      error: 'Offline',
-      message: 'This content is not available offline',
-      timestamp: new Date().toISOString()
-    }), 
-    { 
-      status: 503,
-      statusText: 'Service Unavailable',
-      headers: {
-        'Content-Type': 'application/json'
+  switch (data.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting()
+      break
+    case 'SET_CACHE_STRATEGY':
+      cacheStrategy = data.strategy
+      console.log('SW: Cache strategy updated to:', data.strategy)
+      if (data.strategy === '5G_OPTIMIZED') {
+        apply5GOptimizations()
       }
-    }
-  );
-}
-
-// 后台更新缓存
-async function updateCacheInBackground(request) {
-  try {
-    // 只更新 GET 请求的缓存
-    if (!isCacheableRequest(request)) {
-      return;
-    }
-    
-    const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.ok) {
-      const cache = await caches.open(STATIC_CACHE);
-      await cache.put(request, networkResponse);
-      console.log('SW: Background cache update completed for:', request.url);
-    }
-  } catch (error) {
-    console.warn('SW: Background cache update failed:', error);
+      break
+    case 'CLEAR_ALL_CACHES':
+      clearAllCaches().then(() => {
+        event.ports[0]?.postMessage({ success: true, message: '所有缓存已清除' })
+      }).catch(error => {
+        event.ports[0]?.postMessage({ success: false, error: error.message })
+      })
+      break
+    case 'GET_CACHE_STATUS':
+      getCacheStatus().then(status => {
+        event.ports[0]?.postMessage({ success: true, data: status })
+      })
+      break
+    default:
+      console.log('[SW] 未知消息类型:', data.type)
   }
-}
-
-// 5G网络优化处理
-let cacheStrategy = 'default';
-
-// 监听来自主线程的消息
-self.addEventListener('message', event => {
-  const { type, strategy } = event.data;
-  
-  if (type === 'SET_CACHE_STRATEGY') {
-    cacheStrategy = strategy;
-    console.log('SW: Cache strategy updated to:', strategy);
-    
-    if (strategy === '5G_OPTIMIZED') {
-      // 5G网络下的激进缓存策略
-      apply5GOptimizations();
-    }
-  }
-});
-
-// 应用5G网络优化
-async function apply5GOptimizations() {
-  console.log('SW: Applying 5G network optimizations...');
-  
-  try {
-    // 1. 预缓存更多资源
-    const cache = await caches.open(FIVEG_CACHE);
-    const additionalResources = [
-      '/src/utils/fiveGNetworkHandler.ts',
-      '/src/utils/enhancedDNSResolver.ts',
-      '/5g-compatibility-test.html'
-    ];
-    
-    await cache.addAll(additionalResources);
-    console.log('SW: 5G resources pre-cached');
-    
-    // 2. 设置更激进的缓存策略
-    // 在5G网络下，可以缓存更多动态内容
-    
-  } catch (error) {
-    console.error('SW: 5G optimization failed:', error);
-  }
-}
-
-// 5G网络专用的fetch策略
-async function fiveGNetworkStrategy(request) {
-  const url = new URL(request.url);
-  
-  try {
-    // 5G网络下优先使用网络，但有更短的超时时间
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
-    
-    const networkResponse = await fetch(request, {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
-      // 5G网络下更激进地缓存响应（只缓存 GET 请求）
-      const cache = await caches.open(FIVEG_CACHE);
-      await cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.warn('SW: 5G network request failed, falling back to cache:', error);
-    
-    // 只有 GET 请求才回退到缓存
-    if (isCacheableRequest(request)) {
-      const cachedResponse = await caches.match(request);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-    }
-    
-    // 最后回退到离线页面
-    if (request.destination === 'document') {
-      return caches.match(OFFLINE_URL);
-    }
-    
-    throw error;
-  }
-}
-
-// 监听消息事件 - 增强版
-self.addEventListener('message', event => {
-  console.log('[SW] 收到消息:', event.data);
-  
-  if (event.data && event.data.type) {
-    switch (event.data.type) {
-      case 'SKIP_WAITING':
-        console.log('[SW] 收到 SKIP_WAITING 消息，立即激活...');
-        self.skipWaiting();
-        break;
-        
-      case 'CLEAR_ALL_CACHES':
-        console.log('[SW] 收到清除缓存消息，开始清除...');
-        clearAllCaches().then(() => {
-          event.ports[0]?.postMessage({ success: true, message: '所有缓存已清除' });
-        }).catch(error => {
-          event.ports[0]?.postMessage({ success: false, error: error.message });
-        });
-        break;
-        
-      case 'GET_CACHE_STATUS':
-        getCacheStatus().then(status => {
-          event.ports[0]?.postMessage({ success: true, data: status });
-        });
-        break;
-        
-      default:
-        console.log('[SW] 未知消息类型:', event.data.type);
-    }
-  }
-});
+})
 
 // 清除所有缓存的函数
 async function clearAllCaches() {
@@ -765,7 +587,7 @@ async function getCacheStatus() {
   try {
     const cacheNames = await caches.keys();
     const status = {
-      version: 'v1.4.3',
+      version: 'v1.4.4',
       caches: cacheNames,
       totalCaches: cacheNames.length,
       timestamp: new Date().toISOString()
@@ -778,4 +600,118 @@ async function getCacheStatus() {
   }
 }
 
-console.log('[SW] Service Worker loaded successfully - v1.4.3 (彻底重置版)');
+console.log('[SW] Service Worker loaded successfully - v1.4.4 (彻底重置版)');
+// 合并后的消息处理在此之上
+// 补充缺失的辅助函数与事件监听器
+
+// 后台同步（如果支持）
+if ('sync' in self.registration) {
+  self.addEventListener('sync', event => {
+    if (event.tag === 'background-sync') {
+      event.waitUntil(doBackgroundSync())
+    }
+  })
+}
+
+// 后台同步处理
+async function doBackgroundSync() {
+  try {
+    console.log('[SW] Background sync triggered')
+    // TODO: 在此处理离线数据的回传
+  } catch (error) {
+    console.error('[SW] Background sync failed:', error)
+  }
+}
+
+// 获取离线响应
+async function getOfflineResponse(request) {
+  // 如果是导航请求，返回离线页面
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    const offlineResponse = await caches.match(`${BASE_PATH}/error-handler.html`)
+    if (offlineResponse) {
+      return offlineResponse
+    }
+  }
+
+  // 尝试从任何缓存中获取
+  const cachedResponse = await caches.match(request)
+  if (cachedResponse) {
+    console.log('SW: Serving cached fallback for:', request.url)
+    return cachedResponse
+  }
+
+  // 返回通用离线响应
+  return new Response(
+    JSON.stringify({
+      error: 'Offline',
+      message: 'This content is not available offline',
+      timestamp: new Date().toISOString()
+    }),
+    {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'application/json' }
+    }
+  )
+}
+
+// 后台更新缓存
+async function updateCacheInBackground(request) {
+  try {
+    // 只更新 GET 请求的缓存
+    if (!isCacheableRequest(request)) return
+
+    const networkResponse = await fetch(request)
+    if (networkResponse && networkResponse.ok) {
+      const cache = await caches.open(STATIC_CACHE)
+      await cache.put(request, networkResponse)
+      console.log('SW: Background cache update completed for:', request.url)
+    }
+  } catch (error) {
+    console.warn('SW: Background cache update failed:', error)
+  }
+}
+
+// 应用5G网络优化
+async function apply5GOptimizations() {
+  console.log('SW: Applying 5G network optimizations...')
+  try {
+    const cache = await caches.open(FIVEG_CACHE)
+    const additionalResources = [
+      '/src/utils/fiveGNetworkHandler.ts',
+      '/src/utils/enhancedDNSResolver.ts',
+      '/5g-compatibility-test.html'
+    ]
+    await cache.addAll(additionalResources)
+    console.log('SW: 5G resources pre-cached')
+  } catch (error) {
+    console.error('SW: 5G optimization failed:', error)
+  }
+}
+
+// 5G网络专用的fetch策略
+async function fiveGNetworkStrategy(request) {
+  const url = new URL(request.url)
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    const networkResponse = await fetch(request, { signal: controller.signal })
+    clearTimeout(timeoutId)
+
+    if (networkResponse && networkResponse.ok && isCacheableRequest(request)) {
+      const cache = await caches.open(FIVEG_CACHE)
+      await cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch (error) {
+    console.warn('SW: 5G network request failed, falling back to cache:', error)
+    if (isCacheableRequest(request)) {
+      const cachedResponse = await caches.match(request)
+      if (cachedResponse) return cachedResponse
+    }
+    if (request.destination === 'document') {
+      return caches.match(`${BASE_PATH}/error-handler.html`)
+    }
+    throw error
+  }
+}

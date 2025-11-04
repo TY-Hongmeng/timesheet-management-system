@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Filter, X, Settings, Upload, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Search, Edit, Trash2, Filter, X, Settings, Upload, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
@@ -10,7 +10,6 @@ import ConfirmDialog from '../components/ConfirmDialog';
 const ExcelImportDialog = React.lazy(() => import('../components/ExcelImportDialog'));
 import CollapsibleSection from '../components/CollapsibleSection';
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions';
-import NavActions from '../components/NavActions';
 
 interface Process {
   id: string;
@@ -62,7 +61,6 @@ const ProcessManagement: React.FC = () => {
   const [productNameOptions, setProductNameOptions] = useState<string[]>([]);
   const [productProcessOptions, setProductProcessOptions] = useState<string[]>([]);
   const [filteredProductionLines, setFilteredProductionLines] = useState<string[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   // 移除不需要的状态变量，改用函数计算
   const [showProductionLineDropdown, setShowProductionLineDropdown] = useState(false);
   const [showProductNameDropdown, setShowProductNameDropdown] = useState(false);
@@ -955,7 +953,14 @@ const ProcessManagement: React.FC = () => {
               <Settings className="w-8 h-8 text-green-400 mr-3" />
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">工序管理</h1>
             </div>
-            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+            <Link
+              to="/dashboard"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-green-300 border border-green-400 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 font-mono text-sm sm:text-base"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">返回控制台</span>
+              <span className="sm:hidden">返回</span>
+            </Link>
           </div>
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>

@@ -3,7 +3,6 @@ import { Search, Calendar, Filter, Eye, Download, RefreshCw, Clock, User, Buildi
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { toast } from 'sonner'
-import NavActions from '../components/NavActions'
 
 interface ProductionLine {
   id: number
@@ -95,7 +94,6 @@ export default function TimesheetHistory() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
   const pageSize = 10
-  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -169,18 +167,6 @@ export default function TimesheetHistory() {
     setProducts(data || [])
   }
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await loadInitialData()
-      toast.success('数据刷新成功')
-    } catch (error) {
-      console.error('刷新失败:', error)
-      toast.error('刷新失败')
-    } finally {
-      setRefreshing(false)
-    }
-  }
   const searchRecords = async (resetPage = false) => {
     if (!user) return
     
@@ -371,18 +357,13 @@ export default function TimesheetHistory() {
       {/* Header */}
       <header className="bg-gray-900 border-b border-green-400 px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
-                <Clock className="w-5 h-5 sm:w-8 sm:h-8" />
-                工时记录历史
-              </h1>
-              <p className="text-green-600 text-sm font-mono mt-1">
-                TIMESHEET HISTORY MANAGEMENT
-              </p>
-            </div>
-            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
-          </div>
+          <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono flex items-center gap-2">
+            <Clock className="w-5 h-5 sm:w-8 sm:h-8" />
+            工时记录历史
+          </h1>
+          <p className="text-green-600 text-sm font-mono mt-1">
+            TIMESHEET HISTORY MANAGEMENT
+          </p>
         </div>
       </header>
 
