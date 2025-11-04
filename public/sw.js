@@ -7,7 +7,7 @@ const OFFLINE_CACHE = 'timesheet-offline-v1.4.4'
 const FIVEG_CACHE = 'timesheet-5g-v1.4.4'
 
 // 统一的 BASE_PATH 检测（GitHub Pages 子路径适配）
-const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
+var BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
 
 // 关键资源 - 必须缓存
 const CRITICAL_RESOURCES = [
