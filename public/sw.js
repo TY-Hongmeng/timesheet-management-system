@@ -35,6 +35,7 @@ const DYNAMIC_RESOURCES = [
   `${BASE_PATH}/data/`
 ]
 
+// 删除重复的 BASE_PATH/URL 定义，避免脚本评估失败
 const BASE_PATH = self.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : '';
 const OFFLINE_URL = `${BASE_PATH}/error-handler.html`;
 const MOBILE_TEST_URL = `${BASE_PATH}/mobile-performance-test.html`;
