@@ -1398,22 +1398,22 @@ const SectionChiefApproval: React.FC = () => {
         
         {/* 底部通过审核按钮区域 */}
         {selectedRecords.size > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-green-400 p-4 z-40">
-            <div className="max-w-6xl mx-auto flex items-center justify-between">
-              <span className="text-green-400 font-mono text-sm">
+          <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-green-400 p-3 z-40">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 flex-nowrap">
+              <span className="text-green-400 font-mono text-xs sm:text-sm">
                 已选择 {selectedRecords.size} 条记录
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setSelectedRecords(new Set())}
-                  className="px-4 py-2 bg-gray-600 text-white font-medium rounded hover:bg-gray-700 font-mono"
+                  className="px-3 py-2 bg-gray-600 text-white font-medium rounded hover:bg-gray-700 font-mono"
                 >
                   取消选择
                 </button>
                 <button
                   onClick={handleBatchApproval}
                   disabled={submitting}
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white font-medium rounded hover:bg-green-700 disabled:opacity-50 font-mono"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-medium rounded hover:bg-green-700 disabled:opacity-50 font-mono"
                 >
                   <CheckCircle className="w-5 h-5" />
                   {submitting ? '处理中...' : '通过审核'}

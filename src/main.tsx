@@ -15,9 +15,12 @@ const AppWrapper: React.FC = () => {
     setShowProgress(false)
   }
 
-  // 初始化自动删除定时器
+  // 初始化（登录页不触发回收站定时器，以免无关日志）
   useEffect(() => {
-    initAutoDeleteTimer()
+    const hash = window.location.hash || ''
+    if (!hash.includes('/login')) {
+      initAutoDeleteTimer()
+    }
     initMobileCompatibility()
     checkBrowserCompatibility()
   }, [])
