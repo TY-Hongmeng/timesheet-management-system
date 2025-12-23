@@ -6,6 +6,13 @@
     
     <!-- 移动端优化viewport配置 - 防止缩放和优化显示 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    <!-- 运营商/代理兼容：避免内容被转换，提升微信内核稳定性 -->
+    <meta http-equiv="Cache-Control" content="no-transform" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <!-- 腾讯 X5 内核兼容 -->
+    <meta name="x5-page-mode" content="default" />
+    <meta name="x5-orientation" content="portrait" />
+    <meta name="x5-viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     
     <!-- 移动端网络优化 - DNS预解析和预连接 -->
     <link rel="dns-prefetch" href="//ty-hongmeng.github.io" />
@@ -38,6 +45,35 @@
           );
         }
       }(window.location))
+    </script>
+
+    <!-- 微信网络重试守护（超轻量） -->
+    <script>
+      (function() {
+        var ua = navigator.userAgent || ''
+        var isWeChat = /MicroMessenger/i.test(ua)
+        if (!isWeChat) return
+        var attempts = Number(sessionStorage.getItem('wx_boot_attempts')||'0')
+        var max = 2
+        var probe = function() {
+          try {
+            var ctrl = new AbortController()
+            var timer = setTimeout(function(){ ctrl.abort() }, 2500)
+            fetch('./favicon.svg', {cache:'no-store', signal: ctrl.signal}).then(function(r){
+              clearTimeout(timer)
+              if (!r.ok) throw new Error('probe failed')
+            }).catch(function(){
+              if (attempts < max) {
+                attempts++
+                sessionStorage.setItem('wx_boot_attempts', String(attempts))
+                setTimeout(function(){ location.reload() }, 1500)
+              }
+            })
+          } catch(e) {}
+        }
+        // 稍后探测，避免与首次渲染竞争
+        setTimeout(probe, 800)
+      })()
     </script>
     
     <!-- 移动端性能优化 - 关键资源预加载 -->
