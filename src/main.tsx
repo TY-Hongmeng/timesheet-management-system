@@ -37,6 +37,11 @@ const AppWrapper: React.FC = () => {
 
       // 生产环境：正常注册 Service Worker
       if (import.meta.env.PROD) {
+        const isWeChat = /MicroMessenger/i.test(navigator.userAgent)
+        if (isWeChat) {
+          caches.keys().then(names => names.forEach(n => caches.delete(n))).catch(() => {})
+          return
+        }
         const swUrl = 'sw.js'
 
         navigator.serviceWorker

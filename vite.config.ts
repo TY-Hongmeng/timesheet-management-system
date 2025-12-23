@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: false,
-    target: 'es2020',
+    target: 'es2017',
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
