@@ -34,7 +34,8 @@ export const PERMISSIONS = {
   COMPANY_MANAGEMENT: 'company_management',
   SUPERVISOR_REVIEW: 'supervisor_review',
   MANAGER_REVIEW: 'manager_review',
-  PERMISSION_MANAGEMENT: 'permission_management'
+  PERMISSION_MANAGEMENT: 'permission_management',
+  RECYCLE_BIN: 'recycle_bin'
 } as const
 
 // 权限类型
@@ -179,6 +180,15 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     icon: 'Key',
     path: '/role-permissions',
     permission: PERMISSIONS.PERMISSION_MANAGEMENT,
+    color: 'from-red-400 to-red-600'
+  },
+  {
+    id: 'recycle_bin',
+    name: '回收站',
+    description: '查看和管理已删除的工时记录和工序',
+    icon: 'Trash2',
+    path: '/recycle-bin',
+    permission: PERMISSIONS.RECYCLE_BIN,
     color: 'from-red-400 to-red-600'
   }
 ]

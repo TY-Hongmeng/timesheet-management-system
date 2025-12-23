@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, safeQuery } from '../lib/supabase';
+import { safeDeleteWithRecycleBin } from '../utils/recycleBin';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, Edit2, Trash2, Save, X, Shield, Crown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -332,6 +333,11 @@ const SectionChiefApproval: React.FC = () => {
 
   // 工序信息缓存
   const processCache = new Map();
+  const runList = async <T,>(fn: () => Promise<{ data: T[] | null; error: any }>): Promise<T[]> => {
+    const { data, error } = await safeQuery<T[]>(fn)
+    if (error) throw error
+    return data || []
+  }
   
   // 公共查询函数 - 减少重复代码
   const executeQuery = async <T,>(queryFn: () => Promise<{ data: T; error: any }>, errorMessage: string): Promise<T | null> => {
@@ -349,44 +355,39 @@ const SectionChiefApproval: React.FC = () => {
   // 批量更新记录状态的公共函数
   const updateRecordStatus = async (recordIds: string[], status: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('timesheet_records')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .in('id', recordIds);
-      
+      const { error } = await safeQuery(async () => {
+        return await supabase
+          .from('timesheet_records')
+          .update({ status, updated_at: new Date().toISOString() })
+          .in('id', recordIds)
+      })
       if (error) {
-        console.error('更新记录状态失败', error);
-        toast.error('更新记录状态失败');
-        return false;
+        toast.error('更新记录状态失败')
+        return false
       }
-      return true;
-    } catch (error) {
-      console.error('更新记录状态失败', error);
-      toast.error('更新记录状态失败');
-      return false;
+      return true
+    } catch {
+      toast.error('更新记录状态失败')
+      return false
     }
   };
   
   // 批量插入审核历史的公共函数
   const insertApprovalHistory = async (historyRecords: any[]): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('approval_history')
-        .insert(historyRecords);
-      
+      const { error } = await safeQuery(async () => {
+        return await supabase
+          .from('approval_history')
+          .insert(historyRecords)
+      })
       if (error) {
-        console.error('插入审核历史失败', error);
-        toast.error('插入审核历史失败');
-        return false;
+        toast.error('插入审核历史失败')
+        return false
       }
-      return true;
-    } catch (error) {
-      console.error('插入审核历史失败', error);
-      toast.error('插入审核历史失败');
-      return false;
+      return true
+    } catch {
+      toast.error('插入审核历史失败')
+      return false
     }
   };
   
@@ -414,9 +415,7 @@ const SectionChiefApproval: React.FC = () => {
         query = query.eq('section_chief_id', user.id);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
+      const data = await runList<any>(() => query.order('created_at', { ascending: false }))
       
       // 提取所有工序ID
       const allItems = data?.flatMap(record => record.timesheet_record_items || []) || [];
@@ -426,19 +425,15 @@ const SectionChiefApproval: React.FC = () => {
       const uncachedProcessIds = processIds.filter(id => !processCache.has(id));
       
       if (uncachedProcessIds.length > 0) {
-        const { data: processesData, error: processError } = await supabase
-          .from('processes')
-          .select('id, product_process, product_name, production_category, production_line')
-          .in('id', uncachedProcessIds);
-        
-        if (processError) {
-          console.error('查询工序信息失败:', processError);
-        } else {
-          // 将新查询的工序信息添加到缓存
-          (processesData || []).forEach(process => {
-            processCache.set(process.id, process);
-          });
-        }
+        const processesData = await runList<any>(() =>
+          supabase
+            .from('processes')
+            .select('id, product_process, product_name, production_category, production_line')
+            .in('id', uncachedProcessIds)
+        )
+        ;(processesData || []).forEach(process => {
+          processCache.set(process.id, process)
+        })
       }
       
       // 从缓存中获取所有需要的工序信息
@@ -761,13 +756,15 @@ const SectionChiefApproval: React.FC = () => {
       const newAmount = quantityModalInfo.newQuantity * unitPrice;
 
       // 使用数据库函数更新，它会自动记录修改历史
-      const { error } = await supabase.rpc('update_timesheet_item_with_user', {
-        item_id: quantityModalInfo.itemId,
-        new_quantity: quantityModalInfo.newQuantity,
-        new_amount: newAmount,
-        modifier_id: user?.id || null,
-        modifier_name: user?.name || '未知用户'
-      });
+      const { error } = await safeQuery(async () => {
+        return await supabase.rpc('update_timesheet_item_with_user', {
+          item_id: quantityModalInfo.itemId,
+          new_quantity: quantityModalInfo.newQuantity,
+          new_amount: newAmount,
+          modifier_id: user?.id || null,
+          modifier_name: user?.name || '未知用户'
+        })
+      })
 
       if (error) throw error;
 
@@ -842,13 +839,15 @@ const SectionChiefApproval: React.FC = () => {
       const newAmount = quantityModalInfo.newQuantity * unitPrice;
 
       // 使用数据库函数更新，它会自动记录修改历史
-      const { error: saveError } = await supabase.rpc('update_timesheet_item_with_user', {
-        item_id: quantityModalInfo.itemId,
-        new_quantity: quantityModalInfo.newQuantity,
-        new_amount: newAmount,
-        modifier_id: user?.id || null,
-        modifier_name: user?.name || '未知用户'
-      });
+      const { error: saveError } = await safeQuery(async () => {
+        return await supabase.rpc('update_timesheet_item_with_user', {
+          item_id: quantityModalInfo.itemId,
+          new_quantity: quantityModalInfo.newQuantity,
+          new_amount: newAmount,
+          modifier_id: user?.id || null,
+          modifier_name: user?.name || '未知用户'
+        })
+      })
 
       if (saveError) {
         console.error('保存数量修改失败:', saveError);
@@ -951,13 +950,15 @@ const SectionChiefApproval: React.FC = () => {
       const newAmount = unsavedChangesInfo.newQuantity * unitPrice;
 
       // 使用数据库函数更新，它会自动记录修改历史
-      const { error: saveError } = await supabase.rpc('update_timesheet_item_with_user', {
-        item_id: unsavedChangesInfo.itemId,
-        new_quantity: unsavedChangesInfo.newQuantity,
-        new_amount: newAmount,
-        modifier_id: user?.id || null,
-        modifier_name: user?.name || '未知用户'
-      });
+      const { error: saveError } = await safeQuery(async () => {
+        return await supabase.rpc('update_timesheet_item_with_user', {
+          item_id: unsavedChangesInfo.itemId,
+          new_quantity: unsavedChangesInfo.newQuantity,
+          new_amount: newAmount,
+          modifier_id: user?.id || null,
+          modifier_name: user?.name || '未知用户'
+        })
+      })
 
       if (saveError) {
         console.error('保存数量修改失败:', saveError);
@@ -1137,41 +1138,41 @@ const SectionChiefApproval: React.FC = () => {
   // 删除记录项
   const deleteRecordItem = async () => {
     if (!deleteTargetInfo) return;
+    if (!user?.id) {
+      toast.error('用户信息缺失，请重新登录后再试');
+      return;
+    }
 
     try {
       // 先获取要删除的item信息，包括其所属的timesheet_record_id
-      const { data: itemData, error: itemError } = await supabase
-        .from('timesheet_record_items')
-        .select('timesheet_record_id')
-        .eq('id', deleteTargetInfo.itemId)
-        .single();
+      const itemData = await safeQuery(async () => {
+        return await supabase
+          .from('timesheet_record_items')
+          .select('timesheet_record_id')
+          .eq('id', deleteTargetInfo.itemId)
+          .single()
+      })
+      if (itemData.error) throw itemData.error
 
-      if (itemError) throw itemError;
+      const { error: rpcItemErr } = await safeQuery(async () => {
+        return await supabase.rpc('delete_timesheet_item_with_recycle_bin_v2', { item_id: deleteTargetInfo.itemId, actor_id: user.id })
+      })
+      if (rpcItemErr) throw rpcItemErr
 
-      // 删除该item
-      const { error } = await supabase
-        .from('timesheet_record_items')
-        .delete()
-        .eq('id', deleteTargetInfo.itemId);
-
-      if (error) throw error;
-
-      // 检查该record是否还有其他items
-      const { data: remainingItems, error: checkError } = await supabase
-        .from('timesheet_record_items')
-        .select('id')
-        .eq('timesheet_record_id', itemData.timesheet_record_id);
-
-      if (checkError) throw checkError;
+      const remainingItemsRes = await safeQuery(async () => {
+        return await supabase
+          .from('timesheet_record_items')
+          .select('id')
+          .eq('timesheet_record_id', (itemData.data as any).timesheet_record_id)
+      })
+      const remainingItems = remainingItemsRes.data || []
 
       // 如果没有剩余的items，删除主记录
       if (remainingItems.length === 0) {
-        const { error: deleteRecordError } = await supabase
-          .from('timesheet_records')
-          .delete()
-          .eq('id', itemData.timesheet_record_id);
-
-        if (deleteRecordError) throw deleteRecordError;
+        const { error: rpcRecordErr } = await safeQuery(async () => {
+          return await supabase.rpc('delete_timesheet_record_with_recycle_bin_v2', { record_id: (itemData.data as any).timesheet_record_id, actor_id: user.id })
+        })
+        if (rpcRecordErr) throw rpcRecordErr
       }
 
       toast.success('记录项删除成功');
@@ -1245,7 +1246,7 @@ const SectionChiefApproval: React.FC = () => {
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">段长审核</h1>
             </div>
             <div className="flex items-center gap-2">
-              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" showClearCache={false} />
             </div>
           </div>
           <div className="h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
@@ -1282,7 +1283,8 @@ const SectionChiefApproval: React.FC = () => {
                       type="checkbox"
                       checked={selectedRecords.has(groupedRecord.groupKey)}
                       onChange={() => handleSelectRecord(groupedRecord.groupKey)}
-                      className="w-4 h-4 text-green-600 border-green-400 rounded focus:ring-green-500 bg-gray-700 flex-shrink-0"
+                      className="w-6 h-6 border-2 border-green-500 rounded bg-gray-800 focus:ring-2 focus:ring-green-400 flex-shrink-0"
+                      style={{ accentColor: '#22c55e' }}
                     />
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-green-400" />

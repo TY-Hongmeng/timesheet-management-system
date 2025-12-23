@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { SimpleStartupProgress } from './components/SimpleStartupProgress'
+import { initAutoDeleteTimer } from './utils/recycleBin'
 import './index.css'
+import './utils/polyfills'
+import { initMobileCompatibility, checkBrowserCompatibility } from './utils/polyfills'
 
 // 简单的应用包装器
 const AppWrapper: React.FC = () => {
@@ -12,42 +15,54 @@ const AppWrapper: React.FC = () => {
     setShowProgress(false)
   }
 
+  // 初始化自动删除定时器
   useEffect(() => {
-    // 注册 Service Worker（在生产环境或本地环境均可）
+    initAutoDeleteTimer()
+    initMobileCompatibility()
+    checkBrowserCompatibility()
+  }, [])
+
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
-      const basePath = window.location.pathname.includes('/timesheet-management-system') ? '/timesheet-management-system' : ''
-      const swUrl = basePath ? `${basePath}/sw.js` : '/sw.js'
+      // 开发环境：彻底禁用并清理已注册的 Service Worker 与缓存，避免离线页干扰
+      if (import.meta.env.DEV) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister())
+        })
+        caches.keys().then(names => {
+          names.forEach(n => caches.delete(n))
+        })
+        return
+      }
 
-      navigator.serviceWorker
-        // 依赖默认作用域，避免 GitHub Pages 作用域限制
-        .register(swUrl)
-        .then(reg => {
-          console.log('[SW] Registered:', reg)
+      // 生产环境：正常注册 Service Worker
+      if (import.meta.env.PROD) {
+        const swUrl = 'sw.js'
 
-          // 如果已有等待中的 SW，通知跳过等待并立即激活
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-          }
+        navigator.serviceWorker
+          .register(swUrl)
+          .then(reg => {
+            console.log('[SW] Registered:', reg)
 
-          // 监听更新事件，安装完成后强制启用新 SW
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing || reg.waiting
-            if (!newWorker) return
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed') {
-                // 如果已有控制器，表示更新，通知跳过等待
-                if (navigator.serviceWorker.controller) {
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing || reg.waiting
+              if (!newWorker) return
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   newWorker.postMessage({ type: 'SKIP_WAITING' })
-                  // 刷新页面以让新 SW 接管
                   setTimeout(() => window.location.reload(), 100)
                 }
-              }
+              })
             })
           })
-        })
-        .catch(err => {
-          console.error('[SW] Registration failed:', err)
-        })
+          .catch(err => {
+            console.error('[SW] Registration failed:', err)
+          })
+      }
     }
   }, [])
 

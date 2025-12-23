@@ -12,7 +12,8 @@ import {
   History as HistoryIcon,
   BarChart3,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw
 } from 'lucide-react';
 import NavActions from '../components/NavActions';
 import { toast } from 'sonner';
@@ -517,7 +518,7 @@ const History: React.FC = () => {
               历史记录
             </h1>
             <div className="flex items-center gap-3">
-              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" showClearCache={false} />
             </div>
           </div>
         </div>

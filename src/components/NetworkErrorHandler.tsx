@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Wifi, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react'
+import { checkNetworkConnection } from '@/lib/supabase'
+import { Wifi, WifiOff, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react'
 
 interface NetworkErrorHandlerProps {
   children: React.ReactNode
@@ -11,19 +12,32 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
   const [retryCount, setRetryCount] = useState(0)
   const [lastOnlineTime, setLastOnlineTime] = useState(Date.now())
   const [networkCheckTimeout, setNetworkCheckTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isChecking, setIsChecking] = useState(false)
+  const [lastCheckAt, setLastCheckAt] = useState(0)
+  const [backendStatus, setBackendStatus] = useState<'unknown' | 'ok' | 'fail'>('unknown')
 
   // 实际网络连接测试
   const testNetworkConnection = useCallback(async () => {
     try {
-      // 使用navigator.onLine作为主要的网络状态检测方法
-      // 这是最可靠且不会产生网络请求错误的方法
+      if (document.hidden) return navigator.onLine
+      if (isChecking) return navigator.onLine
+      setIsChecking(true)
+      // 只使用浏览器在线状态，避免开发环境HMR引发的资源取消错误
+      const online = navigator.onLine
+      // 可选：在确认在线时，轻量探测后端
+      if (online) {
+        const backendOk = await checkNetworkConnection().catch(() => true)
+        setBackendStatus(backendOk ? 'ok' : 'fail')
+      }
+      setIsChecking(false)
+      setLastCheckAt(Date.now())
+      return online
+    } catch {
+      setIsChecking(false)
+      setLastCheckAt(Date.now())
       return navigator.onLine
-    } catch (error) {
-      console.warn('网络连接测试失败:', error)
-      // 如果测试失败，默认认为在线
-      return true
     }
-  }, [])
+  }, [isChecking])
 
   // 延迟显示离线消息，避免短暂网络波动的误报
   const scheduleOfflineCheck = useCallback(() => {
@@ -31,20 +45,26 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
       clearTimeout(networkCheckTimeout)
     }
     
+    const baseDelay = 3000
+    const delay = Math.min(baseDelay * Math.pow(2, Math.max(0, retryCount - 1)), 20000)
     const timeout = setTimeout(async () => {
+      // 节流：两秒内不重复检测
+      if (Date.now() - lastCheckAt < 2000) {
+        return
+      }
       const isActuallyOnline = await testNetworkConnection()
       if (!isActuallyOnline && !navigator.onLine) {
         setShowOfflineMessage(true)
-        console.log('📡 确认网络连接已断开')
+        
       } else if (isActuallyOnline) {
         setIsOnline(true)
         setShowOfflineMessage(false)
-        console.log('🌐 网络连接正常')
+        
       }
-    }, 3000) // 3秒延迟，避免短暂断网的误报
+    }, delay)
     
     setNetworkCheckTimeout(timeout)
-  }, [testNetworkConnection, networkCheckTimeout])
+  }, [testNetworkConnection, networkCheckTimeout, lastCheckAt, retryCount])
 
   useEffect(() => {
     const handleOnline = async () => {
@@ -75,7 +95,9 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
 
     // 页面可见性变化时重新检查网络状态
     const handleVisibilityChange = async () => {
-      if (!document.hidden && navigator.onLine) {
+      if (document.hidden) return
+      if (Date.now() - lastCheckAt < 2000) return
+      if (navigator.onLine) {
         const isActuallyOnline = await testNetworkConnection()
         if (!isActuallyOnline) {
           setIsOnline(false)
@@ -138,6 +160,22 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
     setLastOnlineTime(Date.now())
   }
 
+  const openDiagnostics = () => {
+    window.location.hash = '#/diagnostics'
+  }
+
+  const clearCaches = async () => {
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const channel = new MessageChannel()
+        channel.port1.onmessage = () => {}
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_ALL_CACHES' }, [channel.port2])
+      }
+      const names = await caches.keys()
+      await Promise.all(names.map(n => caches.delete(n)))
+    } catch {}
+  }
+
   // 只有在确认离线且显示消息时才显示错误页面
   if (!isOnline && showOfflineMessage) {
     return (
@@ -162,6 +200,12 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
                 <RefreshCw className="w-5 h-5 mr-2" />
                 重新连接 {retryCount > 0 && `(${retryCount})`}
               </button>
+              <button
+                onClick={openDiagnostics}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors duration-200"
+              >
+                打开系统诊断
+              </button>
               
               <button
                 onClick={handleDismiss}
@@ -169,20 +213,21 @@ const NetworkErrorHandler: React.FC<NetworkErrorHandlerProps> = ({ children }) =
               >
                 重试
               </button>
+              <button
+                onClick={clearCaches}
+                className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-green-300 border border-green-400 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />清除缓存
+              </button>
             </div>
 
             <div className="mt-6 text-xs text-gray-500 dark:text-gray-400">
               <p>错误详情</p>
-              <details className="mt-2 text-left">
-                <summary className="cursor-pointer text-gray-600 dark:text-gray-300">
-                  ▼ 错误详情
-                </summary>
-                <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">
-                  <p>模块: https://ty-hongmeng.github.io/timesheet-management-system/assets/index-mCFu98em.js</p>
-                  <p>错误: Loading chunk 2 failed.</p>
-                  <p>时间: {new Date().toLocaleString()}</p>
-                </div>
-              </details>
+              <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">
+                <p>状态: 离线</p>
+                <p>时间: {new Date().toLocaleString()}</p>
+                <p>后端连接: {backendStatus === 'unknown' ? '未知' : backendStatus === 'ok' ? '正常' : '失败'}</p>
+              </div>
             </div>
           </div>
         </div>

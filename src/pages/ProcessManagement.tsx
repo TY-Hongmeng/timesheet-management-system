@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Search, Edit, Trash2, Filter, X, Settings, Upload, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { safeQuery } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
 import { toast } from 'sonner';
@@ -206,7 +207,7 @@ const ProcessManagement: React.FC = () => {
 
 
 
-      // 修复：移除is_active条件，确保获取所有生产线数据
+      // 只显示启用的工序（软删除的 is_active=false 不显示）
       let query = supabase
         .from('processes')
         .select(`
@@ -225,7 +226,9 @@ const ProcessManagement: React.FC = () => {
         query = query.eq('company_id', user.company.id);
       }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
       if (error) {
         toast.error(`获取工序列表失败: ${error.message}`);
@@ -530,10 +533,22 @@ const ProcessManagement: React.FC = () => {
     }
     
     try {
-      const { error } = await supabase
+      // 获取原始工序数据
+      const { data: original, error: fetchError } = await supabase
         .from('processes')
-        .update({ is_active: false })
-        .eq('id', id);
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (fetchError || !original) {
+        toast.error('未找到工序数据');
+        return;
+      }
+
+      // 软删除：通过RPC，包含权限校验与回收站写入
+      const { error } = await safeQuery(async () => {
+        return await supabase.rpc('delete_process_with_recycle_bin_v2', { process_id: id, actor_id: user.id })
+      })
 
       if (error) {
         toast.error(`删除工序失败: ${error.message}`);
@@ -541,7 +556,7 @@ const ProcessManagement: React.FC = () => {
       }
 
       setProcesses(processes.filter(process => process.id !== id));
-      toast.success('工序删除成功');
+      toast.success('工序删除成功，已进入回收站');
     } catch (error) {
       toast.error('删除工序失败');
     }

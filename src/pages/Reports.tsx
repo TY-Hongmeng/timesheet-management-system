@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, safeQuery } from '../lib/supabase';
+import { safeDeleteWithRecycleBin } from '../utils/recycleBin';
 import { useAuth } from '../contexts/AuthContext';
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext';
 import { checkUserPermission, PERMISSIONS, isSuperAdmin } from '../utils/permissions';
@@ -13,6 +14,7 @@ import {
   Download,
   PieChart,
   Users,
+  RefreshCw,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -127,6 +129,12 @@ const Reports: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const runQuery = async <T,>(fn: () => Promise<{ data: T | null; error: any }>): Promise<T> => {
+    const { data, error } = await safeQuery<T>(fn);
+    if (error) throw error;
+    return (data as T) ?? ([] as unknown as T);
+  };
+
 
   const [stats, setStats] = useState<ReportStats>({
     totalRecords: 0,
@@ -163,6 +171,11 @@ const Reports: React.FC = () => {
 
   // 展开状态管理
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState<number>(50);
+  const [visibleUserDates, setVisibleUserDates] = useState<Record<string, number>>({});
+
+  const sortedUsersMemo = useMemo(() => getSortedUserStats(), [filteredRecords, analyticsData, sortConfig]);
+  const totalSortedUsers = sortedUsersMemo.length;
 
   // 项目栏显示/隐藏状态
   const [showProjectColumns, setShowProjectColumns] = useState<boolean>(true);
@@ -216,6 +229,12 @@ const Reports: React.FC = () => {
   useEffect(() => {
     applyFilters();
   }, [records, filters]);
+
+  useEffect(() => {
+    calculateStats(filteredRecords);
+    calculateAnalyticsData(filteredRecords);
+    setVisibleCount(50);
+  }, [filteredRecords]);
 
   const checkReportsPermission = async () => {
     console.log('=== checkReportsPermission 被调用 ===');
@@ -274,15 +293,12 @@ const Reports: React.FC = () => {
         }
         
         // 先查询当前公司的所有用户ID
-        const { data: companyUsers, error: usersError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('company_id', user.company.id);
-          
-        if (usersError) {
-          console.error('查询公司用户失败:', usersError);
-          throw usersError;
-        }
+        const companyUsers = await runQuery<any[]>(() =>
+          supabase
+            .from('users')
+            .select('id')
+            .eq('company_id', user.company.id)
+        );
         
         const companyUserIds = companyUsers?.map(u => u.id) || [];
         
@@ -293,89 +309,87 @@ const Reports: React.FC = () => {
         }
         
         // 使用用户ID列表过滤工时记录，排除草稿状态
-        const { data: filteredRecords, error: recordsError } = await supabase
-          .from('timesheet_records')
-          .select(`
-            *,
-            user_name,
-            supervisor_name,
-            section_chief_name,
-            user:user_id(id, name, company_id),
-            supervisor:supervisor_id(id, name),
-            section_chief:section_chief_id(id, name)
-          `)
-          .in('user_id', companyUserIds)
-          .neq('status', 'draft')
-          .order('created_at', { ascending: false });
-          
-        if (recordsError) throw recordsError;
-        recordsData = filteredRecords;
+        recordsData = await runQuery<any[]>(() =>
+          supabase
+            .from('timesheet_records')
+            .select(`
+              *,
+              user_name,
+              supervisor_name,
+              section_chief_name,
+              user:user_id(id, name, company_id),
+              supervisor:supervisor_id(id, name),
+              section_chief:section_chief_id(id, name)
+            `)
+            .in('user_id', companyUserIds)
+            .neq('status', 'draft')
+            .order('created_at', { ascending: false })
+        );
       } else {
         // 超级管理员查看所有工时记录，排除草稿状态
-        const { data: allRecords, error: recordsError } = await supabase
-          .from('timesheet_records')
-          .select(`
-            *,
-            user_name,
-            supervisor_name,
-            section_chief_name,
-            user:user_id(id, name, company_id),
-            supervisor:supervisor_id(id, name),
-            section_chief:section_chief_id(id, name)
-          `)
-          .neq('status', 'draft')
-          .order('created_at', { ascending: false });
-          
-        if (recordsError) throw recordsError;
-        recordsData = allRecords;
+        recordsData = await runQuery<any[]>(() =>
+          supabase
+            .from('timesheet_records')
+            .select(`
+              *,
+              user_name,
+              supervisor_name,
+              section_chief_name,
+              user:user_id(id, name, company_id),
+              supervisor:supervisor_id(id, name),
+              section_chief:section_chief_id(id, name)
+            `)
+            .neq('status', 'draft')
+            .order('created_at', { ascending: false })
+        );
        }
 
       // 获取工时记录项（包含工序详细信息）
       const recordIds = recordsData?.map(r => r.id) || [];
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('timesheet_record_items')
-        .select(`
-          *,
-          processes:process_id(
-            product_process,
-            product_name,
-            production_category,
-            production_line,
-            unit_price
-          )
-        `)
-        .in('timesheet_record_id', recordIds);
-
-      if (itemsError) throw itemsError;
+      const itemsData = await runQuery<any[]>(() =>
+        supabase
+          .from('timesheet_record_items')
+          .select(`
+            *,
+            processes:process_id(
+              product_process,
+              product_name,
+              production_category,
+              production_line,
+              unit_price
+            )
+          `)
+          .in('timesheet_record_id', recordIds)
+      );
 
       // 获取审核历史
-      const { data: approvalData, error: approvalError } = await supabase
-        .from('approval_history')
-        .select(`
-          *,
-          approver_name,
-          approver:approver_id(name)
-        `)
-        .in('timesheet_record_id', recordIds);
-
-      if (approvalError) throw approvalError;
+      const approvalData = await runQuery<any[]>(() =>
+        supabase
+          .from('approval_history')
+          .select(`
+            *,
+            approver_name,
+            approver:approver_id(name)
+          `)
+          .in('timesheet_record_id', recordIds)
+      );
 
       // 获取修改历史
       const itemIds = itemsData?.map(item => item.id) || [];
-      const { data: modificationData, error: modificationError } = await supabase
-        .from('timesheet_item_modification_history')
-        .select(`
-          *,
-          modifier_name,
-          modifier:modifier_id(
-            name,
-            role:role_id(name)
-          )
-        `)
-        .in('timesheet_record_item_id', itemIds)
-        .order('created_at', { ascending: false });
-
-      if (modificationError) throw modificationError;
+      const modificationData = await runQuery<any[]>(() =>
+        supabase
+          .from('timesheet_item_modification_history')
+          .select(`
+            *,
+            modifier_name,
+            modifier:modifier_id(
+              name,
+              role:role_id(name)
+            )
+          `)
+          .in('timesheet_record_item_id', itemIds)
+          .order('created_at', { ascending: false })
+      );
 
       // 调试修改历史数据
       console.log('=== 修改历史查询结果 ===');
@@ -410,8 +424,7 @@ const Reports: React.FC = () => {
 
       setRecords(recordsWithItems);
       calculateStats(recordsWithItems);
-      calculateAnalyticsData(recordsWithItems);
-    } catch (error) {
+  } catch (error) {
       console.error('获取报表数据失败:', error);
       toast.error('获取报表数据失败');
     } finally {
@@ -444,11 +457,8 @@ const Reports: React.FC = () => {
         usersQuery = usersQuery.eq('company_id', user.company.id);
       }
 
-      const { data: usersData } = await usersQuery.order('name');
-      
-      if (usersData) {
-        setUsers(usersData);
-      }
+      const usersData = await runQuery<any[]>(() => usersQuery.order('name'))
+      setUsers(usersData || [])
 
       // 获取工序相关数据（生产线、工时类型、产品名称、产品工序）
       let processesQuery = supabase
@@ -461,8 +471,7 @@ const Reports: React.FC = () => {
         processesQuery = processesQuery.eq('company_id', user.company.id);
       }
       
-      const { data: processesData } = await processesQuery;
-      
+      const processesData = await runQuery<any[]>(() => processesQuery)
       if (processesData) {
         // 生产线列表
         const uniqueLines = [...new Set(processesData.map(p => p.production_line).filter(Boolean))];
@@ -504,8 +513,7 @@ const Reports: React.FC = () => {
     };
     setStats(stats);
     
-    // 计算分析数据
-    calculateAnalyticsData(data);
+    // 分析数据计算改由 applyFilters 统一触发，避免重复计算
   };
   
   // 计算分析统计数据
@@ -600,8 +608,6 @@ const Reports: React.FC = () => {
     }
 
     setFilteredRecords(filtered);
-    calculateStats(filtered);
-    calculateAnalyticsData(filtered);
   };
 
 
@@ -722,6 +728,10 @@ const Reports: React.FC = () => {
     if (!pendingDelete) {
       return;
     }
+    if (!user?.id) {
+      toast.error('用户信息缺失，请重新登录后再试');
+      return;
+    }
 
     try {
       // 先检查这个item所属的record还有多少个items
@@ -735,25 +745,18 @@ const Reports: React.FC = () => {
       }
 
       // 删除工时项目
-      const { error } = await supabase
-        .from('timesheet_record_items')
-        .delete()
-        .eq('id', pendingDelete.itemId);
-
-      if (error) {
-        throw error;
-      }
+      const { data: rpcItemDelete, error: rpcItemErr } = await safeQuery(async () => {
+        return await supabase.rpc('delete_timesheet_item_with_recycle_bin_v2', { item_id: pendingDelete.itemId, actor_id: user.id })
+      })
+      if (rpcItemErr) throw rpcItemErr
 
       // 如果删除后该记录没有任何items了，也删除主记录
       if (remainingItems && remainingItems.length === 1) {
-        const { error: recordError } = await supabase
-          .from('timesheet_records')
-          .delete()
-          .eq('id', pendingDelete.recordId);
-
-        if (recordError) {
-          console.error('删除空的工时记录失败:', recordError);
-          // 不抛出错误，因为item已经删除成功了
+        const { error: rpcRecordErr } = await safeQuery(async () => {
+          return await supabase.rpc('delete_timesheet_record_with_recycle_bin_v2', { record_id: pendingDelete.recordId, actor_id: user.id })
+        })
+        if (rpcRecordErr) {
+          console.error('删除空的工时记录失败:', rpcRecordErr)
         }
       }
 
@@ -1253,7 +1256,7 @@ const Reports: React.FC = () => {
   };
 
   // 获取排序后的用户统计数据
-  const getSortedUserStats = () => {
+  function getSortedUserStats() {
     // 过滤掉没有工时数据的员工（总工时数量为0或总工时金额为0）
     let filteredData = analyticsData.userStats.filter(userStat => 
       userStat.totalQuantity > 0 || userStat.totalAmount > 0
@@ -1276,7 +1279,7 @@ const Reports: React.FC = () => {
     });
 
     return sortedData;
-  };
+  }
 
   // 获取排序值
   const getSortValue = (userStat: any, key: string) => {
@@ -1360,7 +1363,7 @@ const Reports: React.FC = () => {
               查看报表
             </h1>
             <div className="flex items-center gap-3">
-              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" showClearCache={false} />
             </div>
           </div>
         </div>
@@ -1836,12 +1839,12 @@ const Reports: React.FC = () => {
                     导出报告
                   </button>
                 </div>
-              </div>
             </div>
-            
-            {/* 统计分析表格 */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          </div>
+          
+          {/* 统计分析表格 */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
                 <thead className="bg-gray-800 border-b border-green-600">
                   <tr>
                     <th className="px-4 py-3 text-left text-green-400 font-mono text-sm">
@@ -1915,7 +1918,7 @@ const Reports: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {getSortedUserStats().map((userStat, userIndex) => {
+                  {sortedUsersMemo.slice(0, visibleCount).map((userStat, userIndex) => {
                     // 获取该用户的详细统计数据
                     const userDailyStats = analyticsData.dailyStats.filter(d => d.userId === userStat.userId);
                     const userMonthlyStats = analyticsData.monthlyStats.filter(m => m.userId === userStat.userId);
@@ -2065,8 +2068,11 @@ const Reports: React.FC = () => {
                                         
                                         // 按日期排序
                                         const sortedDates = Object.keys(recordsByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+                                        const initialCount = 10;
+                                        const currentVisible = visibleUserDates[userStat.userId] ?? initialCount;
+                                        const datesToShow = sortedDates.slice(0, currentVisible);
                                         
-                                        return sortedDates.flatMap(date => {
+                                        return datesToShow.flatMap(date => {
                                           const dateRecords = recordsByDate[date];
                                           // 计算该日期的总金额
                                           const dailyTotal = dateRecords.reduce((sum, record) => 
@@ -2279,6 +2285,25 @@ const Reports: React.FC = () => {
                                     </table>
                                   </div>
                                 </div>
+                                {(() => {
+                                  const totalDates = Object.keys(userRecords.reduce((groups, record) => {
+                                    const dateKey = record.work_date;
+                                    if (!groups[dateKey]) { groups[dateKey] = []; }
+                                    groups[dateKey].push(record);
+                                    return groups;
+                                  }, {} as Record<string, typeof userRecords>)).length;
+                                  const currentVisible = visibleUserDates[userStat.userId] ?? 10;
+                                  return totalDates > currentVisible ? (
+                                    <div className="p-3 flex justify-center">
+                                      <button
+                                        onClick={() => setVisibleUserDates(prev => ({ ...prev, [userStat.userId]: Math.min(currentVisible + 10, totalDates) }))}
+                                        className="px-4 py-2 bg-gray-800 border border-green-400 text-green-300 rounded hover:bg-gray-700"
+                                      >
+                                        加载更多日期
+                                      </button>
+                                    </div>
+                                  ) : null
+                                })()}
                                 
                                 {/* 统计汇总区域 */}
                                 <div className="mt-6 bg-gray-600 rounded-lg p-4">
@@ -2395,6 +2420,16 @@ const Reports: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {totalSortedUsers > visibleCount && (
+              <div className="p-4 flex justify-center">
+                <button
+                  onClick={() => setVisibleCount(c => Math.min(c + 50, totalSortedUsers))}
+                  className="px-4 py-2 bg-gray-800 border border-green-400 text-green-300 rounded hover:bg-gray-700"
+                >
+                  加载更多
+                </button>
+              </div>
+            )}
           </div>
         }
           

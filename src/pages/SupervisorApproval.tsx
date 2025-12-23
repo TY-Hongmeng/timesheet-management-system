@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, safeQuery } from '../lib/supabase';
+import { safeDeleteWithRecycleBin } from '../utils/recycleBin';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, XCircle, Clock, User, Calendar, Package, MessageSquare, Eye, Edit2, Trash2, Save, X, Shield, Crown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -329,6 +330,11 @@ const SupervisorApproval: React.FC = () => {
 
   // 工序信息缓存
   const processCache = new Map();
+  const runList = async <T,>(fn: () => Promise<{ data: T[] | null; error: any }>): Promise<T[]> => {
+    const { data, error } = await safeQuery<T[]>(fn)
+    if (error) throw error
+    return data || []
+  }
   
   // 公共查询函数 - 减少重复代码
   const executeQuery = async <T,>(queryFn: () => Promise<{ data: T; error: any }>, errorMessage: string): Promise<T | null> => {
@@ -346,44 +352,39 @@ const SupervisorApproval: React.FC = () => {
   // 批量更新记录状态的公共函数
   const updateRecordStatus = async (recordIds: string[], status: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('timesheet_records')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .in('id', recordIds);
-      
+      const { error } = await safeQuery(async () => {
+        return await supabase
+          .from('timesheet_records')
+          .update({ status, updated_at: new Date().toISOString() })
+          .in('id', recordIds)
+      })
       if (error) {
-        console.error('更新记录状态失败', error);
-        toast.error('更新记录状态失败');
-        return false;
+        toast.error('更新记录状态失败')
+        return false
       }
-      return true;
-    } catch (error) {
-      console.error('更新记录状态失败', error);
-      toast.error('更新记录状态失败');
-      return false;
+      return true
+    } catch {
+      toast.error('更新记录状态失败')
+      return false
     }
   };
   
   // 批量插入审核历史的公共函数
   const insertApprovalHistory = async (historyRecords: any[]): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('approval_history')
-        .insert(historyRecords);
-      
+      const { error } = await safeQuery(async () => {
+        return await supabase
+          .from('approval_history')
+          .insert(historyRecords)
+      })
       if (error) {
-        console.error('插入审核历史失败', error);
-        toast.error('插入审核历史失败');
-        return false;
+        toast.error('插入审核历史失败')
+        return false
       }
-      return true;
-    } catch (error) {
-      console.error('插入审核历史失败', error);
-      toast.error('插入审核历史失败');
-      return false;
+      return true
+    } catch {
+      toast.error('插入审核历史失败')
+      return false
     }
   };
   
@@ -411,9 +412,7 @@ const SupervisorApproval: React.FC = () => {
         query = query.eq('supervisor_id', user.id);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
+      const data = await runList<any>(() => query.order('created_at', { ascending: false }))
       
       // 提取所有工序ID
       const allItems = data?.flatMap(record => record.timesheet_record_items || []) || [];
@@ -423,19 +422,15 @@ const SupervisorApproval: React.FC = () => {
       const uncachedProcessIds = processIds.filter(id => !processCache.has(id));
       
       if (uncachedProcessIds.length > 0) {
-        const { data: processesData, error: processError } = await supabase
-          .from('processes')
-          .select('id, product_process, product_name, production_category, production_line')
-          .in('id', uncachedProcessIds);
-        
-        if (processError) {
-          console.error('查询工序信息失败:', processError);
-        } else {
-          // 将新查询的工序信息添加到缓存
-          (processesData || []).forEach(process => {
-            processCache.set(process.id, process);
-          });
-        }
+        const processesData = await runList<any>(() =>
+          supabase
+            .from('processes')
+            .select('id, product_process, product_name, production_category, production_line')
+            .in('id', uncachedProcessIds)
+        )
+        ;(processesData || []).forEach(process => {
+          processCache.set(process.id, process);
+        })
       }
       
       // 从缓存中获取所有需要的工序信息
@@ -759,13 +754,15 @@ const SupervisorApproval: React.FC = () => {
       const newAmount = quantityModalInfo.newQuantity * unitPrice;
 
       // 使用数据库函数更新，它会自动记录修改历史
-      const { error } = await supabase.rpc('update_timesheet_item_with_user', {
-        item_id: quantityModalInfo.itemId,
-        new_quantity: quantityModalInfo.newQuantity,
-        new_amount: newAmount,
-        modifier_id: user?.id || null,
-        modifier_name: user?.name || '未知用户'
-      });
+      const { error } = await safeQuery(async () => {
+        return await supabase.rpc('update_timesheet_item_with_user', {
+          item_id: quantityModalInfo.itemId,
+          new_quantity: quantityModalInfo.newQuantity,
+          new_amount: newAmount,
+          modifier_id: user?.id || null,
+          modifier_name: user?.name || '未知用户'
+        })
+      })
 
       if (error) throw error;
 
@@ -1135,40 +1132,36 @@ const SupervisorApproval: React.FC = () => {
   // 确认删除函数
   const confirmDelete = async () => {
     if (!deleteTargetId || !deleteTargetInfo) return;
+    if (!user?.id) {
+      toast.error('用户信息缺失，请重新登录后再试');
+      return;
+    }
 
     try {
       // 先检查这个item所属的record还有多少个items
-      const { data: remainingItems, error: checkError } = await supabase
-        .from('timesheet_record_items')
-        .select('id')
-        .eq('timesheet_record_id', deleteTargetInfo.recordId);
+      const remainingItems = await runList<any>(() =>
+        supabase
+          .from('timesheet_record_items')
+          .select('id')
+          .eq('timesheet_record_id', deleteTargetInfo.recordId)
+      )
 
-      if (checkError) {
-        throw checkError;
-      }
-
-      // 删除工时项目
-      const { error } = await supabase
-        .from('timesheet_record_items')
-        .delete()
-        .eq('id', deleteTargetId);
-
-      if (error) {
-        console.error('删除工时记录项失败:', error);
-        toast.error('删除失败，请重试');
-        return;
+      const { data: rpcResult, error: rpcItemErr } = await safeQuery(async () => {
+        return await supabase.rpc('delete_timesheet_item_with_recycle_bin_v2', { item_id: deleteTargetId, actor_id: user.id })
+      })
+      if (rpcItemErr) {
+        console.error('删除RPC错误:', rpcItemErr)
+        toast.error(`删除失败：${rpcItemErr.message || '请重试'}`)
+        return
       }
 
       // 如果删除后该记录没有任何items了，也删除主记录
       if (remainingItems && remainingItems.length === 1) {
-        const { error: recordError } = await supabase
-          .from('timesheet_records')
-          .delete()
-          .eq('id', deleteTargetInfo.recordId);
-
-        if (recordError) {
-          console.error('删除空的工时记录失败:', recordError);
-          // 不抛出错误，因为item已经删除成功了
+        const { error: rpcRecordErr } = await safeQuery(async () => {
+          return await supabase.rpc('delete_timesheet_record_with_recycle_bin_v2', { record_id: deleteTargetInfo.recordId, actor_id: user.id })
+        })
+        if (rpcRecordErr) {
+          console.error('删除空的工时记录失败:', rpcRecordErr)
         }
       }
 
@@ -1241,7 +1234,7 @@ const SupervisorApproval: React.FC = () => {
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">班长审核</h1>
             </div>
             <div className="flex items-center gap-2">
-              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+              <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" showClearCache={false} />
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
@@ -1278,7 +1271,8 @@ const SupervisorApproval: React.FC = () => {
                         type="checkbox"
                         checked={selectedRecords.has(groupedRecord.groupKey)}
                         onChange={() => handleSelectRecord(groupedRecord.groupKey)}
-                        className="w-4 h-4 text-green-600 border-green-400 rounded focus:ring-green-500 bg-gray-700 flex-shrink-0"
+                        className="w-6 h-6 border-2 border-green-500 rounded bg-gray-800 focus:ring-2 focus:ring-green-400 flex-shrink-0"
+                        style={{ accentColor: '#22c55e' }}
                       />
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-green-400" />

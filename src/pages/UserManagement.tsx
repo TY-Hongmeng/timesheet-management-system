@@ -58,7 +58,7 @@ export default function UserManagement() {
     company_id: '',
     role_id: '',
     production_line: '',
-    is_active: false // 默认为false，会在useEffect中同步
+      is_active: false
   })
   const [formLoading, setFormLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -1645,7 +1645,7 @@ export default function UserManagement() {
       company_id: '',
       role_id: '',
       production_line: '',
-      is_active: defaultUserStatus // 使用全局默认状态设置
+      is_active: false
     }
     
     // 如果不是超级管理员，自动设置表单的公司为用户所属公司
@@ -1746,97 +1746,7 @@ export default function UserManagement() {
 
 
 
-        {/* 注册默认状态控制开关 */}
-        <div className="mb-6 p-4 bg-gray-900/50 border border-green-400/30 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Shield className="w-5 h-5 text-green-400" />
-              <div>
-                <h3 className="text-green-400 font-mono font-bold">新用户注册默认状态</h3>
-                <p className="text-green-300/70 text-sm font-mono">
-                  控制新注册用户的默认激活状态，当前设置：
-                  <span className={`ml-1 font-bold ${defaultUserStatus ? 'text-green-400' : 'text-red-400'}`}>
-                    {defaultUserStatus ? '启用' : '禁用'}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={(e) => {
-                  console.log('🖱️ [UserManagement] 禁用按钮被点击！')
-                  console.log('🖱️ [UserManagement] 点击事件对象:', e)
-                  console.log('🖱️ [UserManagement] 当前defaultUserStatus:', defaultUserStatus)
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleDefaultStatusToggle(false)
-                }}
-                className={`px-4 py-2 rounded font-mono text-sm transition-colors ${
-                  !defaultUserStatus 
-                    ? 'bg-red-600 text-white shadow-lg' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                禁用
-              </button>
-              <button
-                onClick={(e) => {
-                  console.log('🖱️ [UserManagement] 启用按钮被点击！')
-                  console.log('🖱️ [UserManagement] 点击事件对象:', e)
-                  console.log('🖱️ [UserManagement] 当前defaultUserStatus:', defaultUserStatus)
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleDefaultStatusToggle(true)
-                }}
-                className={`px-4 py-2 rounded font-mono text-sm transition-colors ${
-                  defaultUserStatus 
-                    ? 'bg-green-600 text-white shadow-lg' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                启用
-              </button>
-            </div>
-          </div>
-          
-          {/* 状态诊断信息 */}
-          <div className="mt-3 pt-3 border-t border-green-400/20">
-            <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-              <div>
-                <div className="text-green-300/70">存储状态:</div>
-                <div className="text-green-400">
-                  localStorage: {localStorage.getItem('defaultUserStatus') || 'null'}
-                </div>
-                {sessionStorage.getItem('defaultUserStatus') && (
-                  <div className="text-orange-400">
-                    sessionStorage: {sessionStorage.getItem('defaultUserStatus')}
-                  </div>
-                )}
-                {fallbackStorage.defaultUserStatus !== undefined && (
-                  <div className="text-pink-400">
-                    内存存储: {String(fallbackStorage.defaultUserStatus)}
-                  </div>
-                )}
-              </div>
-              <div>
-                <div className="text-green-300/70">系统状态:</div>
-                <div className="text-green-400">
-                  浏览器支持: {diagnosticInfo.localStorageSupported ? '✅' : '❌'}
-                </div>
-                {diagnosticInfo.isPrivateMode && (
-                  <div className="text-yellow-400">
-                    ⚠️ 隐私模式检测
-                  </div>
-                )}
-                {!diagnosticInfo.storagePermission && (
-                  <div className="text-red-400">
-                    ❌ 存储权限受限
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* 已移除：新用户注册默认状态设置框（固定为禁用，无需展示） */}
 
         {error && (
           <div className="mb-6 p-4 bg-red-900/50 border border-red-400 rounded text-red-300">

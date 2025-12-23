@@ -3,6 +3,7 @@ import { Search, Calendar, Filter, Eye, Download, RefreshCw, Clock, User, Buildi
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { toast } from 'sonner'
+import { safeDeleteWithRecycleBin } from '../utils/recycleBin'
 
 interface ProductionLine {
   id: number
@@ -277,34 +278,30 @@ export default function TimesheetHistory() {
   }
 
   const handleDeleteConfirm = async () => {
-    if (!recordToDelete) return
+    if (!recordToDelete || !user) return
     
     try {
       setDeleting(true)
       
-      // 由于数据库设置了ON DELETE CASCADE，删除主记录时会自动删除相关的明细记录和审核历史
-      const { error } = await supabase
-        .from('timesheet_records')
-        .delete()
-        .eq('id', recordToDelete.id)
-        .eq('user_id', user?.id) // 确保只能删除自己的记录
-      
-      if (error) throw error
-      
-      toast.success('工时记录删除成功')
-      
-      // 刷新记录列表
-      await searchRecords()
-      
-      // 关闭确认对话框
-      setShowDeleteConfirm(false)
-      setRecordToDelete(null)
+      // 通过后端RPC安全删除并写入回收站
+      const { error: rpcErr } = await supabase.rpc('delete_timesheet_record_with_recycle_bin_v2', {
+        record_id: recordToDelete.id,
+        actor_id: user.id
+      })
+      if (!rpcErr) {
+        toast.success('工时记录已删除并存入回收站')
+        await searchRecords()
+      } else {
+        toast.error(`删除失败: ${rpcErr.message || '未知错误'}`)
+      }
       
     } catch (error) {
       console.error('删除工时记录失败:', error)
       toast.error('删除失败，请重试')
     } finally {
       setDeleting(false)
+      setShowDeleteConfirm(false)
+      setRecordToDelete(null)
     }
   }
 
@@ -741,8 +738,8 @@ export default function TimesheetHistory() {
                     <div><span className="text-red-400">总金额:</span> ￥{(recordToDelete.total_amount || 0).toFixed(2)}</div>
                   </div>
                 </div>
-                <p className="text-red-400 font-mono text-sm mt-3">
-                  ⚠️ 此操作将同时删除所有相关的工时明细和审核历史，且无法恢复！
+                <p className="text-blue-400 font-mono text-sm mt-3">
+                  ℹ️ 删除的记录将被存入回收站，可在需要时恢复
                 </p>
               </div>
               

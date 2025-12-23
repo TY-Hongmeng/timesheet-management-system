@@ -319,19 +319,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 生成用户ID（移除邮箱相关认证）
       const userId = crypto.randomUUID()
       
-      // 从localStorage读取默认用户状态设置
-      const saved = localStorage.getItem('defaultUserStatus')
-      let defaultUserStatus = false
-      
-      if (saved === null || saved === undefined) {
-        defaultUserStatus = false
-      } else {
-        try {
-          defaultUserStatus = JSON.parse(saved)
-        } catch (error) {
-          defaultUserStatus = false
-        }
-      }
+      // 固定注册为禁用状态
+      const defaultUserStatus = false
 
       // 创建用户信息记录
       const { error: userError } = await supabase

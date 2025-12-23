@@ -2,7 +2,7 @@
   "name": "工时管理系统",
   "short_name": "工时管理",
   "description": "高效的工时管理和项目跟踪系统",
-  "start_url": "/timesheet-management-system/?utm_source=pwa",
+  "start_url": "./?utm_source=pwa",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#ffffff",
@@ -30,7 +30,7 @@
   ],
   "categories": ["productivity", "business"],
   "lang": "zh-CN",
-  "scope": "/timesheet-management-system/",
+  "scope": "./",
   "prefer_related_applications": false,
   "edge_side_panel": {
     "preferred_width": 400

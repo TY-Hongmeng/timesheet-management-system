@@ -49,7 +49,7 @@ body {
 }
 
 /* 输入框在移动端的优化 */
-input, textarea, select {
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   /* 防止iOS缩放 */
   font-size: 16px !important;
   /* 防止自动大写 */
@@ -147,7 +147,7 @@ button, .btn {
   }
   
   /* 优化输入框在移动端的大小 */
-  input, textarea, select {
+  input:not([type="checkbox"]):not([type="radio"]), textarea, select {
     min-height: 44px;
     padding: 12px 16px;
   }

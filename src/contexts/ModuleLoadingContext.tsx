@@ -36,7 +36,8 @@ export const MODULE_IDS = {
   PERMISSION_MANAGEMENT: 'permission_management',
   ROLE_LIST: 'role-list',
   ROLE_EDIT: 'role-edit',
-  ROLE_CREATE: 'role-create'
+  ROLE_CREATE: 'role-create',
+  RECYCLE_BIN: 'recycle_bin'
 } as const
 
 export type ModuleId = typeof MODULE_IDS[keyof typeof MODULE_IDS]
@@ -62,7 +63,8 @@ const MODULE_PRIORITIES = {
   [MODULE_IDS.PERMISSION_MANAGEMENT]: 4,
   [MODULE_IDS.ROLE_LIST]: 4,
   [MODULE_IDS.ROLE_EDIT]: 4,
-  [MODULE_IDS.ROLE_CREATE]: 4
+  [MODULE_IDS.ROLE_CREATE]: 4,
+  [MODULE_IDS.RECYCLE_BIN]: 3
 }
 
 // 分级加载延迟配置

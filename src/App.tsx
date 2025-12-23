@@ -21,10 +21,11 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const TimesheetRecord = lazy(() => import('@/pages/TimesheetRecord'))
 const TimesheetHistory = lazy(() => import('@/pages/TimesheetHistory'))
 
-// 管理页面 - 按需加载
+// 其他页面 - 按需加载
 const CompanyManagement = lazy(() => import('@/pages/CompanyManagement'))
 const UserManagement = lazy(() => import('@/pages/UserManagement'))
 const ProcessManagement = lazy(() => import('@/pages/ProcessManagement'))
+const RecycleBin = lazy(() => import('@/pages/RecycleBin'))
 
 // 角色权限相关 - 按需加载
 const RoleList = lazy(() => import('@/pages/RoleList'))
@@ -48,6 +49,9 @@ const History = lazy(() =>
     return module
   })
 )
+
+// 系统诊断页面 - 按需加载
+const Diagnostics = lazy(() => import('@/pages/Diagnostics'))
 
 
 
@@ -374,6 +378,11 @@ function AppInner() {
               <LazyWrapper type="table"><ProcessManagement /></LazyWrapper>
             </ProtectedRoute>
           } />
+          <Route path="/recycle-bin" element={
+            <ProtectedRoute>
+              <LazyWrapper type="table"><RecycleBin /></LazyWrapper>
+            </ProtectedRoute>
+          } />
           <Route path="/timesheet-record" element={
             <ProtectedRoute>
               <LazyWrapper type="form"><TimesheetRecord /></LazyWrapper>
@@ -402,6 +411,12 @@ function AppInner() {
           <Route path="/history" element={
             <ProtectedRoute>
               <LazyWrapper type="list"><History /></LazyWrapper>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/diagnostics" element={
+            <ProtectedRoute>
+              <LazyWrapper type="card"><Diagnostics /></LazyWrapper>
             </ProtectedRoute>
           } />
 

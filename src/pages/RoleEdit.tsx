@@ -264,7 +264,8 @@ export default function RoleEdit() {
                           type="checkbox"
                           checked={formData.permissions.includes(module.permission)}
                           onChange={() => togglePermission(module.permission)}
-                          className="w-4 h-4 text-green-600 bg-black border-green-400 rounded focus:ring-green-500 focus:ring-2"
+                          className="w-6 h-6 border-2 border-green-500 rounded bg-black focus:ring-2 focus:ring-green-400"
+                          style={{ accentColor: '#22c55e' }}
                         />
                         <div className="text-green-300 font-mono text-sm font-medium">
                           {module.name}

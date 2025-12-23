@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
 import { useModuleLoading, MODULE_IDS } from '../contexts/ModuleLoadingContext'
-import { supabase } from '../lib/supabase'
+import { supabase, safeQuery, checkNetworkConnection } from '../lib/supabase'
 import { isSuperAdmin } from '../utils/permissions'
 import TimesheetConfirmDialog from '../components/TimesheetConfirmDialog'
 import NavActions from '../components/NavActions'
@@ -159,6 +159,18 @@ export default function TimesheetRecord() {
   
   // 刷新状态
   const [refreshing, setRefreshing] = useState(false)
+
+  const runList = async <T,>(fn: () => Promise<{ data: T[] | null; error: any }>): Promise<T[]> => {
+    const { data, error } = await safeQuery<T[]>(fn)
+    if (error) throw error
+    return data || []
+  }
+
+  const runSingle = async <T,>(fn: () => Promise<{ data: T | null; error: any }>): Promise<T> => {
+    const { data, error } = await safeQuery<T>(fn)
+    if (error) throw error
+    return data as T
+  }
   
   // 处理确认提交
   const handleConfirmSubmit = async () => {
@@ -204,17 +216,16 @@ export default function TimesheetRecord() {
 
   const loadCurrentUserCompany = async () => {
     if (!user) return
-    
     try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
-      
-      if (error) throw error
+      const userData = await runSingle<{ company_id: string }>(() =>
+        supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+      )
       setCurrentUserCompanyId(userData.company_id)
-    } catch (error) {
+    } catch {
       toast.error('获取用户公司信息失败')
     }
   }
@@ -490,16 +501,13 @@ export default function TimesheetRecord() {
         // 超级管理员不需要添加公司过滤条件
       } else {
         // 首先获取当前用户的公司信息
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('company_id')
-          .eq('id', user.id)
-          .single()
-        
-        if (userError) {
-          console.error('loadProductionLines: 获取用户公司信息失败:', userError)
-          throw userError
-        }
+        const userData = await runSingle<{ company_id: string }>(() =>
+          supabase
+            .from('users')
+            .select('company_id')
+            .eq('id', user.id)
+            .single()
+        )
         
         console.log('loadProductionLines: 用户公司ID:', userData.company_id)
         
@@ -507,12 +515,7 @@ export default function TimesheetRecord() {
         query = query.eq('company_id', userData.company_id)
       }
       
-      const { data, error } = await query
-      
-      if (error) {
-        console.error('loadProductionLines: 查询processes表失败:', error)
-        throw error
-      }
+      const data = await runList<any>(() => query)
 
       console.log('📊 TimesheetRecord.tsx - loadProductionLines: 查询到的原始数据:', data)
       console.log('📊 TimesheetRecord.tsx - loadProductionLines: 原始数据数量:', data?.length || 0)
@@ -612,17 +615,15 @@ export default function TimesheetRecord() {
       }
       
       // 从processes表获取工时类型数据（production_category字段），根据生产线过滤
-      const { data, error } = await supabase
-        .from('processes')
-        .select('production_category')
-        .eq('company_id', companyId)
-        .eq('production_line', selectedProductionLine.name)
-        .eq('is_active', true)
-        .not('production_category', 'is', null)
-      
-      if (error) {
-        throw error
-      }
+      const data = await runList<any>(() =>
+        supabase
+          .from('processes')
+          .select('production_category')
+          .eq('company_id', companyId)
+          .eq('production_line', selectedProductionLine.name)
+          .eq('is_active', true)
+          .not('production_category', 'is', null)
+      )
       
       // 去重并过滤有效的工时类型，排除数字值
       const uniqueWorkTypes = [...new Set(data?.map(item => item.production_category) || [])]
@@ -695,17 +696,14 @@ export default function TimesheetRecord() {
       }
       
       // 根据公司和选择的生产线获取产品数据
-      const { data, error } = await supabase
-        .from('processes')
-        .select('id, product_name, production_line')
-        .eq('company_id', companyId)
-        .eq('production_line', selectedProductionLine.name)
-        .eq('is_active', true)
-      
-      if (error) {
-        console.error('loadProducts: 查询processes表失败:', error)
-        throw error
-      }
+      const data = await runList<any>(() =>
+        supabase
+          .from('processes')
+          .select('id, product_name, production_line')
+          .eq('company_id', companyId)
+          .eq('production_line', selectedProductionLine.name)
+          .eq('is_active', true)
+      )
       
       console.log('loadProducts: 查询到的原始产品数据:', data)
       
@@ -782,18 +780,15 @@ export default function TimesheetRecord() {
       }
       
       // 根据公司和选择的生产线获取工序数据，注意字段名要与数据库表结构一致
-      const { data, error } = await supabase
-        .from('processes')
-        .select('id, product_process, product_name, company_id, production_line, production_category, unit_price, is_active')
-        .eq('company_id', companyId)
-        .eq('production_line', selectedProductionLine.name)
-        .eq('is_active', true)
-        .order('product_process')
-      
-      if (error) {
-        console.error('loadProcesses: 查询processes表失败:', error)
-        throw error
-      }
+      const data = await runList<any>(() =>
+        supabase
+          .from('processes')
+          .select('id, product_process, product_name, company_id, production_line, production_category, unit_price, is_active')
+          .eq('company_id', companyId)
+          .eq('production_line', selectedProductionLine.name)
+          .eq('is_active', true)
+          .order('product_process')
+      )
       
       console.log('loadProcesses: 查询到的原始数据:', data)
       
@@ -818,13 +813,13 @@ export default function TimesheetRecord() {
   }
 
   const loadUsers = async () => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, company_id, production_line, role:user_roles!inner(name)')
-      .eq('is_active', true)
-      .order('name')
-    
-    if (error) throw error
+    const data = await runList<any>(() =>
+      supabase
+        .from('users')
+        .select('id, name, company_id, production_line, role:user_roles!inner(name)')
+        .eq('is_active', true)
+        .order('name')
+    )
     setUsers(data || [])
   }
 
@@ -844,23 +839,20 @@ export default function TimesheetRecord() {
       }
       
       // 查询该生产线下角色为班长的用户
-      const { data, error } = await supabase
-        .from('users')
-        .select(`
-          id, 
-          name, 
-          production_line,
-          role:user_roles!inner(name)
-        `)
-        .eq('production_line', selectedLine.name)
-        .eq('user_roles.name', '班长')
-        .eq('is_active', true)
-        .order('name')
-      
-      if (error) {
-        throw error
-      }
-      
+      const data = await runList<any>(() =>
+        supabase
+          .from('users')
+          .select(`
+            id, 
+            name, 
+            production_line,
+            role:user_roles!inner(name)
+          `)
+          .eq('production_line', selectedLine.name)
+          .eq('user_roles.name', '班长')
+          .eq('is_active', true)
+          .order('name')
+      )
       setSupervisors(data || [])
       
       // 自动填写功能：如果只有一个班长选项且用户未选择，则自动选择
@@ -905,40 +897,34 @@ export default function TimesheetRecord() {
         console.log('loadSectionLeaders: 超级管理员使用生产线公司ID:', companyId)
       } else {
         // 普通用户使用自己的公司ID
-        const { data: userData, error: userError } = await supabase
+      const userData = await runSingle<{ company_id: string }>(() =>
+        supabase
           .from('users')
           .select('company_id')
           .eq('id', user?.id)
           .single()
-        
-        if (userError) {
-          console.error('loadSectionLeaders: 获取用户公司信息失败:', userError)
-          throw userError
-        }
+      )
         companyId = userData.company_id
         console.log('loadSectionLeaders: 普通用户使用自己的公司ID:', companyId)
       }
       
       // 查询该生产线下角色为段长的用户，添加公司过滤
-      const { data, error } = await supabase
-        .from('users')
-        .select(`
-          id, 
-          name, 
-          production_line,
-          company_id,
-          role:user_roles!inner(name)
-        `)
-        .eq('production_line', selectedLine.name)
-        .eq('company_id', companyId)
-        .eq('user_roles.name', '段长')
-        .eq('is_active', true)
-        .order('name')
-      
-      if (error) {
-        throw error
-      }
-      
+      const data = await runList<any>(() =>
+        supabase
+          .from('users')
+          .select(`
+            id, 
+            name, 
+            production_line,
+            company_id,
+            role:user_roles!inner(name)
+          `)
+          .eq('production_line', selectedLine.name)
+          .eq('company_id', companyId)
+          .eq('user_roles.name', '段长')
+          .eq('is_active', true)
+          .order('name')
+      )
       console.log('loadSectionLeaders: 查询到的段长数据:', data)
       setSectionLeaders(data || [])
       
@@ -1384,15 +1370,13 @@ export default function TimesheetRecord() {
         status: 'draft'
       }
       
-      const { data: recordData, error: recordError } = await supabase
-        .from('timesheet_records')
-        .insert(recordToInsert)
-        .select()
-        .single()
-
-      if (recordError) {
-        throw recordError
-      }
+      const recordData = await runSingle<any>(() =>
+        supabase
+          .from('timesheet_records')
+          .insert(recordToInsert)
+          .select()
+          .single()
+      )
 
       // 保存工时记录项
       const itemsToInsert = finalItems.map(item => ({
@@ -1404,13 +1388,11 @@ export default function TimesheetRecord() {
         // total_amount是数据库生成列，不需要手动插入
       }))
 
-      const { error: itemsError } = await supabase
-        .from('timesheet_record_items')
-        .insert(itemsToInsert)
-
-      if (itemsError) {
-        throw itemsError
-      }
+      await safeQuery(() =>
+        supabase
+          .from('timesheet_record_items')
+          .insert(itemsToInsert)
+      )
 
       toast.success('工时记录保存成功')
       
@@ -1547,17 +1529,8 @@ export default function TimesheetRecord() {
     try {
       setLoading(true)
       
-      // 检查Supabase连接状态
-      try {
-        const { data: connectionTest, error: connectionError } = await supabase
-          .from('users')
-          .select('id')
-          .limit(1)
-        
-        if (connectionError) {
-          throw new Error(`数据库连接失败: ${connectionError.message}`)
-        }
-      } catch (connError) {
+      const ok = await checkNetworkConnection()
+      if (!ok) {
         toast.error('数据库连接失败，请检查网络连接')
         return
       }
@@ -1580,15 +1553,13 @@ export default function TimesheetRecord() {
       
 
       
-      const { data: recordData, error: recordError } = await supabase
-        .from('timesheet_records')
-        .insert(recordToInsert)
-        .select()
-        .single()
-      
-      if (recordError) {
-        throw recordError
-      }
+      const recordData = await runSingle<any>(() =>
+        supabase
+          .from('timesheet_records')
+          .insert(recordToInsert)
+          .select()
+          .single()
+      )
 
       // 保存工时记录项，映射到正确的数据库字段
       const finalItems = itemsToSubmit || record.items
@@ -1608,13 +1579,11 @@ export default function TimesheetRecord() {
       
 
 
-      const { error: itemsError } = await supabase
-        .from('timesheet_record_items')
-        .insert(itemsToInsert)
-      
-      if (itemsError) {
-        throw itemsError
-      }
+      await safeQuery(() =>
+        supabase
+          .from('timesheet_record_items')
+          .insert(itemsToInsert)
+      )
 
       // 获取班长姓名用于显示
       const supervisor = supervisors.find(s => s.id === record.supervisor_id)
@@ -1723,7 +1692,7 @@ export default function TimesheetRecord() {
               <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-green-400 mr-2 sm:mr-3" />
               <h1 className="text-xl sm:text-4xl font-bold text-green-400 font-mono">工时记录</h1>
             </div>
-            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" />
+            <NavActions onRefresh={handleRefresh} refreshing={refreshing} backTo="/dashboard" showClearCache={false} />
           </div>
           <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"></div>
         </div>

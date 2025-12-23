@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2, Move3D, Hand } from 'lucide-react'
+import { Clock, BarChart3, Settings, Users, Building2, CheckCircle, Shield, Key, User, Building, Cog, Activity, LogOut, LucideIcon, Loader2, Move3D, Hand, Trash2 } from 'lucide-react'
 import { useModuleLoading } from '../contexts/ModuleLoadingContext'
 import {
   DndContext,
@@ -42,7 +42,8 @@ const iconMap: Record<string, LucideIcon> = {
   User,
   Building,
   Cog,
-  Activity
+  Activity,
+  Trash2
 }
 
 // 可排序的模块组件
